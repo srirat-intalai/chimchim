@@ -93,6 +93,11 @@
                   </div>
                </div>
             </div>
+
+            <div class="wsimilar" id="wSimilarSection" hidden data-aos="fade-up">
+               <div class="rowtitle" style="font-size:.9rem;">🍽️ ร้านที่คล้ายกัน</div>
+               <div class="hrowwrap" id="wSimilarRow"></div>
+            </div>
          </div>
       </section>
 
@@ -103,6 +108,25 @@
          <a href="following.html" class="anitem"><i class="fas fa-users"></i><span data-i18n="nav.following">ติดตาม</span></a>
          <a href="profile.html" class="anitem"><i class="fas fa-user"></i><span data-i18n="nav.profile">โปรไฟล์</span></a>
       </nav>
+
+      <!-- ============================================================
+         SHOP DETAIL POPUP — กดร้านที่คล้ายกันแล้วเด้งดูรายละเอียดตรงนี้เลย ไม่ต้องออกจากหน้าวงล้อ
+         ============================================================ -->
+      <div id="shopDetailPop">
+         <div class="apbox spbox2">
+            <button class="apclose" id="sdClose"><i class="fas fa-times"></i></button>
+            <img id="sdImg" src="" alt="" style="width:100%;border-radius:16px;max-height:200px;object-fit:cover;margin-bottom:14px;"/>
+            <div class="rdcat" id="sdCat"></div>
+            <h4 class="sptitle2" id="sdTitle"></h4>
+            <p class="apsub" id="sdRestaurant"></p>
+            <div class="rdmatchbox" style="margin:10px 0;">
+               <div class="rdmatchpct" id="sdMatchPct"></div>
+               <div class="rdmatchreason" id="sdMeta"></div>
+            </div>
+            <p style="font-size:.82rem;color:var(--text);line-height:1.6;margin-bottom:14px;" id="sdDesc"></p>
+            <a href="#" id="sdFullLink" class="btn-red w-100 justify-content-center"><i class="fas fa-arrow-right"></i><span data-i18n="restaurant.viewFull">ดูรายละเอียดเต็ม</span></a>
+         </div>
+      </div>
 
       <!-- ============================================================
          AUTH POPUP — เข้าสู่ระบบ / สมัครสมาชิก
@@ -126,20 +150,7 @@
             </form>
             <form id="registerForm" class="apform" style="display:none;">
                <div class="aperr" id="registerErr"></div>
-               <label class="flbl" data-i18n="auth.whoAreYou">คุณเป็นใคร?</label>
-               <div class="aprolewrap">
-                  <div class="aprole active" data-role="user">
-                     <div class="aprico">🧑‍🎓</div>
-                     <strong data-i18n="auth.regularUser">ผู้ใช้ทั่วไป</strong>
-                     <span data-i18n="auth.regularUserDesc">ค้นหาและติดตามร้านอาหาร</span>
-                  </div>
-                  <div class="aprole" data-role="vendor">
-                     <div class="aprico">🍳</div>
-                     <strong data-i18n="auth.vendor">ร้านค้า / พ่อค้าแม่ค้า</strong>
-                     <span data-i18n="auth.vendorDesc">โพสต์ร้านของคุณเข้าชุมชน</span>
-                  </div>
-               </div>
-               <label class="flbl">ชื่อ<span id="registerNameLbl">ของคุณ</span></label>
+               <label class="flbl" data-i18n="auth.yourName">ชื่อของคุณ</label>
                <input class="fctrl" type="text" id="registerName" placeholder="ชื่อ นามสกุล" autocomplete="name" required/>
                <label class="flbl" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="registerEmail" placeholder="you@email.com" autocomplete="email" required/>

@@ -25,278 +25,193 @@ var มหาวิทยาลัยทั้งหมด = ["ธรรมศ�
 // และ มื้อที่เหมาะ (ช่วงเวลาไหนของวันที่เหมาะจะกินเมนูนี้)
 // -----------------------------------------------------
 var รายการร้าน = [
+	// ----- ร้านจริงใกล้ ม.กรุงเทพ รังสิต (11 ร้าน) -----
 	{
-		id: 1,
-		เมนู: "ข้าวมันไก่เจ๊หมวย",
-		ร้าน: "เจ๊หมวย ข้าวมันไก่",
-		หมวด: "ข้าว",
+		id: 101,
+		เมนู: "ยำมะม่วงปูม้า",
+		ร้าน: "ร้านยำมะม่วงปูม้า ป้าใจดี",
+		หมวด: "เผ็ด",
 		ชาติอาหาร: "ไทย",
-		รส: ["กลมกล่อม", "เค็ม"],
-		ราคาต่ำ: 60,
-		ราคาสูง: 100,
-		ระยะทาง: 350,
-		มหาลัย: "ธรรมศาสตร์ รังสิต",
+		รส: ["เผ็ด", "เปรี้ยว"],
+		ราคาต่ำ: 80,
+		ราคาสูง: 150,
+		ระยะทาง: 450,
+		มหาลัย: "มหาวิทยาลัยกรุงเทพ",
 		เทรนด์: true,
 		มื้อที่เหมาะ: ["เที่ยง", "เย็น"],
-		รูป: "img/food/10.png",
+		รูป: "img/bu/yammamuang/yammamuang-yum-mango-01.jpg",
 		บัคเก็ต: ["foryou", "popular"],
-		แท็ก: ["ข้าว", "ร้านโปรด", "อิ่มคุ้ม"]
+		แท็ก: ["เผ็ด", "ยำ", "ทะเล"]
 	},
 	{
-		id: 2,
-		เมนู: "ข้าวหมูกรอบน้ำแดง",
-		ร้าน: "หมูกรอบเจ๊ยุ้ย",
-		หมวด: "ข้าว",
-		ชาติอาหาร: "ไทย",
-		รส: ["เค็ม", "หวาน"],
-		ราคาต่ำ: 50,
-		ราคาสูง: 80,
-		ระยะทาง: 250,
-		มหาลัย: "มหาวิทยาลัยกรุงเทพ",
-		เทรนด์: false,
-		มื้อที่เหมาะ: ["เที่ยง", "เย็น"],
-		รูป: "img/food/23.png",
-		บัคเก็ต: ["foryou", "hidden"],
-		แท็ก: ["ข้าว", "หมูกรอบ", "งบน้อย"]
-	},
-	{
-		id: 3,
-		เมนู: "ราเมงทงคตสึต้นตำรับ",
-		ร้าน: "ราเมงคุมะ",
-		หมวด: "เส้น",
+		id: 102,
+		เมนู: "หมูทอดคัตสึซอสสไตล์ญี่ปุ่น",
+		ร้าน: "MOM KITCHEN",
+		หมวด: "ญี่ปุ่น",
 		ชาติอาหาร: "ญี่ปุ่น",
 		รส: ["กลมกล่อม", "เค็ม"],
 		ราคาต่ำ: 150,
-		ราคาสูง: 220,
-		ระยะทาง: 1200,
-		มหาลัย: "เกษตรศาสตร์",
-		เทรนด์: false,
-		มื้อที่เหมาะ: ["เที่ยง", "เย็น", "ดึก"],
-		รูป: "img/food/9.png",
+		ราคาสูง: 350,
+		ระยะทาง: 300,
+		มหาลัย: "มหาวิทยาลัยกรุงเทพ",
+		เทรนด์: true,
+		มื้อที่เหมาะ: ["เที่ยง", "เย็น"],
+		รูป: "img/bu/momkitchen/momkitchen-katsu-set-01.jpg",
 		บัคเก็ต: ["foryou", "new"],
-		แท็ก: ["เส้น", "ญี่ปุ่น", "น้ำซุปข้น"]
+		แท็ก: ["ญี่ปุ่น", "คัตสึ", "สเต็ก"]
 	},
 	{
-		id: 4,
-		เมนู: "ผัดไทยกุ้งสด",
-		ร้าน: "ผัดไทยป้านิด",
+		id: 103,
+		เมนู: "ก๋วยเตี๋ยวหมูน้ำตก",
+		ร้าน: "กินเตี๋ยวบ้านแม่",
 		หมวด: "เส้น",
 		ชาติอาหาร: "ไทย",
-		รส: ["หวาน", "เปรี้ยว"],
-		ราคาต่ำ: 60,
-		ราคาสูง: 90,
-		ระยะทาง: 400,
-		มหาลัย: "ธรรมศาสตร์ รังสิต",
+		รส: ["เผ็ด", "กลมกล่อม"],
+		ราคาต่ำ: 40,
+		ราคาสูง: 65,
+		ระยะทาง: 600,
+		มหาลัย: "มหาวิทยาลัยกรุงเทพ",
 		เทรนด์: false,
 		มื้อที่เหมาะ: ["เที่ยง", "เย็น"],
-		รูป: "img/food/1.png",
-		บัคเก็ต: ["hidden", "popular"],
-		แท็ก: ["เส้น", "คลาสสิก"]
+		รูป: "img/bu/kinteaw-banmae/kinteaw-banmae-noodle-soup-01.webp",
+		บัคเก็ต: ["foryou", "hidden"],
+		แท็ก: ["เส้น", "ก๋วยเตี๋ยว", "งบน้อย"]
 	},
 	{
-		id: 5,
-		เมนู: "ต้มยำกุ้งน้ำข้น",
-		ร้าน: "ต้มยำโกทอง",
-		หมวด: "ซุป",
+		id: 104,
+		เมนู: "ก๋วยเตี๋ยวเรือ",
+		ร้าน: "ก๋วยเตี๋ยวเรือยกซดมอกรุงเทพ",
+		หมวด: "เส้น",
 		ชาติอาหาร: "ไทย",
-		รส: ["เผ็ด", "เปรี้ยว"],
-		ราคาต่ำ: 120,
-		ราคาสูง: 180,
-		ระยะทาง: 800,
+		รส: ["เผ็ด", "เข้มข้น"],
+		ราคาต่ำ: 50,
+		ราคาสูง: 90,
+		ระยะทาง: 700,
 		มหาลัย: "มหาวิทยาลัยกรุงเทพ",
 		เทรนด์: true,
 		มื้อที่เหมาะ: ["เที่ยง", "เย็น"],
-		รูป: "img/food/57.png",
+		รูป: "img/bu/boat-noodle/boat-noodle-boat-noodle-01.jpg",
 		บัคเก็ต: ["popular", "new"],
-		แท็ก: ["ซุป", "เผ็ด", "ต้องลอง"]
+		แท็ก: ["เส้น", "ก๋วยเตี๋ยวเรือ", "น้ำข้น"]
 	},
 	{
-		id: 6,
-		เมนู: "ชีสเบอร์เกอร์ดับเบิ้ล",
-		ร้าน: "Fast Bite Corner",
-		หมวด: "Fast Food",
-		ชาติอาหาร: "ฝรั่ง",
-		รส: ["เค็ม"],
-		ราคาต่ำ: 90,
-		ราคาสูง: 130,
-		ระยะทาง: 600,
-		มหาลัย: "เกษตรศาสตร์",
+		id: 105,
+		เมนู: "ข้าวมันไก่",
+		ร้าน: "ข้าวมันไก่ลุงนวย",
+		หมวด: "ข้าว",
+		ชาติอาหาร: "ไทย",
+		รส: ["กลมกล่อม", "เค็ม"],
+		ราคาต่ำ: 45,
+		ราคาสูง: 70,
+		ระยะทาง: 350,
+		มหาลัย: "มหาวิทยาลัยกรุงเทพ",
 		เทรนด์: false,
-		มื้อที่เหมาะ: ["เที่ยง", "บ่าย", "ดึก"],
-		รูป: "img/food/28.png",
-		บัคเก็ต: ["nearyou", "popular"],
-		แท็ก: ["Fast Food", "เนื้อ"]
-	},
-	{
-		id: 7,
-		เมนู: "ซูชิแซลมอนโรล",
-		ร้าน: "ซูชิยูกิ",
-		หมวด: "ญี่ปุ่น",
-		ชาติอาหาร: "ญี่ปุ่น",
-		รส: ["กลมกล่อม"],
-		ราคาต่ำ: 180,
-		ราคาสูง: 280,
-		ระยะทาง: 1500,
-		มหาลัย: "ธรรมศาสตร์ รังสิต",
-		เทรนด์: true,
 		มื้อที่เหมาะ: ["เที่ยง", "เย็น"],
-		รูป: "img/food/58.png",
-		บัคเก็ต: ["nearyou", "new"],
-		แท็ก: ["ญี่ปุ่น", "ปลาแซลมอน"]
+		รูป: "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-roast-pork-rice-01.jpg",
+		บัคเก็ต: ["foryou", "popular"],
+		แท็ก: ["ข้าว", "ข้าวมันไก่", "งบน้อย"]
 	},
 	{
-		id: 8,
-		เมนู: "บิงซูมัทฉะ",
-		ร้าน: "บิงซูเกาหลีน้องหมี",
-		หมวด: "ของหวาน",
-		ชาติอาหาร: "ของหวาน",
-		รส: ["หวาน"],
-		ราคาต่ำ: 89,
-		ราคาสูง: 129,
+		id: 106,
+		เมนู: "อาหารตามสั่งครัวใบมิ้นท์",
+		ร้าน: "ครัวใบมิ้นท์",
+		หมวด: "ข้าว",
+		ชาติอาหาร: "ไทย",
+		รส: ["กลมกล่อม", "เผ็ด"],
+		ราคาต่ำ: 50,
+		ราคาสูง: 120,
+		ระยะทาง: 500,
+		มหาลัย: "มหาวิทยาลัยกรุงเทพ",
+		เทรนด์: false,
+		มื้อที่เหมาะ: ["เที่ยง", "เย็น", "ดึก"],
+		รูป: "img/bu/krua-baimint/krua-baimint-crispy-pork-basil.jpg",
+		บัคเก็ต: ["foryou", "hidden"],
+		แท็ก: ["ข้าว", "ตามสั่ง", "เมนูเยอะ"]
+	},
+	{
+		id: 107,
+		เมนู: "หม่าล่าทั่ง",
+		ร้าน: "ฉงเมาไท่ หม่าล่าทั่ง",
+		หมวด: "เผ็ด",
+		ชาติอาหาร: "จีน",
+		รส: ["เผ็ด"],
+		ราคาต่ำ: 100,
+		ราคาสูง: 250,
 		ระยะทาง: 900,
 		มหาลัย: "มหาวิทยาลัยกรุงเทพ",
-		เทรนด์: false,
-		มื้อที่เหมาะ: ["บ่าย"],
-		รูป: "img/food/30.png",
-		บัคเก็ต: ["new", "popular"],
-		แท็ก: ["ของหวาน", "เกาหลี", "ชาเขียว"]
-	},
-	{
-		id: 9,
-		เมนู: "ชาไทยเย็นต้นตำรับ",
-		ร้าน: "ชาไทยลุงหมี",
-		หมวด: "ของหวาน",
-		ชาติอาหาร: "ของหวาน",
-		รส: ["หวาน"],
-		ราคาต่ำ: 25,
-		ราคาสูง: 45,
-		ระยะทาง: 200,
-		มหาลัย: "เกษตรศาสตร์",
 		เทรนด์: true,
-		มื้อที่เหมาะ: ["เช้า", "บ่าย"],
-		รูป: "img/food/56.png",
-		บัคเก็ต: ["foryou", "popular"],
-		แท็ก: ["เครื่องดื่ม", "ของหวาน", "งบน้อย"]
+		มื้อที่เหมาะ: ["เย็น", "ดึก"],
+		รูป: "img/bu/chongmaotai-mala/chongmaotai-mala-mala-bowl-01.jpg",
+		บัคเก็ต: ["popular", "new"],
+		แท็ก: ["เผ็ดมาก", "จีน", "หม่าล่า"]
 	},
 	{
-		id: 10,
-		เมนู: "กะเพราหมูสับไข่ดาว",
-		ร้าน: "ครัวคุณป้า",
-		หมวด: "เผ็ด",
-		ชาติอาหาร: "ไทย",
-		รส: ["เผ็ด", "เค็ม"],
-		ราคาต่ำ: 50,
-		ราคาสูง: 70,
-		ระยะทาง: 500,
-		มหาลัย: "ธรรมศาสตร์ รังสิต",
-		เทรนด์: false,
-		มื้อที่เหมาะ: ["เช้า", "เที่ยง", "เย็น"],
-		รูป: "img/food/13.png",
-		บัคเก็ต: ["foryou", "popular"],
-		แท็ก: ["เผ็ด", "ข้าวราด", "งบน้อย"]
-	},
-	{
-		id: 11,
-		เมนู: "ส้มตำไทยรสแซ่บ",
-		ร้าน: "ส้มตำป้าแดง",
+		id: 108,
+		เมนู: "ตำยำยั่ว",
+		ร้าน: "ตำยำยั่ว By โบตั๋น",
 		หมวด: "เผ็ด",
 		ชาติอาหาร: "ไทย",
 		รส: ["เผ็ด", "เปรี้ยว"],
 		ราคาต่ำ: 40,
-		ราคาสูง: 60,
+		ราคาสูง: 90,
+		ระยะทาง: 400,
+		มหาลัย: "มหาวิทยาลัยกรุงเทพ",
+		เทรนด์: false,
+		มื้อที่เหมาะ: ["เที่ยง", "เย็น"],
+		รูป: "img/bu/tamyamyua-botan/tamyamyua-botan-yum-somtum.webp",
+		บัคเก็ต: ["foryou", "popular"],
+		แท็ก: ["เผ็ด", "ส้มตำ", "อีสาน"]
+	},
+	{
+		id: 109,
+		เมนู: "ส้มตำแซ่บ",
+		ร้าน: "ร้านแอบแซ่บ",
+		หมวด: "เผ็ด",
+		ชาติอาหาร: "ไทย",
+		รส: ["เผ็ด", "เปรี้ยว"],
+		ราคาต่ำ: 35,
+		ราคาสูง: 85,
+		ระยะทาง: 550,
+		มหาลัย: "มหาวิทยาลัยกรุงเทพ",
+		เทรนด์: false,
+		มื้อที่เหมาะ: ["เที่ยง", "เย็น"],
+		รูป: "img/bu/aab-saep/aab-saep-somtum-seafood.jpg",
+		บัคเก็ต: ["foryou", "hidden"],
+		แท็ก: ["เผ็ด", "อีสาน", "งบน้อย"]
+	},
+	{
+		id: 110,
+		เมนู: "สเต็กเนื้อซอสพริกไทยดำ",
+		ร้าน: "แซมสเต็ก",
+		หมวด: "Fast Food",
+		ชาติอาหาร: "ฝรั่ง",
+		รส: ["เค็ม", "กลมกล่อม"],
+		ราคาต่ำ: 79,
+		ราคาสูง: 159,
+		ระยะทาง: 650,
+		มหาลัย: "มหาวิทยาลัยกรุงเทพ",
+		เทรนด์: false,
+		มื้อที่เหมาะ: ["เที่ยง", "เย็น"],
+		รูป: "img/bu/sam-steak/sam-steak-steak-gravy.jpg",
+		บัคเก็ต: ["popular", "new"],
+		แท็ก: ["สเต็ก", "งบน้อย", "จานเดียว"]
+	},
+	{
+		id: 111,
+		เมนู: "ลาบหมูไข่ดาว",
+		ร้าน: "ไก่และไข่ขายข้าว",
+		หมวด: "เผ็ด",
+		ชาติอาหาร: "ไทย",
+		รส: ["เผ็ด", "เค็ม"],
+		ราคาต่ำ: 40,
+		ราคาสูง: 69,
 		ระยะทาง: 300,
 		มหาลัย: "มหาวิทยาลัยกรุงเทพ",
 		เทรนด์: false,
-		มื้อที่เหมาะ: ["เที่ยง", "เย็น"],
-		รูป: "img/food/6.png",
-		บัคเก็ต: ["foryou", "hidden"],
-		แท็ก: ["เผ็ด", "ส้มตำ", "งบน้อย"]
-	},
-	{
-		id: 12,
-		เมนู: "หมาล่าเผ็ดทะลุจักรวาล",
-		ร้าน: "หมาล่าเสฉวน",
-		หมวด: "เผ็ด",
-		ชาติอาหาร: "จีน",
-		รส: ["เผ็ด"],
-		ราคาต่ำ: 150,
-		ราคาสูง: 250,
-		ระยะทาง: 1800,
-		มหาลัย: "เกษตรศาสตร์",
-		เทรนด์: true,
 		มื้อที่เหมาะ: ["เที่ยง", "เย็น", "ดึก"],
-		รูป: "img/food/59.png",
-		บัคเก็ต: ["hidden", "new"],
-		แท็ก: ["เผ็ดมาก", "จีน"]
-	},
-	{
-		// อันนี้เป็นร้านที่จ่ายเงินโปรโมทกับชิมชิม (ใช้โชว์ใน section Sponsored เดิม)
-		id: 13,
-		เมนู: "หมูย่างเกาหลีเซ็ตพรีเมียม",
-		ร้าน: "Seoul Grill House",
-		หมวด: "เผ็ด",
-		ชาติอาหาร: "เกาหลี",
-		รส: ["เผ็ด", "เค็ม"],
-		ราคาต่ำ: 259,
-		ราคาสูง: 359,
-		ระยะทาง: 1000,
-		มหาลัย: "ธรรมศาสตร์ รังสิต",
-		เทรนด์: true,
-		มื้อที่เหมาะ: ["เย็น"],
-		รูป: "img/food/44.png",
-		บัคเก็ต: ["popular"],
-		แท็ก: ["เกาหลี", "ปิ้งย่าง", "Sponsored"]
-	},
-	{
-		id: 14,
-		เมนู: "ไก่ทอดเกาหลีซอสพริกหวาน",
-		ร้าน: "Seoul Fried Chicken",
-		หมวด: "Fast Food",
-		ชาติอาหาร: "เกาหลี",
-		รส: ["เผ็ด", "หวาน"],
-		ราคาต่ำ: 90,
-		ราคาสูง: 140,
-		ระยะทาง: 700,
-		มหาลัย: "มหาวิทยาลัยกรุงเทพ",
-		เทรนด์: true,
-		มื้อที่เหมาะ: ["เที่ยง", "เย็น", "ดึก"],
-		รูป: "img/food/32.png",
-		บัคเก็ต: ["nearyou", "new"],
-		แท็ก: ["Fast Food", "เกาหลี", "ไก่ทอด"]
-	},
-	{
-		id: 15,
-		เมนู: "ข้าวหน้าปลาไหลย่างเทริยากิ",
-		ร้าน: "Unagi House",
-		หมวด: "ญี่ปุ่น",
-		ชาติอาหาร: "ญี่ปุ่น",
-		รส: ["หวาน", "เค็ม"],
-		ราคาต่ำ: 220,
-		ราคาสูง: 320,
-		ระยะทาง: 1300,
-		มหาลัย: "เกษตรศาสตร์",
-		เทรนด์: false,
-		มื้อที่เหมาะ: ["เที่ยง", "เย็น"],
-		รูป: "img/food/25.png",
-		บัคเก็ต: ["foryou", "new"],
-		แท็ก: ["ญี่ปุ่น", "ปลาไหล"]
-	},
-	{
-		id: 16,
-		เมนู: "ครัวซองต์อบใหม่เนยฝรั่งเศส",
-		ร้าน: "Bake & Co.",
-		หมวด: "ของหวาน",
-		ชาติอาหาร: "ของหวาน",
-		รส: ["หวาน"],
-		ราคาต่ำ: 45,
-		ราคาสูง: 75,
-		ระยะทาง: 450,
-		มหาลัย: "ธรรมศาสตร์ รังสิต",
-		เทรนด์: true,
-		มื้อที่เหมาะ: ["เช้า", "บ่าย"],
-		รูป: "img/food/20.png",
-		บัคเก็ต: ["popular", "new"],
-		แท็ก: ["ของหวาน", "เบเกอรี่"]
+		รูป: "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-pad-thai-01.webp",
+		บัคเก็ต: ["foryou", "popular"],
+		แท็ก: ["เผ็ด", "ลาบ", "งบน้อย"]
 	}
 ];
 
@@ -766,6 +681,177 @@ var วงล้อหมวดอาหาร = [
 ];
 
 // -----------------------------------------------------
+// 6.5 เพจร้าน 11 ร้านจริงใกล้ ม.กรุงเทพ รังสิต — แต่ละร้านมีโปรไฟล์ + โพสต์รูปหลายรูปเหมือน IG/Facebook/Lemon8
+// ผูกกับร้านจริงใน รายการร้าน (menuId) กดจากฟีด/โปรไฟล์ไปหน้า restaurant.html ของร้านนั้นได้
+// ดูโปรไฟล์เต็มได้ที่ public-profile.html?u=bu-<id> ส่วนที่เหลือในฟีดเป็นโพสต์จริงจากผู้ใช้ (getAllPosts)
+// ทุกคนโพสต์เพิ่มเองได้ ไม่ต้องเป็นร้านในลิสต์นี้เท่านั้น — นี่แค่ตัวตั้งต้นให้ฟีดไม่ว่างเปล่าตอนเปิดแอปครั้งแรก
+// -----------------------------------------------------
+var เพจร้านBU = [
+	{
+		id: "yammamuang",
+		name: "ร้านยำมะม่วงปูม้า ป้าใจดี",
+		avatar: "img/bu/yammamuang/yammamuang-yum-mango-01.jpg",
+		cat: "เผ็ด",
+		bio: "ยำมะม่วง+ยำทะเลรสแซ่บ ซอยรังสิตภิรมย์ เผ็ดจี๊ดถึงใจคนรักยำ",
+		menuId: 101,
+		posts: [
+			{ images: ["img/bu/yammamuang/yammamuang-crab-dong.jpg", "img/bu/yammamuang/yammamuang-storefront.jpg", "img/bu/yammamuang/yammamuang-sushi-roll.jpg", "img/bu/yammamuang/yammamuang-yum-crab.jpg"], caption: "ยำทะเลรวมจานเด็ดร้านเรา เปรี้ยวเผ็ดแซ่บจนต้องกลับมาสั่งซ้ำ 🦑🌶️", daysAgo: 0 },
+			{ images: ["img/bu/yammamuang/yammamuang-yum-mango-02.jpg", "img/bu/yammamuang/yammamuang-yum-mixed.jpg", "img/bu/yammamuang/yammamuang-yum-seafood.jpg"], caption: "วันนี้ทะเลสดมาใหม่ทั้งร้าน แวะมายำกันได้ตั้งแต่เที่ยงเลยจ้า", daysAgo: 1 },
+		]
+	},
+	{
+		id: "momkitchen",
+		name: "MOM KITCHEN",
+		avatar: "img/bu/momkitchen/momkitchen-katsu-set-01.jpg",
+		cat: "ญี่ปุ่น",
+		bio: "ร้านอาหารสไตล์ญี่ปุ่น-ตะวันตก ใกล้ ม.กรุงเทพ รังสิต มีทั้งคัตสึ สเต็ก ปลาแซลมอน เสิร์ฟพร้อมซุปมิโซะ",
+		menuId: 102,
+		posts: [
+			{ images: ["img/bu/momkitchen/momkitchen-chicken-set.jpg", "img/bu/momkitchen/momkitchen-fish-rice-set.jpg", "img/bu/momkitchen/momkitchen-grilled-fish.jpg", "img/bu/momkitchen/momkitchen-katsu-set-02.webp"], caption: "หมูทอดคัตสึกรอบนอกนุ่มใน เสิร์ฟพร้อมซุปมิโซะร้อน ๆ จานโปรดของลูกค้าประจำ 🍱", daysAgo: 0 },
+			{ images: ["img/bu/momkitchen/momkitchen-katsu-set-03.jpg", "img/bu/momkitchen/momkitchen-katsu-set-04.jpg", "img/bu/momkitchen/momkitchen-katsu-waffle.jpg", "img/bu/momkitchen/momkitchen-menu-board.jpg"], caption: "สเต็กย่างสไตล์ร้านเรา เนื้อนุ่มซอสเข้มข้น เสิร์ฟพร้อมเฟรนช์ฟรายส์ อร่อยจนต้องกลับมาอีก", daysAgo: 1 },
+			{ images: ["img/bu/momkitchen/momkitchen-pasta-bacon-egg.webp", "img/bu/momkitchen/momkitchen-porkchop-set.jpg", "img/bu/momkitchen/momkitchen-ribs-set.jpg", "img/bu/momkitchen/momkitchen-salmon-salad.webp"], caption: "อีกมุมของร้านวันนี้ บรรยากาศดีสุด ๆ 📸", daysAgo: 2 },
+			{ images: ["img/bu/momkitchen/momkitchen-salmon-set.jpg", "img/bu/momkitchen/momkitchen-seafood-pasta-01.jpg", "img/bu/momkitchen/momkitchen-seafood-pasta-02.webp", "img/bu/momkitchen/momkitchen-seafood-salad.jpg"], caption: "เมนูเด็ดอีกจานที่อยากให้ลอง รับรองไม่ผิดหวัง 😋", daysAgo: 3 },
+			{ images: ["img/bu/momkitchen/momkitchen-shrimp-set.jpg", "img/bu/momkitchen/momkitchen-steak-set-01.jpg", "img/bu/momkitchen/momkitchen-steak-set-02.jpg", "img/bu/momkitchen/momkitchen-steak-set-03.jpg"], caption: "ลูกค้าประจำสั่งซ้ำทุกครั้งที่มา ลองแล้วจะรู้ว่าทำไม", daysAgo: 4 },
+			{ images: ["img/bu/momkitchen/momkitchen-storefront.webp"], caption: "วันนี้วัตถุดิบสดใหม่เข้าร้านทุกเช้า การันตีความอร่อย", daysAgo: 5 },
+		]
+	},
+	{
+		id: "kinteaw-banmae",
+		name: "กินเตี๋ยวบ้านแม่",
+		avatar: "img/bu/kinteaw-banmae/kinteaw-banmae-profile.jpeg",
+		cat: "เส้น",
+		bio: "ก๋วยเตี๋ยวสูตรบ้านแม่ รังสิตภิรมย์ น้ำซุปต้มเองสดใหม่ทุกวัน",
+		menuId: 103,
+		posts: [
+			{ images: ["img/bu/kinteaw-banmae/kinteaw-banmae-noodle-soup-01.webp", "img/bu/kinteaw-banmae/kinteaw-banmae-chicken-rice.webp", "img/bu/kinteaw-banmae/kinteaw-banmae-hotpot-set.webp", "img/bu/kinteaw-banmae/kinteaw-banmae-logo.jpeg"], caption: "ก๋วยเตี๋ยวหมูน้ำตกชามเด็ด น้ำซุปเข้มข้นสูตรบ้านแม่แท้ ๆ 🍜", daysAgo: 0 },
+			{ images: ["img/bu/kinteaw-banmae/kinteaw-banmae-menu-board.webp", "img/bu/kinteaw-banmae/kinteaw-banmae-minced-pork-rice.webp", "img/bu/kinteaw-banmae/kinteaw-banmae-noodle-soup-02.webp", "img/bu/kinteaw-banmae/kinteaw-banmae-noodle-soup-03.webp"], caption: "อากาศแบบนี้ต้องก๋วยเตี๋ยวร้อน ๆ สักชาม แวะมาชิมกันได้เลยจ้า", daysAgo: 1 },
+			{ images: ["img/bu/kinteaw-banmae/kinteaw-banmae-noodle-soup-04.webp", "img/bu/kinteaw-banmae/kinteaw-banmae-noodle-soup-05.webp", "img/bu/kinteaw-banmae/kinteaw-banmae-pork-rice-01.webp", "img/bu/kinteaw-banmae/kinteaw-banmae-pork-rice-02.webp"], caption: "อีกมุมของร้านวันนี้ บรรยากาศดีสุด ๆ 📸", daysAgo: 2 },
+			{ images: ["img/bu/kinteaw-banmae/kinteaw-banmae-pork-rice-03.webp", "img/bu/kinteaw-banmae/kinteaw-banmae-storefront.webp"], caption: "เมนูเด็ดอีกจานที่อยากให้ลอง รับรองไม่ผิดหวัง 😋", daysAgo: 3 },
+		]
+	},
+	{
+		id: "boat-noodle",
+		name: "ก๋วยเตี๋ยวเรือยกซดมอกรุงเทพ",
+		avatar: "img/bu/boat-noodle/boat-noodle-profile.jpg",
+		cat: "เส้น",
+		bio: "ก๋วยเตี๋ยวเรือรสจัดจ้าน น้ำซุปข้นเข้มข้น สั่งกี่ชามก็ไม่เบื่อ",
+		menuId: 104,
+		posts: [
+			{ images: ["img/bu/boat-noodle/boat-noodle-boat-noodle-01.jpg", "img/bu/boat-noodle/boat-noodle-boat-noodle-02.jpg", "img/bu/boat-noodle/boat-noodle-boat-noodle-03.jpg", "img/bu/boat-noodle/boat-noodle-boat-noodle-egg.jpg"], caption: "ก๋วยเตี๋ยวเรือน้ำข้นสูตรเข้มข้น ยกซดกันแบบไม่ยั้งเลยวันนี้ 🍲", daysAgo: 0 },
+			{ images: ["img/bu/boat-noodle/boat-noodle-boat-noodle-tray-01.jpg", "img/bu/boat-noodle/boat-noodle-boat-noodle-tray-02.jpg", "img/bu/boat-noodle/boat-noodle-logo.jpg"], caption: "สั่ง 10 ชามยังไม่พอ รสชาติเข้มข้นจัดจ้านแบบนี้ต้องมาลอง", daysAgo: 1 },
+		]
+	},
+	{
+		id: "khaomankai-luangnuay",
+		name: "ข้าวมันไก่ลุงนวย",
+		avatar: "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-profile.jpg",
+		cat: "ข้าว",
+		bio: "ข้าวมันไก่+หมูแดงรังสิตภิรมย์ เลือกท็อปปิ้งได้ตามใจ หมูแดงหวานมัน ไข่ดาวกรอบขอบ ราคาย่อมเยา",
+		menuId: 105,
+		posts: [
+			{ images: ["img/bu/khaomankai-luangnuay/khaomankai-luangnuay-roast-pork-rice-01.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-boiled-pork.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-crispy-fried.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-01.jpg"], caption: "เซตข้าวหน้าต่าง ๆ จากร้านเรา หมูแดงหวานมัน ไข่ดาวกรอบขอบ เลือกได้ตามใจชอบ 🍳", daysAgo: 0 },
+			{ images: ["img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-02.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-03.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-04.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-05.jpg"], caption: "สั่งเดลิเวอรีก็ได้นะ รสชาติเข้มข้นเหมือนเดิมทุกจาน", daysAgo: 1 },
+			{ images: ["img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-06.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-07.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-08.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-09.jpg"], caption: "อีกมุมของร้านวันนี้ บรรยากาศดีสุด ๆ 📸", daysAgo: 2 },
+			{ images: ["img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-10.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-11.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-12.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-13.jpg"], caption: "เมนูเด็ดอีกจานที่อยากให้ลอง รับรองไม่ผิดหวัง 😋", daysAgo: 3 },
+			{ images: ["img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-14.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-15.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-16.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-17.jpg"], caption: "ลูกค้าประจำสั่งซ้ำทุกครั้งที่มา ลองแล้วจะรู้ว่าทำไม", daysAgo: 4 },
+			{ images: ["img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-18.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-19.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-fried-egg-stirfry-20.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-logo.jpg"], caption: "วันนี้วัตถุดิบสดใหม่เข้าร้านทุกเช้า การันตีความอร่อย", daysAgo: 5 },
+			{ images: ["img/bu/khaomankai-luangnuay/khaomankai-luangnuay-rice-porridge.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-roast-platter-01.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-roast-platter-02.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-roast-platter-03.jpg"], caption: "ใครยังไม่เคยลอง วันนี้แวะมาได้เลยนะ", daysAgo: 6 },
+			{ images: ["img/bu/khaomankai-luangnuay/khaomankai-luangnuay-roast-pork-rice-02.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-roast-pork-rice-03.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-shrimp-soup.jpg", "img/bu/khaomankai-luangnuay/khaomankai-luangnuay-sliced-pork-soup.jpg"], caption: "จัดเต็มทุกจานแบบไม่กั๊ก แวะมาอุดหนุนกันเยอะ ๆ 🙏", daysAgo: 7 },
+			{ images: ["img/bu/khaomankai-luangnuay/khaomankai-luangnuay-soup-pork.jpg"], caption: "อีกมุมของร้านวันนี้ บรรยากาศดีสุด ๆ 📸", daysAgo: 8 },
+		]
+	},
+	{
+		id: "krua-baimint",
+		name: "ครัวใบมิ้นท์",
+		avatar: "img/bu/krua-baimint/krua-baimint-profile.jpg",
+		cat: "ข้าว",
+		bio: "อาหารตามสั่งเมนูเยอะ ใกล้ ม.กรุงเทพ เปิดยันดึก ตอบโจทย์สายกินมื้อดึก",
+		menuId: 106,
+		posts: [
+			{ images: ["img/bu/krua-baimint/krua-baimint-crispy-pork-basil.jpg", "img/bu/krua-baimint/krua-baimint-bacon-chili-salt.jpg", "img/bu/krua-baimint/krua-baimint-beef-basil-fried-egg.jpg", "img/bu/krua-baimint/krua-baimint-chicken-cashew.jpg"], caption: "เมนูตามสั่งครบเครื่อง สั่งอะไรก็ทำได้ อร่อยทุกจานจริง ๆ", daysAgo: 0 },
+			{ images: ["img/bu/krua-baimint/krua-baimint-chicken-curry-paste.jpg", "img/bu/krua-baimint/krua-baimint-dried-seafood-hotpot.jpg", "img/bu/krua-baimint/krua-baimint-fried-rice-sausage-ham.jpg", "img/bu/krua-baimint/krua-baimint-larb-moo.jpg"], caption: "หิวดึกก็แวะมาได้ เปิดยาวจนดึก อิ่มท้องก่อนกลับหอ 🌙", daysAgo: 1 },
+			{ images: ["img/bu/krua-baimint/krua-baimint-logo.jpg", "img/bu/krua-baimint/krua-baimint-panang-curry-pork.jpg", "img/bu/krua-baimint/krua-baimint-pork-basil-pepper.jpg", "img/bu/krua-baimint/krua-baimint-pork-black-pepper.jpg"], caption: "อีกมุมของร้านวันนี้ บรรยากาศดีสุด ๆ 📸", daysAgo: 2 },
+			{ images: ["img/bu/krua-baimint/krua-baimint-pork-egg-soup.jpg", "img/bu/krua-baimint/krua-baimint-pork-mushroom-sauce.jpg", "img/bu/krua-baimint/krua-baimint-salted-egg-spicy-salad.jpg", "img/bu/krua-baimint/krua-baimint-seafood-crispy-noodles-gravy.jpg"], caption: "เมนูเด็ดอีกจานที่อยากให้ลอง รับรองไม่ผิดหวัง 😋", daysAgo: 3 },
+			{ images: ["img/bu/krua-baimint/krua-baimint-seafood-rice-soup.jpg", "img/bu/krua-baimint/krua-baimint-shrimp-spicy-sauce.jpg", "img/bu/krua-baimint/krua-baimint-stirfried-noodles-basil.jpg", "img/bu/krua-baimint/krua-baimint-stirfried-squid-egg.jpg"], caption: "ลูกค้าประจำสั่งซ้ำทุกครั้งที่มา ลองแล้วจะรู้ว่าทำไม", daysAgo: 4 },
+		]
+	},
+	{
+		id: "chongmaotai-mala",
+		name: "ฉงเมาไท่ หม่าล่าทั่ง",
+		avatar: "img/bu/chongmaotai-mala/chongmaotai-mala-mala-bowl-01.jpg",
+		cat: "เผ็ด",
+		bio: "หม่าล่าทั่งสาขา ม.กรุงเทพ เลือกวัตถุดิบเองได้ เผ็ดชาแบบต้นตำรับจีน",
+		menuId: 107,
+		posts: [
+			{ images: ["img/bu/chongmaotai-mala/chongmaotai-mala-condiments.jpg", "img/bu/chongmaotai-mala/chongmaotai-mala-ingredient-bar.jpg", "img/bu/chongmaotai-mala/chongmaotai-mala-mala-bowl-02.jpg", "img/bu/chongmaotai-mala/chongmaotai-mala-mala-bowl-03.jpg"], caption: "หม่าล่าทั่งร้อน ๆ เผ็ดชาแบบต้นตำรับ เลือกวัตถุดิบเองได้ตามใจชอบ 🌶️", daysAgo: 0 },
+			{ images: ["img/bu/chongmaotai-mala/chongmaotai-mala-mala-bowl-04.jpg", "img/bu/chongmaotai-mala/chongmaotai-mala-menu-board-01.jpg", "img/bu/chongmaotai-mala/chongmaotai-mala-menu-board-02.jpg"], caption: "วันนี้วัตถุดิบสดใหม่มาเต็มร้าน แวะมาเผ็ดชากันได้ยันดึก", daysAgo: 1 },
+		]
+	},
+	{
+		id: "tamyamyua-botan",
+		name: "ตำยำยั่ว By โบตั๋น",
+		avatar: "img/bu/tamyamyua-botan/tamyamyua-botan-yum-somtum.webp",
+		cat: "เผ็ด",
+		bio: "ส้มตำยำอีสานรสแซ่บ ม.กรุงเทพ-รังสิต ตำสดใหม่ทุกจาน เผ็ดได้ตามสั่ง",
+		menuId: 108,
+		posts: [
+			{ images: ["img/bu/tamyamyua-botan/tamyamyua-botan-somtum.jpg", "img/bu/tamyamyua-botan/tamyamyua-botan-storefront.webp", "img/bu/tamyamyua-botan/tamyamyua-botan-table-spread-01.webp", "img/bu/tamyamyua-botan/tamyamyua-botan-table-spread-02.webp"], caption: "ตำใหม่ทุกจาน เผ็ดตามสั่งได้ วันนี้รสจัดจ้านเป็นพิเศษ ลองแล้วจะติดใจ 🌶️", daysAgo: 0 },
+			{ images: ["img/bu/tamyamyua-botan/tamyamyua-botan-yum-chicken-01.jpg", "img/bu/tamyamyua-botan/tamyamyua-botan-yum-chicken-02.jpg", "img/bu/tamyamyua-botan/tamyamyua-botan-yum-corn-seafood.webp", "img/bu/tamyamyua-botan/tamyamyua-botan-yum-mixed-01.webp"], caption: "เซ็ตยำแซ่บครบเครื่อง สั่งคู่ข้าวเหนียวอร่อยจนลืมอิ่ม", daysAgo: 1 },
+			{ images: ["img/bu/tamyamyua-botan/tamyamyua-botan-yum-mixed-02.jpg", "img/bu/tamyamyua-botan/tamyamyua-botan-yum-salmon-01.webp", "img/bu/tamyamyua-botan/tamyamyua-botan-yum-salmon-02.jpg", "img/bu/tamyamyua-botan/tamyamyua-botan-yum-seafood-raw.jpg"], caption: "อีกมุมของร้านวันนี้ บรรยากาศดีสุด ๆ 📸", daysAgo: 2 },
+			{ images: ["img/bu/tamyamyua-botan/tamyamyua-botan-yum-squid-01.jpg", "img/bu/tamyamyua-botan/tamyamyua-botan-yum-squid-02.jpg"], caption: "เมนูเด็ดอีกจานที่อยากให้ลอง รับรองไม่ผิดหวัง 😋", daysAgo: 3 },
+		]
+	},
+	{
+		id: "aab-saep",
+		name: "ร้านแอบแซ่บ",
+		avatar: "img/bu/aab-saep/aab-saep-somtum-seafood.jpg",
+		cat: "เผ็ด",
+		bio: "อาหารอีสานรสแซ่บ รังสิตภิรมย์ ราคาน่ารัก งบน้อยก็อิ่มได้",
+		menuId: 109,
+		posts: [
+			{ images: ["img/bu/aab-saep/aab-saep-crispy-rice-larb.jpg", "img/bu/aab-saep/aab-saep-grilled-fish.jpg", "img/bu/aab-saep/aab-saep-grilled-shrimp.jpg", "img/bu/aab-saep/aab-saep-larb-namtok.jpg"], caption: "ส้มตำแซ่บถึงเครื่อง ราคาน่ารัก งบน้อยก็อิ่มอร่อยได้ที่ร้านเรา 🥗", daysAgo: 0 },
+			{ images: ["img/bu/aab-saep/aab-saep-somtum.jpg"], caption: "เมนูอีสานจัดเต็มวันนี้ แวะมาแอบแซ่บกันได้เลยจ้า", daysAgo: 1 },
+		]
+	},
+	{
+		id: "sam-steak",
+		name: "แซมสเต็ก",
+		avatar: "img/bu/sam-steak/sam-steak-steak-gravy.jpg",
+		cat: "Fast Food",
+		bio: "สเต็กราคานักศึกษา ใกล้ ม.กรุงเทพ เนื้อนุ่มซอสเข้มข้น คุ้มทุกจาน",
+		menuId: 110,
+		posts: [
+			{ images: ["img/bu/sam-steak/sam-steak-porkchop-spaghetti.jpg", "img/bu/sam-steak/sam-steak-salad.jpg", "img/bu/sam-steak/sam-steak-spaghetti.jpg"], caption: "สเต็กจานเด็ดของร้าน เนื้อนุ่มซอสเข้มข้น ราคานักศึกษาคุ้มสุด ๆ 🥩", daysAgo: 0 },
+		]
+	},
+	{
+		id: "kai-lae-khai-khaikhao",
+		name: "ไก่และไข่ขายข้าว",
+		avatar: "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-profile.webp",
+		cat: "เผ็ด",
+		bio: "ร้านอาหารตามสั่งเมนูเยอะใกล้ ม.กรุงเทพ มีทั้งผัดไทย ลาบ แกง อาหารทะเล เครื่องดื่ม ครบจบในร้านเดียว",
+		menuId: 111,
+		posts: [
+			{ images: ["img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-pad-thai-01.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-drinks-platter.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-drinks.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-fried-rice-egg.webp"], caption: "เมนูเด็ดจากร้านเรา ผัดไทย ลาบไข่ดาว แซ่บครบเครื่อง ลองแล้วจะติดใจ 🍳", daysAgo: 0 },
+			{ images: ["img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-fruit-platter.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-logo.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-menu-board-01.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-menu-board-02.webp"], caption: "หิวเมื่อไหร่แวะมาได้เลย เมนูเยอะเลือกได้ตามใจ ราคาเป็นมิตรกับกระเป๋านักศึกษา", daysAgo: 1 },
+			{ images: ["img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-menu-board-03.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-pad-thai-02.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-pad-thai-03.jpg", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-pad-thai-04.webp"], caption: "อีกมุมของร้านวันนี้ บรรยากาศดีสุด ๆ 📸", daysAgo: 2 },
+			{ images: ["img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-pad-thai-crab.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-platter-mixed-01.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-platter-mixed-02.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-platter-mixed-03.webp"], caption: "เมนูเด็ดอีกจานที่อยากให้ลอง รับรองไม่ผิดหวัง 😋", daysAgo: 3 },
+			{ images: ["img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-platter-mixed-04.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-platter-mixed-05.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-platter-mixed-06.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-platter-mixed-07.webp"], caption: "ลูกค้าประจำสั่งซ้ำทุกครั้งที่มา ลองแล้วจะรู้ว่าทำไม", daysAgo: 4 },
+			{ images: ["img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-platter-mixed-08.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-rice-egg-set.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-rice-set.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-roast-duck.webp"], caption: "วันนี้วัตถุดิบสดใหม่เข้าร้านทุกเช้า การันตีความอร่อย", daysAgo: 5 },
+			{ images: ["img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-seafood-shrimp-set.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-soup-egg-set.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-soup-tom.webp", "img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-storefront-01.webp"], caption: "ใครยังไม่เคยลอง วันนี้แวะมาได้เลยนะ", daysAgo: 6 },
+			{ images: ["img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-storefront-02.webp"], caption: "จัดเต็มทุกจานแบบไม่กั๊ก แวะมาอุดหนุนกันเยอะ ๆ 🙏", daysAgo: 7 },
+		]
+	},
+];
+function หาเพจร้านBUจากId(id) {
+	var i;
+	for (i = 0; i < เพจร้านBU.length; i++) {
+		if (เพจร้านBU[i].id === id) return เพจร้านBU[i];
+	}
+	return null;
+}
+
+// -----------------------------------------------------
 // 7. นักรีวิวเด่นในชุมชน (ข้อมูลตัวอย่าง) + โพสต์ตัวอย่างของแต่ละคน
 // ใช้ในหน้า Following (รายชื่อ) และหน้าโปรไฟล์สาธารณะ (public-profile.html)
 // -----------------------------------------------------
@@ -778,8 +864,8 @@ var นักรีวิวเด่น = [
 		รีวิว: 214,
 		bio: "สายกินทุกแนว เน้นร้านที่คนไม่ค่อยรู้จักแต่อร่อยจริง 🦖",
 		โพสต์: [
-			{ รูป: "img/food/57.png", แคปชั่น: "ต้มยำกุ้งน้ำข้นร้านนี้จัดเต็มมาก น้ำซุปเข้มข้นสุด ๆ 🔥" },
-			{ รูป: "img/food/58.png", แคปชั่น: "ซาชิมิสดมาก แนะนำเลยถ้าใครอยากกินญี่ปุ่นแท้ ๆ" },
+			{ รูป: "img/food/60.png", แคปชั่น: "ต้มยำกุ้งน้ำข้นร้านนี้จัดเต็มมาก น้ำซุปเข้มข้นสุด ๆ 🔥" },
+			{ รูป: "img/food/17.png", แคปชั่น: "ซาชิมิสดมาก แนะนำเลยถ้าใครอยากกินญี่ปุ่นแท้ ๆ" },
 			{ รูป: "img/food/50.png", แคปชั่น: "ปิดท้ายด้วยข้าวเหนียวมะม่วง หวานมันกำลังดี 🥭" }
 		]
 	},
@@ -804,7 +890,7 @@ var นักรีวิวเด่น = [
 		bio: "ถ้าไม่เผ็ดไม่กิน 🌶️ รีวิวเฉพาะร้านที่เผ็ดจริงเท่านั้น",
 		โพสต์: [
 			{ รูป: "img/food/12.png", แคปชั่น: "ต้มยำไก่เผ็ดทะลุจักรวาล ใครทนไม่ไหวห้ามลอง 😤" },
-			{ รูป: "img/food/59.png", แคปชั่น: "คั่วกลิ้งหมูใต้แท้ เผ็ดร้อนแบบมีเสน่ห์" },
+			{ รูป: "img/food/46.png", แคปชั่น: "คั่วกลิ้งหมูใต้แท้ เผ็ดร้อนแบบมีเสน่ห์" },
 			{ รูป: "img/food/38.png", แคปชั่น: "ลาบหมูใบสะระแหน่ กลิ่นหอมมาก แซ่บคูณสอง" }
 		]
 	},
@@ -816,7 +902,7 @@ var นักรีวิวเด่น = [
 		รีวิว: 76,
 		bio: "นักศึกษาปี 3 รีวิวร้านใกล้มหาลัยเป็นหลัก งบไม่เกิน 100 บาท",
 		โพสต์: [
-			{ รูป: "img/food/13.png", แคปชั่น: "กะเพราหมูสับร้านนี้ราคานักศึกษาโคตรคุ้ม" }
+			{ รูป: "img/food/43.png", แคปชั่น: "กะเพราหมูสับร้านนี้ราคานักศึกษาโคตรคุ้ม" }
 		]
 	},
 	{
@@ -839,7 +925,7 @@ var นักรีวิวเด่น = [
 		รีวิว: 98,
 		bio: "รวมร้านอร่อยราคานักศึกษา งบไม่เกิน 60 บาทต่อมื้อเท่านั้น",
 		โพสต์: [
-			{ รูป: "img/food/23.png", แคปชั่น: "ข้าวหมูกรอบร้านนี้ 50 บาทอิ่มจุกมาก" }
+			{ รูป: "img/food/42.png", แคปชั่น: "ข้าวหมูกรอบร้านนี้ 50 บาทอิ่มจุกมาก" }
 		]
 	},
 	{
@@ -850,8 +936,8 @@ var นักรีวิวเด่น = [
 		รีวิว: 187,
 		bio: "รีวิวร้านญี่ปุ่นโดยเฉพาะ ซูชิ ราเมง ครบทุกแนว 🍣",
 		โพสต์: [
-			{ รูป: "img/food/58.png", แคปชั่น: "ซูชิแซลมอนร้านนี้สดมาก ชิ้นหนาคุ้มราคา" },
-			{ รูป: "img/food/9.png", แคปชั่น: "ราเมงทงคตสึน้ำซุปเข้มข้นสมราคาจริง ๆ" }
+			{ รูป: "img/food/40.png", แคปชั่น: "ซูชิแซลมอนร้านนี้สดมาก ชิ้นหนาคุ้มราคา" },
+			{ รูป: "img/food/41.png", แคปชั่น: "ราเมงทงคตสึน้ำซุปเข้มข้นสมราคาจริง ๆ" }
 		]
 	},
 	{

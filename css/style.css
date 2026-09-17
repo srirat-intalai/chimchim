@@ -36,6 +36,9 @@
   background: #1a1822;
   color: var(--text);
 }
+[data-theme="dark"] .searchwrap {
+  background: #1a1822;
+}
 [data-theme="dark"] .mtit,
 [data-theme="dark"] .mrestaurant,
 [data-theme="dark"] .rowtitle,
@@ -588,7 +591,8 @@ img {
 #authPop,
 #shopPop,
 #aboutPop,
-#postViewModal {
+#postViewModal,
+#shopDetailPop {
   display: none;
   position: fixed;
   inset: 0;
@@ -602,7 +606,8 @@ img {
 #authPop.open,
 #shopPop.open,
 #aboutPop.open,
-#postViewModal.open {
+#postViewModal.open,
+#shopDetailPop.open {
   display: flex;
   animation: fadeov 0.25s ease;
 }
@@ -1347,6 +1352,43 @@ section {
 .mwrap.gone {
   display: none !important;
 }
+/* Lemon8-style masonry feed */
+#mgrid {
+  display: block;
+  column-count: 2;
+  column-gap: 12px;
+  margin: 0 !important;
+}
+#mgrid.mwrap,
+#mgrid > .mwrap {
+  display: inline-block;
+  width: 100% !important;
+  float: none !important;
+  padding: 0 !important;
+  margin: 0 0 12px;
+  break-inside: avoid;
+}
+@media (min-width: 640px) {
+  #mgrid {
+    column-count: 3;
+    column-gap: 14px;
+  }
+  #mgrid > .mwrap {
+    margin-bottom: 14px;
+  }
+}
+#mgrid .mimg {
+  height: 170px;
+}
+#mgrid > .mwrap:nth-child(4n+2) .mimg {
+  height: 230px;
+}
+#mgrid > .mwrap:nth-child(4n+3) .mimg {
+  height: 140px;
+}
+#mgrid > .mwrap:nth-child(5n+4) .mimg {
+  height: 200px;
+}
 .mcard {
   background: var(--surface);
   border-radius: 24px;
@@ -1434,7 +1476,13 @@ section {
   pointer-events: none;
 }
 .mbody {
-  padding: 18px;
+  padding: 14px;
+}
+#mgrid .mdesc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .mcat {
   font-size: 0.7rem;
@@ -1712,6 +1760,9 @@ section {
   width: 100%;
   margin-left: auto;
   margin-right: auto;
+  padding-left: 20px;
+  padding-right: 20px;
+  box-sizing: border-box;
 }
 .rmodes {
   display: flex;
@@ -1882,6 +1933,9 @@ section {
   opacity: 0.7;
   cursor: not-allowed;
   animation: none;
+}
+.wsimilar {
+  margin-top: 20px;
 }
 .wresultcard {
   background: var(--surface);
@@ -3868,6 +3922,23 @@ footer {
 body.appshell {
   background: var(--light);
   padding-bottom: 110px;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+/* บนจอกว้างกว่ามือถือ (แท็บเล็ต/เดสก์ท็อป) ใส่กรอบ+เงาให้ดูเป็น "แอปมือถือ" อยู่กลางจอ
+   แทนที่จะยืดเต็มความกว้างจอจนทุกอย่างดูใหญ่ผิดสัดส่วน — บนมือถือจริง (จอ ≤480px) จะไม่เห็นผลต่างเลย */
+@media (min-width: 481px) {
+  html {
+    background: #e9e6f2;
+  }
+  html[data-theme="dark"] {
+    background: #14121c;
+  }
+  body.appshell {
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.12);
+    background: var(--surface);
+  }
 }
 
 /* ---- แถบบนสุด (แทนที่ topbar + navbar เดิม) ---- */
@@ -3985,6 +4056,8 @@ body.appshell {
   justify-content: space-around;
   padding: 9px 4px calc(9px + env(safe-area-inset-bottom, 0px));
   border-radius: 24px 24px 0 0;
+  max-width: 480px;
+  margin: 0 auto;
 }
 .anitem {
   display: flex;
@@ -4094,7 +4167,12 @@ body.appshell {
   margin: -8px 0 12px;
 }
 .searchwrap {
-  position: relative;
+  position: sticky;
+  top: 73px;
+  z-index: 850;
+  background: var(--light);
+  padding-top: 8px;
+  margin-top: -8px;
 }
 .searchpanel {
   position: absolute;
@@ -5088,6 +5166,99 @@ body.appshell {
   gap: 16px;
   padding: 22px 0 26px;
 }
+.profxpbox {
+  background: linear-gradient(135deg, var(--dark), #7d6fb0);
+  border-radius: 18px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  color: #fff;
+}
+.profxprow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.profxplv {
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+.profxpval {
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+.profxpbar {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  height: 8px;
+  overflow: hidden;
+}
+.profxpbar span {
+  display: block;
+  height: 100%;
+  background: #fff;
+  border-radius: 20px;
+  transition: width 0.5s ease;
+}
+.profxphint {
+  font-size: 0.72rem;
+  opacity: 0.8;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+/* ---- เพจร้านอาหาร (หน้า Settings) ---- */
+.pagepreview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--cream2);
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+.pagepreviewavatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--cream2);
+}
+.pagepreviewname {
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--dark);
+}
+.pagepreviewcat {
+  font-size: 0.76rem;
+  color: #999;
+}
+.postingasrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--cream2);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  text-decoration: none;
+  color: var(--dark);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.postingasrow img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.postingasrow span {
+  flex: 1;
+}
+.postingasrow i {
+  font-size: 0.7rem;
+  color: #999;
+}
 .profavatar {
   width: 68px;
   height: 68px;
@@ -5179,6 +5350,32 @@ body.appshell {
   font-size: 0.74rem;
   color: #999;
 }
+.profreviewitem {
+  padding: 11px 0;
+  border-bottom: 1px solid #f2f2f2;
+}
+.profreviewitem:last-child {
+  border-bottom: none;
+}
+.profreviewrow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  cursor: pointer;
+}
+.profreviewrow img {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.profreviewtxt {
+  font-size: 0.76rem;
+  color: #888;
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
 .profbtn {
   width: 100%;
   justify-content: center;
@@ -5236,13 +5433,72 @@ body.appshell {
   box-shadow: 0 30px 70px rgba(91, 79, 125, 0.35);
   animation: popin 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.pvbox img {
+.pvimgs {
+  position: relative;
+}
+.pvimgstrip {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.pvimgstrip::-webkit-scrollbar {
+  display: none;
+}
+.pvimgstrip img {
   width: 100%;
+  flex: 0 0 100%;
   max-height: 60vh;
   object-fit: cover;
   display: block;
-  border-radius: 20px 20px 0 0;
+  scroll-snap-align: start;
   background: var(--cream2);
+}
+.pvbox .pvimgstrip img:first-child {
+  border-radius: 20px 20px 0 0;
+}
+.pvdots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+}
+.pvdots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  transition: 0.2s;
+}
+.pvdots span.active {
+  background: #fff;
+  width: 16px;
+  border-radius: 4px;
+}
+.pvactions {
+  margin: 10px 0 2px;
+}
+.pvlikebtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  color: #999;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.pvlikebtn i {
+  font-size: 1.05rem;
+}
+.pvlikebtn.liked,
+.pvlikebtn.liked i {
+  color: var(--primary);
 }
 .pvclose {
   position: absolute;
@@ -5290,6 +5546,60 @@ body.appshell {
   font-size: 0.85rem;
   color: var(--text);
   line-height: 1.5;
+}
+.pvcomments {
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
+}
+.pvcommentrow {
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.pvcommentrow b {
+  color: var(--dark);
+  margin-right: 4px;
+}
+.pvcommentsempty {
+  font-size: 0.78rem;
+  color: #bbb;
+  text-align: center;
+  padding: 6px 0;
+}
+.pvcommentform {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+.pvcommentform input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: var(--cream2);
+  border-radius: 20px;
+  padding: 10px 16px;
+  font-size: 0.8rem;
+  font-family: "Prompt", sans-serif;
+  color: var(--text);
+}
+.pvcommentform input::placeholder {
+  color: #aaa;
+}
+.pvcommentform button {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--dark), #7d6fb0);
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 .ppgrid {
   display: grid;
@@ -5362,6 +5672,248 @@ body.appshell {
   border-color: var(--dark);
   color: var(--dark);
 }
+/* ---- กล่องอัปโหลดรูปเอง (แทนดรอปดาวน์เลือกรูปสต็อก) — รูปเพจร้าน/รูปเมนูเด่น ---- */
+.imguploadbox {
+  position: relative;
+  border: 2px dashed #ddd;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  transition: 0.25s;
+}
+.imguploadbox:hover {
+  border-color: var(--dark);
+}
+.imguploadpreview {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+}
+.imguploadlbl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 28px 16px;
+  color: #bbb;
+  font-size: 0.78rem;
+  cursor: pointer;
+  margin: 0;
+}
+.imguploadlbl i {
+  font-size: 1.4rem;
+}
+.imguploadbox:hover .imguploadlbl {
+  color: var(--dark);
+}
+.imguploadbox.haspreview .imguploadlbl {
+  position: absolute;
+  inset: auto 0 0 0;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.6), transparent);
+  color: #fff;
+  flex-direction: row;
+  padding: 8px 12px;
+  font-size: 0.72rem;
+  gap: 6px;
+}
+.imguploadbox.haspreview:hover .imguploadlbl {
+  color: #fff;
+}
+.ppostmulti {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  color: #fff;
+  font-size: 0.72rem;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* ---- เลือกรูปหลายรูปตอนสร้างโพสต์ (เหมือน IG) ---- */
+.postimgpicker {
+  display: flex;
+  gap: 8px;
+}
+.postimgpicker select {
+  flex: 1;
+  min-width: 0;
+}
+.postimgaddbtn {
+  flex-shrink: 0;
+  width: 42px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--dark), #7d6fb0);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.postimglist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+.postimglist:empty {
+  margin: 0;
+}
+.postimgthumb {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--cream2);
+}
+.postimgthumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.postimgthumb button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* ---- ฟีดชุมชนหน้าแรก (สไตล์ IG/Facebook/Lemon8) ---- */
+.feeditem {
+  background: var(--surface);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  margin-bottom: 16px;
+}
+.feedhead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+}
+.feedavatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+.feednm {
+  min-width: 0;
+}
+.feedname {
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.feedstoreico {
+  color: var(--secondary);
+  font-size: 0.75rem;
+}
+.feedtime {
+  font-size: 0.68rem;
+  color: #aaa;
+  margin-top: 1px;
+}
+.feedimgs {
+  position: relative;
+}
+.feedimgstrip {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  cursor: pointer;
+}
+.feedimgstrip::-webkit-scrollbar {
+  display: none;
+}
+.feedimgstrip img {
+  width: 100%;
+  flex: 0 0 100%;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  display: block;
+  scroll-snap-align: start;
+  background: var(--cream2);
+}
+.feeddots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+}
+.feeddots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  transition: 0.2s;
+}
+.feeddots span.active {
+  background: #fff;
+  width: 16px;
+  border-radius: 4px;
+}
+.feedactions {
+  display: flex;
+  gap: 16px;
+  padding: 10px 14px 0;
+}
+.feedlikebtn,
+.feedcommentbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  color: #999;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.feedlikebtn i,
+.feedcommentbtn i {
+  font-size: 1.1rem;
+}
+.feedlikebtn.liked,
+.feedlikebtn.liked i {
+  color: var(--primary);
+}
+.feedcap {
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.5;
+  padding: 6px 14px 14px;
+}
+.feedcap b {
+  color: var(--dark);
+  margin-right: 4px;
+}
 
 @media (max-width: 480px) {
   .obgrid {
@@ -5372,27 +5924,6 @@ body.appshell {
   }
 }
 
-/* =====================================================================
-   จอกว้าง (คอม / ไอแพด / แท็บเล็ต) — ให้แถบบนสุด/ล่างสุดอยู่กึ่งกลาง
-   ไม่ยืดเต็มจอ จะได้ดูสมส่วนเหมือนเปิดแอปจริง ไม่ใช่เว็บที่ถูกขยายโล่ง ๆ
-   ===================================================================== */
-@media (min-width: 640px) {
-  .apptop {
-    max-width: 640px;
-    margin: 0 auto;
-    border-radius: 0 0 20px 20px;
-  }
-  .appnav {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 640px;
-    bottom: 16px;
-    border-radius: 26px;
-    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.16);
-  }
-  body.appshell {
-    background: var(--cream);
-  }
-}
+/* หมายเหตุ: กรอบแอปบนจอกว้าง (คอม/แท็บเล็ต) ย้ายไปรวมไว้ที่กฎ body.appshell +
+   .appnav ตัวหลักแล้ว (ค้นหา "บนจอกว้างกว่ามือถือ") ใช้ max-width เดียวกันทั้งหน้า
+   ไม่ใช่แค่แถบบน/ล่าง กันปัญหากรอบ header/nav กับเนื้อหาข้างในกว้างไม่เท่ากัน */

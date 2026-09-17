@@ -34,6 +34,61 @@
                <button type="button" class="settopt" data-lang-choice="th">🇹🇭 <span data-i18n="settings.thai">ไทย</span></button>
             </div>
          </div>
+
+         <!-- ============================================================
+            เพจร้านอาหาร (เหมือนเพจ Facebook) — ใครก็สร้างได้จากตรงนี้ ไม่ต้องสมัครบัญชีร้านค้าแยก
+            ============================================================ -->
+         <div class="profcard" id="pageGuestCard" hidden>
+            <div class="profcardtit"><i class="fas fa-store me-1"></i><span data-i18n="settings.myPage">My Restaurant Page</span></div>
+            <p style="font-size:.82rem;color:#999;margin-bottom:12px;" data-i18n="settings.pageLoginHint">Log in to create a page for your restaurant.</p>
+            <a href="profile.html" class="rdghost" style="width:100%;" data-i18n="auth.login">Log In</a>
+         </div>
+
+         <div class="profcard" id="pageFormCard" hidden>
+            <div class="profcardtit"><i class="fas fa-store me-1"></i><span data-i18n="settings.myPage">My Restaurant Page</span></div>
+            <div class="pagepreview" id="pagePreview" hidden>
+               <img class="pagepreviewavatar" id="pagePreviewAvatar" src="" alt=""/>
+               <div>
+                  <div class="pagepreviewname" id="pagePreviewName"></div>
+                  <div class="pagepreviewcat" id="pagePreviewCat"></div>
+               </div>
+            </div>
+            <form id="pageForm" class="apform">
+               <div class="aperr" id="pageErr"></div>
+               <label class="flbl" data-i18n="settings.pageName">Page name</label>
+               <input class="fctrl" type="text" id="pageName" placeholder="เช่น ป้าหน่อย ข้าวมันไก่" required/>
+               <label class="flbl" data-i18n="shop.category">Food category</label>
+               <select class="fctrl" id="pageCat" required>
+                  <option value="ข้าว">🍚 ข้าว</option>
+                  <option value="เส้น">🍜 เส้น</option>
+                  <option value="ซุป">🥣 ซุป</option>
+                  <option value="Fast Food">🍔 Fast Food</option>
+                  <option value="ญี่ปุ่น">🍣 ญี่ปุ่น</option>
+                  <option value="ของหวาน">🍰 ของหวาน</option>
+                  <option value="เผ็ด">🌶️ เผ็ด</option>
+               </select>
+               <label class="flbl" data-i18n="settings.pageAvatar">Page photo</label>
+               <div class="imguploadbox" id="pageAvatarUploadBox">
+                  <img class="imguploadpreview" id="pageAvatarPreviewImg" src="" alt="" hidden/>
+                  <label class="imguploadlbl" for="pageAvatarFile"><i class="fas fa-camera"></i><span data-i18n="shop.uploadPhoto">Upload a photo</span></label>
+               </div>
+               <input type="file" id="pageAvatarFile" accept="image/*" hidden/>
+               <input type="hidden" id="pageAvatar" required/>
+               <label class="flbl" data-i18n="shop.shortDesc">Short bio</label>
+               <textarea class="fctrl" id="pageBio" rows="2" placeholder="บอกจุดเด่นร้านคุณสั้น ๆ"></textarea>
+               <button type="submit" class="btn-red w-100 justify-content-center mt-2" id="pageSubmitBtn"><i class="fas fa-floppy-disk"></i><span data-i18n="settings.pageSave">Save Page</span></button>
+            </form>
+            <a href="#" id="pageViewLink" class="rdghost" style="width:100%;margin-top:10px;" hidden data-i18n="settings.pageView">View my page</a>
+         </div>
+
+         <div class="profcard" id="personaCard" hidden>
+            <div class="profcardtit"><i class="fas fa-right-left me-1"></i><span data-i18n="settings.postingAs">Posting As</span></div>
+            <div class="settoggle" id="personaToggle">
+               <button type="button" data-persona="self" class="settopt"><i class="fas fa-user"></i><span data-i18n="settings.myself">Myself</span></button>
+               <button type="button" data-persona="page" class="settopt"><i class="fas fa-store"></i><span id="personaPageLabel">My Page</span></button>
+            </div>
+            <p class="rowsub" style="margin-top:10px;margin-bottom:0;" data-i18n="settings.postingAsHint">New posts you add from your profile will be posted as whichever you pick here.</p>
+         </div>
       </div>
 
       <div id="appToast"></div>
@@ -43,5 +98,6 @@
       <script src="js/chimchim-core.js"></script>
       <script src="js/chimchim-community.js"></script>
       <script src="js/chimchim-settings.js"></script>
+      <script src="js/chimchim-page.js"></script>
    </body>
 </html>

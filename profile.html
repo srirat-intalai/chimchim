@@ -62,6 +62,15 @@
             </div>
          </div>
 
+         <div class="profxpbox">
+            <div class="profxprow">
+               <span class="profxplv">🦖 Lv.<b id="profLvVal"></b></span>
+               <span class="profxpval" id="profXpVal"></span>
+            </div>
+            <div class="profxpbar"><span id="profXpBarFill"></span></div>
+            <p class="profxphint" id="profXpHint"></p>
+         </div>
+
          <!-- Food DNA (บัญชีผู้ใช้ทั่วไป) -->
          <div class="profcard" id="profDnaCard" hidden>
             <div class="profcardtit"><i class="fas fa-dna me-1"></i><span data-i18n="profile.foodDna">Food DNA ของคุณ</span></div>
@@ -74,11 +83,25 @@
             <a href="profile-setup.html" class="btn-red profbtn"><i class="fas fa-flask"></i><span data-i18n="profile.takeTest">ทำแบบทดสอบ Food DNA</span></a>
          </div>
 
-         <!-- ร้านที่ Follow -->
+         <!-- ร้านและคนที่ Follow -->
          <div class="profcard">
-            <div class="profcardtit"><i class="fas fa-heart me-1"></i><span data-i18n="profile.followedShops">ร้านที่ Follow ไว้</span></div>
-            <p style="font-size:.82rem;color:#999;" id="profFollowCount"></p>
-            <a href="following.html" class="rdghost" style="width:100%;" data-i18n="profile.viewAll">ดูร้านที่ Follow ทั้งหมด</a>
+            <div class="profcardtit"><i class="fas fa-heart me-1"></i><span data-i18n="profile.following">ที่คุณติดตามไว้</span></div>
+            <p style="font-size:.82rem;color:#999;" id="profFollowPeopleCount"></p>
+            <a href="following.html?filter=following" class="rdghost" style="width:100%;" data-i18n="profile.viewAllPeople">ดูทั้งหมดที่ Follow ไว้</a>
+         </div>
+
+         <!-- ประวัติการกดถูกใจ -->
+         <div class="profcard">
+            <div class="profcardtit"><i class="fas fa-heart-circle-check me-1"></i><span data-i18n="profile.likeHistory">ประวัติการกดถูกใจ</span></div>
+            <div id="profLikesList"></div>
+            <p id="profLikesEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:10px 0;" hidden data-i18n="profile.likeHistoryEmpty">ยังไม่ได้กดถูกใจเมนูไหนเลย</p>
+         </div>
+
+         <!-- ประวัติการรีวิว -->
+         <div class="profcard">
+            <div class="profcardtit"><i class="fas fa-star me-1"></i><span data-i18n="profile.reviewHistory">ประวัติการรีวิว</span></div>
+            <div id="profReviewsList"></div>
+            <p id="profReviewsEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:10px 0;" hidden data-i18n="profile.reviewHistoryEmpty">ยังไม่ได้เขียนรีวิวไว้เลย</p>
          </div>
 
          <!-- ร้านของฉัน (บัญชีร้านค้า) -->
@@ -88,17 +111,32 @@
             <button class="btn-red profbtn mt-3" id="postShopBtn"><i class="fas fa-plus"></i><span data-i18n="profile.postNewShop">โพสต์ร้านใหม่</span></button>
          </div>
 
+         <!-- เพจร้านของฉัน (สไตล์ Facebook Page — แยกจากโปรไฟล์ส่วนตัว) -->
+         <div class="profcard" id="profPageCard">
+            <div class="profcardtit"><i class="fas fa-shop me-1"></i><span data-i18n="profile.myPage">เพจร้านของฉัน</span></div>
+            <div id="profPageBody"></div>
+         </div>
+
          <!-- โพสต์ของฉัน (เหมือนฟีดคอมมูนิตี้ย่อ ๆ) -->
          <div class="profcard" id="profPostsCard" hidden>
             <div class="profcardtit"><i class="fas fa-image me-1"></i><span data-i18n="profile.myPosts">โพสต์ของฉัน</span></div>
+            <a href="settings.html" class="postingasrow" id="postingAsRow" hidden>
+               <img id="postingAsAvatar" src="" alt=""/>
+               <span id="postingAsLabel"></span>
+               <i class="fas fa-chevron-right"></i>
+            </a>
             <div class="addpostbox" id="addPostToggle"><i class="fas fa-plus fa-lg"></i><span data-i18n="profile.addPost">เพิ่มโพสต์ใหม่</span></div>
             <form id="postForm" class="apform" style="display:none;margin-bottom:14px;">
                <div class="aperr" id="postErr"></div>
-               <label class="flbl">เลือกรูปเมนู</label>
-               <select class="fctrl" id="postImg" required></select>
-               <label class="flbl">แคปชั่น</label>
+               <label class="flbl" data-i18n="profile.pickPhotos">เลือกรูป (เพิ่มได้หลายรูปเหมือน IG)</label>
+               <div class="postimgpicker">
+                  <select class="fctrl" id="postImg"></select>
+                  <button type="button" class="postimgaddbtn" id="postImgAddBtn"><i class="fas fa-plus"></i></button>
+               </div>
+               <div class="postimglist" id="postImgList"></div>
+               <label class="flbl" data-i18n="profile.captionLbl">แคปชั่น</label>
                <input class="fctrl" type="text" id="postCaption" placeholder="เล่าอะไรสั้น ๆ เกี่ยวกับมื้อนี้..." required/>
-               <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-paper-plane"></i><span>โพสต์</span></button>
+               <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-paper-plane"></i><span data-i18n="profile.postBtn">โพสต์</span></button>
             </form>
             <div class="ppgrid" id="myPostGrid"></div>
             <p id="myPostEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:10px 0;" hidden>ยังไม่มีโพสต์ ลองเพิ่มโพสต์แรกของคุณดูสิ!</p>
@@ -138,20 +176,7 @@
             </form>
             <form id="registerForm" class="apform" style="display:none;">
                <div class="aperr" id="registerErr"></div>
-               <label class="flbl" data-i18n="auth.whoAreYou">คุณเป็นใคร?</label>
-               <div class="aprolewrap">
-                  <div class="aprole active" data-role="user">
-                     <div class="aprico">🧑‍🎓</div>
-                     <strong data-i18n="auth.regularUser">ผู้ใช้ทั่วไป</strong>
-                     <span data-i18n="auth.regularUserDesc">ค้นหาและติดตามร้านอาหาร</span>
-                  </div>
-                  <div class="aprole" data-role="vendor">
-                     <div class="aprico">🍳</div>
-                     <strong data-i18n="auth.vendor">ร้านค้า / พ่อค้าแม่ค้า</strong>
-                     <span data-i18n="auth.vendorDesc">โพสต์ร้านของคุณเข้าชุมชน</span>
-                  </div>
-               </div>
-               <label class="flbl">ชื่อ<span id="registerNameLbl">ของคุณ</span></label>
+               <label class="flbl" data-i18n="auth.yourName">ชื่อของคุณ</label>
                <input class="fctrl" type="text" id="registerName" placeholder="ชื่อ นามสกุล" autocomplete="name" required/>
                <label class="flbl" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="registerEmail" placeholder="you@email.com" autocomplete="email" required/>
@@ -177,24 +202,23 @@
                <div class="aperr" id="shopErr"></div>
                <label class="flbl" data-i18n="shop.shopName">ชื่อร้าน *</label>
                <input class="fctrl" type="text" id="shopName" placeholder="เช่น ป้าหน่อย ข้าวมันไก่" required/>
-               <div class="row g-2">
-                  <div class="col-6">
-                     <label class="flbl" data-i18n="shop.category">หมวดอาหาร *</label>
-                     <select class="fctrl" id="shopCat" required>
-                        <option value="ข้าว">🍚 ข้าว</option>
-                        <option value="เส้น">🍜 เส้น</option>
-                        <option value="ซุป">🥣 ซุป</option>
-                        <option value="Fast Food">🍔 Fast Food</option>
-                        <option value="ญี่ปุ่น">🍣 ญี่ปุ่น</option>
-                        <option value="ของหวาน">🍰 ของหวาน</option>
-                        <option value="เผ็ด">🌶️ เผ็ด</option>
-                     </select>
-                  </div>
-                  <div class="col-6">
-                     <label class="flbl" data-i18n="shop.featuredImage">รูปเมนูเด่น *</label>
-                     <select class="fctrl" id="shopImg" required></select>
-                  </div>
+               <label class="flbl" data-i18n="shop.category">หมวดอาหาร *</label>
+               <select class="fctrl" id="shopCat" required>
+                  <option value="ข้าว">🍚 ข้าว</option>
+                  <option value="เส้น">🍜 เส้น</option>
+                  <option value="ซุป">🥣 ซุป</option>
+                  <option value="Fast Food">🍔 Fast Food</option>
+                  <option value="ญี่ปุ่น">🍣 ญี่ปุ่น</option>
+                  <option value="ของหวาน">🍰 ของหวาน</option>
+                  <option value="เผ็ด">🌶️ เผ็ด</option>
+               </select>
+               <label class="flbl" data-i18n="shop.featuredImage">รูปเมนูเด่น *</label>
+               <div class="imguploadbox" id="shopImgUploadBox">
+                  <img class="imguploadpreview" id="shopImgPreviewImg" src="" alt="" hidden/>
+                  <label class="imguploadlbl" for="shopImgFile"><i class="fas fa-camera"></i><span data-i18n="shop.uploadPhoto">Upload a photo</span></label>
                </div>
+               <input type="file" id="shopImgFile" accept="image/*" hidden/>
+               <input type="hidden" id="shopImg" required/>
                <label class="flbl" data-i18n="shop.featuredDish">เมนูเด่น *</label>
                <input class="fctrl" type="text" id="shopDish" placeholder="เช่น ข้าวมันไก่ทอด" required/>
                <div class="row g-2">

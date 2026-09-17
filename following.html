@@ -5,7 +5,7 @@
       <meta http-equiv="X-UA-Compatible" content="IE=edge">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="author" content="CHIMCHIM">
-      <meta name="description" content="ชิมชิม (CHIMCHIM) - Following ติดตามนักรีวิวเด่นในชุมชนชิมชิม">
+      <meta name="description" content="ชิมชิม (CHIMCHIM) - Following ติดตามร้านอาหารและนักชิมในชุมชนชิมชิม">
       <title>Following - ชิมชิม (CHIMCHIM)</title>
       <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
       <link href="css/bootstrap.min.css" rel="stylesheet"/>
@@ -46,34 +46,16 @@
       </header>
 
       <div class="container" style="padding-top:22px;">
-         <div class="rmodes" id="followTabs" data-aos="fade-up">
-            <button type="button" class="rmodebtn active" data-followtab="people"><span class="rmico">👥</span><span data-i18n="following.people">คน</span></button>
-            <button type="button" class="rmodebtn" data-followtab="restaurants"><span class="rmico">🏪</span><span data-i18n="following.restaurants">ร้านอาหาร</span></button>
+         <div class="text-center mb-3 mt-3" data-aos="fade-up">
+            <span class="slbl" id="peopleSectionLbl" data-i18n="following.topReviewers">ร้านใกล้ ม.กรุงเทพ</span>
          </div>
-
-         <!-- ============ PEOPLE TAB ============ -->
-         <div id="followPanePeople">
-            <div class="text-center mb-4 mt-3" data-aos="fade-up">
-               <span class="slbl" data-i18n="following.topReviewers">นักรีวิวเด่นในชุมชน</span>
-            </div>
-            <p class="sdesc text-center mb-3" style="font-size:.8rem;">กดรูปเพื่อดูโปรไฟล์และดูโพสต์ของแต่ละคนได้เลย</p>
-            <div class="row g-3" id="creatorGrid" data-aos="fade-up"></div>
+         <div class="filtbtnrow text-center mb-3" data-aos="fade-up">
+            <button type="button" class="filtbtn active" id="peopleFilterAll" data-i18n="following.allPeople">ทั้งหมด</button>
+            <button type="button" class="filtbtn" id="peopleFilterFollowing" data-i18n="following.onlyFollowing">ที่ติดตามแล้ว</button>
          </div>
-
-         <!-- ============ RESTAURANTS TAB ============ -->
-         <div id="followPaneRestaurants" hidden>
-            <div class="text-center mb-3 mt-3" data-aos="fade-up">
-               <span class="slbl" data-i18n="following.updates">อัปเดต</span>
-            </div>
-            <div id="restaurantUpdatesFeed" data-aos="fade-up"></div>
-            <p id="updatesEmpty" class="text-center" style="color:#bbb;font-size:.85rem;padding:10px 0 20px;" data-i18n="following.emptyUpdates" hidden>ยังไม่มีอัปเดตจากร้านที่คุณ Follow ไว้</p>
-
-            <div class="text-center mt-4 mb-2" data-aos="fade-up">
-               <span class="slbl" data-i18n="profile.followedShops">ร้านที่ Follow ไว้</span>
-            </div>
-            <div class="row g-4" id="followedGrid" data-aos="fade-up"></div>
-            <p id="followedEmpty" class="text-center" style="color:#bbb;font-size:.85rem;padding:20px 0;" data-i18n="following.emptyFollowed">ยังไม่ได้ Follow ร้านไหนเลย ลองกดปุ่ม Follow ในหน้ารายละเอียดร้านดูนะ</p>
-         </div>
+         <p class="sdesc text-center mb-3" style="font-size:.8rem;">กดรูปเพื่อดูโปรไฟล์และดูโพสต์ของแต่ละคนได้เลย</p>
+         <div class="row g-3" id="creatorGrid" data-aos="fade-up"></div>
+         <p id="followedPeopleEmpty" class="text-center" style="color:#bbb;font-size:.85rem;padding:20px 0;" data-i18n="following.emptyFollowedPeople" hidden>ยังไม่ได้ติดตามใครเลย ลองกดปุ่ม Follow ที่โปรไฟล์คนอื่นดูนะ</p>
       </div>
 
       <nav class="appnav">
@@ -106,20 +88,7 @@
             </form>
             <form id="registerForm" class="apform" style="display:none;">
                <div class="aperr" id="registerErr"></div>
-               <label class="flbl" data-i18n="auth.whoAreYou">คุณเป็นใคร?</label>
-               <div class="aprolewrap">
-                  <div class="aprole active" data-role="user">
-                     <div class="aprico">🧑‍🎓</div>
-                     <strong data-i18n="auth.regularUser">ผู้ใช้ทั่วไป</strong>
-                     <span data-i18n="auth.regularUserDesc">ค้นหาและติดตามร้านอาหาร</span>
-                  </div>
-                  <div class="aprole" data-role="vendor">
-                     <div class="aprico">🍳</div>
-                     <strong data-i18n="auth.vendor">ร้านค้า / พ่อค้าแม่ค้า</strong>
-                     <span data-i18n="auth.vendorDesc">โพสต์ร้านของคุณเข้าชุมชน</span>
-                  </div>
-               </div>
-               <label class="flbl">ชื่อ<span id="registerNameLbl">ของคุณ</span></label>
+               <label class="flbl" data-i18n="auth.yourName">ชื่อของคุณ</label>
                <input class="fctrl" type="text" id="registerName" placeholder="ชื่อ นามสกุล" autocomplete="name" required/>
                <label class="flbl" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="registerEmail" placeholder="you@email.com" autocomplete="email" required/>

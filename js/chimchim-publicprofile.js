@@ -5,6 +5,8 @@
 var ppParams = new URLSearchParams(window.location.search);
 var ppUid = ppParams.get("u");
 var ppIsSeed = ppUid && ppUid.indexOf("seed-") === 0;
+var ppIsPage = ppUid && ppUid.indexOf("page-") === 0;
+var ppIsBuShop = ppUid && ppUid.indexOf("bu-") === 0;
 var ppSession = getSession();
 
 function ppRenderPosts(posts, posterName, posterColor) {
@@ -15,20 +17,95 @@ function ppRenderPosts(posts, posterName, posterColor) {
 		return;
 	}
 	emptyMsg.hidden = true;
-	posts.forEach(function(p) {
+	posts.forEach(function(p, idx) {
+		var images = (typeof getPostImages === "function") ? getPostImages(p) : (p.images && p.images.length ? p.images : [p.img]);
 		var el = document.createElement("div");
 		el.className = "ppost";
 		el.innerHTML =
-			'<img src="' + p.img + '" alt=""/>' +
+			'<img src="' + images[0] + '" alt=""/>' +
+			(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + images.length + ' รูป"></i>' : "") +
 			'<div class="ppostcap">' + escapeHtml(p.caption || "") + "</div>";
 		el.addEventListener("click", function() {
-			openPostView({ img: p.img, caption: p.caption, posterName: posterName, posterColor: posterColor });
+			openPostView({ id: p.id || (ppUid + "-post" + idx), images: images, caption: p.caption, posterName: posterName, posterColor: posterColor });
 		});
 		grid.appendChild(el);
 	});
 }
 
-if (ppIsSeed) {
+if (ppIsBuShop) {
+	var buId = ppUid.slice("bu-".length);
+	var buShop = หาเพจร้านBUจากId(buId);
+	if (!buShop) {
+		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">ไม่พบโปรไฟล์นี้</p>';
+	} else {
+		document.title = buShop.name + " - ชิมชิม (CHIMCHIM)";
+		var ppAvatarBu = document.getElementById("ppAvatar");
+		ppAvatarBu.textContent = "";
+		ppAvatarBu.style.background = "var(--cream2) center/cover no-repeat url('" + buShop.avatar + "')";
+		document.getElementById("ppName").textContent = buShop.name;
+		document.getElementById("ppSub").textContent = catEmoji(buShop.cat) + " " + catLabel(buShop.cat);
+		document.getElementById("ppLevel").textContent = "🏪 ร้านอาหารใกล้ ม.กรุงเทพ";
+		document.getElementById("ppBio").textContent = buShop.bio || "";
+
+		var followBtnBu = document.getElementById("ppFollowBtn");
+		function refreshFollowBu() {
+			var followed = isUserFollowed(ppUid);
+			followBtnBu.innerHTML = followed ? '<i class="fas fa-check"></i><span>Following</span>' : '<i class="fas fa-user-plus"></i><span>Follow</span>';
+		}
+		refreshFollowBu();
+		followBtnBu.addEventListener("click", function() {
+			toggleFollowUser(ppUid);
+			refreshFollowBu();
+		});
+
+		var mapBtn = document.createElement("a");
+		var mapQuery = buShop.name + " ใกล้ มหาวิทยาลัยกรุงเทพ";
+		mapBtn.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(mapQuery);
+		mapBtn.target = "_blank";
+		mapBtn.rel = "noopener";
+		mapBtn.className = "rdghost";
+		mapBtn.style.cssText = "width:100%;margin-top:8px;";
+		mapBtn.innerHTML = '<i class="fas fa-location-dot me-1"></i><span>แผนที่</span>';
+		followBtnBu.insertAdjacentElement("afterend", mapBtn);
+
+		ppRenderPosts(buShop.posts, buShop.name, "linear-gradient(135deg, var(--primary), var(--secondary))");
+	}
+} else if (ppIsPage) {
+	var pageId = ppUid.slice("page-".length);
+	var page = getPageById(pageId);
+	if (!page) {
+		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">ไม่พบโปรไฟล์นี้</p>';
+	} else {
+		document.title = page.name + " - ชิมชิม (CHIMCHIM)";
+		var ppAvatarEl = document.getElementById("ppAvatar");
+		ppAvatarEl.textContent = "";
+		ppAvatarEl.style.background = "var(--cream2) center/cover no-repeat url('" + page.avatar + "')";
+		document.getElementById("ppName").textContent = page.name;
+		document.getElementById("ppSub").textContent = catEmoji(page.cat) + " " + catLabel(page.cat);
+		document.getElementById("ppLevel").textContent = "🏪 เพจร้านอาหาร";
+		document.getElementById("ppBio").textContent = page.bio || "";
+
+		var followBtnPage = document.getElementById("ppFollowBtn");
+		if (ppSession && ppSession.id === page.ownerId) {
+			followBtnPage.innerHTML = '<i class="fas fa-gear"></i><span>' + t("settings.title") + "</span>";
+			followBtnPage.onclick = function() { window.location.href = "settings.html"; };
+		} else {
+			(function() {
+				function refreshFollowPage() {
+					var followed = isUserFollowed(page.id);
+					followBtnPage.innerHTML = followed ? '<i class="fas fa-check"></i><span>Following</span>' : '<i class="fas fa-user-plus"></i><span>Follow</span>';
+				}
+				refreshFollowPage();
+				followBtnPage.addEventListener("click", function() {
+					toggleFollowUser(page.id);
+					refreshFollowPage();
+				});
+			})();
+		}
+
+		ppRenderPosts(getPostsByPage(page.id), page.name, "var(--cream2)");
+	}
+} else if (ppIsSeed) {
 	var creator = หานักรีวิวจากId(ppUid);
 	if (!creator) {
 		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">ไม่พบโปรไฟล์นี้</p>';
@@ -61,10 +138,10 @@ if (ppIsSeed) {
 		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">ไม่พบโปรไฟล์นี้</p>';
 	} else {
 		document.title = user.name + " - ชิมชิม (CHIMCHIM)";
-		document.getElementById("ppAvatar").textContent = user.role === "vendor" ? "🍳" : user.name.charAt(0).toUpperCase();
+		document.getElementById("ppAvatar").textContent = user.name.charAt(0).toUpperCase();
 		document.getElementById("ppName").textContent = user.name;
-		document.getElementById("ppSub").textContent = user.role === "vendor" ? "บัญชีร้านค้า" : "ผู้ใช้ชิมชิม";
-		document.getElementById("ppLevel").textContent = user.role === "vendor" ? "🍳 ร้านค้าพันธมิตร" : "🧑‍🎓 นักชิมชิมชิม";
+		document.getElementById("ppSub").textContent = "ผู้ใช้ชิมชิม";
+		document.getElementById("ppLevel").textContent = "🧑‍🎓 นักชิมชิมชิม";
 		document.getElementById("ppBio").textContent = "สมาชิกชิมชิม แชร์เมนูและร้านโปรดผ่านโพสต์ด้านล่าง";
 
 		var followBtn2 = document.getElementById("ppFollowBtn");

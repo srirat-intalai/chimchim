@@ -47,8 +47,8 @@
          <div class="aichat-top">
             <img src="img/Dino/7.png" alt="Dino คิด"/>
             <div>
-               <div class="aichat-hi">สวัสดี 👋</div>
-               <div class="aichat-sub">วันนี้อยากกินอะไร บอกชิมชิมได้เลย</div>
+               <div class="aichat-hi" data-i18n="ai.greetingTitle">สวัสดี 👋</div>
+               <div class="aichat-sub" data-i18n="ai.greetingSub">คุยกับชิมชิมได้เลย ถามอะไรก็ได้ ไม่ใช่แค่เรื่องกิน</div>
             </div>
          </div>
 
@@ -57,7 +57,7 @@
          <div class="aichat-suggestrow" id="aiSuggestRow"></div>
 
          <form class="aichat-inputbar" id="aiChatForm">
-            <input type="text" id="aiChatInput" placeholder="พิมพ์อะไรก็ได้ เช่น อยากกินเผ็ด ๆ งบไม่เกิน 150 บาท" autocomplete="off"/>
+            <input type="text" id="aiChatInput" data-i18n-ph="ai.inputPlaceholder" placeholder="พิมพ์อะไรก็ได้ เช่น อยากกินเผ็ด ๆ งบไม่เกิน 150 บาท" autocomplete="off"/>
             <button type="submit" id="aiChatSend"><i class="fas fa-paper-plane"></i></button>
          </form>
       </div>
@@ -92,20 +92,7 @@
             </form>
             <form id="registerForm" class="apform" style="display:none;">
                <div class="aperr" id="registerErr"></div>
-               <label class="flbl" data-i18n="auth.whoAreYou">คุณเป็นใคร?</label>
-               <div class="aprolewrap">
-                  <div class="aprole active" data-role="user">
-                     <div class="aprico">🧑‍🎓</div>
-                     <strong data-i18n="auth.regularUser">ผู้ใช้ทั่วไป</strong>
-                     <span data-i18n="auth.regularUserDesc">ค้นหาและติดตามร้านอาหาร</span>
-                  </div>
-                  <div class="aprole" data-role="vendor">
-                     <div class="aprico">🍳</div>
-                     <strong data-i18n="auth.vendor">ร้านค้า / พ่อค้าแม่ค้า</strong>
-                     <span data-i18n="auth.vendorDesc">โพสต์ร้านของคุณเข้าชุมชน</span>
-                  </div>
-               </div>
-               <label class="flbl">ชื่อ<span id="registerNameLbl">ของคุณ</span></label>
+               <label class="flbl" data-i18n="auth.yourName">ชื่อของคุณ</label>
                <input class="fctrl" type="text" id="registerName" placeholder="ชื่อ นามสกุล" autocomplete="name" required/>
                <label class="flbl" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="registerEmail" placeholder="you@email.com" autocomplete="email" required/>

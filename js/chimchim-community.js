@@ -29,7 +29,7 @@ function refreshAuthUI() {
 		if (loginBtn) loginBtn.hidden = true;
 		if (avatarLink) {
 			avatarLink.hidden = false;
-			if (avatarIco) avatarIco.textContent = session.role === "vendor" ? "🍳" : session.name.charAt(0).toUpperCase();
+			if (avatarIco) avatarIco.textContent = session.name.charAt(0).toUpperCase();
 		}
 	} else {
 		if (loginBtn) loginBtn.hidden = false;
@@ -84,19 +84,6 @@ if (authPop) {
 		});
 	});
 
-	/* --- เลือกบทบาทตอนสมัคร --- */
-	var selectedRegisterRole = "user";
-	document.querySelectorAll(".aprole").forEach(function(el) {
-		el.addEventListener("click", function() {
-			document.querySelectorAll(".aprole").forEach(function(x) {
-				x.classList.remove("active");
-			});
-			this.classList.add("active");
-			selectedRegisterRole = this.getAttribute("data-role");
-			document.getElementById("registerNameLbl").textContent = selectedRegisterRole === "vendor" ? "ร้าน / เจ้าของร้าน" : "ของคุณ";
-		});
-	});
-
 	/* --- สมัครสมาชิก --- */
 	document.getElementById("registerForm").addEventListener("submit", function(e) {
 		e.preventDefault();
@@ -123,25 +110,16 @@ if (authPop) {
 			return;
 		}
 
-		var newUser = { id: "u" + Date.now(), name: name, email: email, password: password, role: selectedRegisterRole };
+		var newUser = { id: "u" + Date.now(), name: name, email: email, password: password };
 		users.push(newUser);
 		saveUsers(users);
 		setSession(newUser);
 		closeAuthPop();
 		refreshAuthUI();
 		this.reset();
-		document.querySelectorAll(".aprole").forEach(function(x) {
-			x.classList.remove("active");
-		});
-		document.querySelector('.aprole[data-role="user"]').classList.add("active");
-		selectedRegisterRole = "user";
 
-		// ผู้ใช้ทั่วไปที่เพิ่งสมัคร -> พาไปทำแบบสอบถาม Food DNA ต่อ (ยกเว้นบัญชีร้านค้า)
-		if (newUser.role === "vendor") {
-			window.location.href = "profile.html";
-		} else {
-			window.location.href = "profile-setup.html";
-		}
+		// ทุกบัญชีเป็นแบบเดียวกันหมด -> พาไปทำแบบสอบถาม Food DNA ต่อเสมอ
+		window.location.href = "profile-setup.html";
 	});
 
 	/* --- เข้าสู่ระบบ --- */
@@ -201,23 +179,8 @@ if (shopPop) {
 		if (e.target === shopPop) closeShopPop();
 	});
 
-	/* --- เติมตัวเลือกรูปเมนูในฟอร์มโพสต์ร้าน จากคลังรูปเดียวกับวงล้อ --- */
-	(function populateShopImgSelect() {
-		var sel = document.getElementById("shopImg");
-		var i, j;
-		for (i = 0; i < วงล้อหมวดอาหาร.length; i++) {
-			var cat = วงล้อหมวดอาหาร[i];
-			var og = document.createElement("optgroup");
-			og.label = cat.emoji + " " + cat.label;
-			for (j = 0; j < cat.pool.length; j++) {
-				var opt = document.createElement("option");
-				opt.value = cat.pool[j].img;
-				opt.textContent = cat.pool[j].name;
-				og.appendChild(opt);
-			}
-			sel.appendChild(og);
-		}
-	})();
+	/* --- อัปโหลดรูปเมนูเด่นเอง (แทนดรอปดาวน์เลือกรูปสต็อกเดิม) --- */
+	wireImageUpload("shopImgFile", "shopImg", "shopImgPreviewImg", "shopImgUploadBox");
 
 	document.getElementById("postShopBtn").addEventListener("click", function() {
 		resetShopFormToCreateMode();
@@ -228,6 +191,8 @@ if (shopPop) {
 	function resetShopFormToCreateMode() {
 		document.getElementById("shopForm").reset();
 		document.getElementById("shopEditId").value = "";
+		document.getElementById("shopImgPreviewImg").hidden = true;
+		document.getElementById("shopImgUploadBox").classList.remove("haspreview");
 		document.getElementById("shopPopTitle").innerHTML = '<i class="fas fa-store me-2"></i><span data-i18n="shop.postMyShop">' + t("shop.postMyShop") + "</span>";
 		document.getElementById("shopSubmitBtn").innerHTML = '<i class="fas fa-paper-plane"></i><span data-i18n="shop.submit">' + t("shop.submit") + "</span>";
 	}
@@ -238,6 +203,9 @@ if (shopPop) {
 		document.getElementById("shopName").value = shop.name;
 		document.getElementById("shopCat").value = shop.cat;
 		document.getElementById("shopImg").value = shop.img;
+		document.getElementById("shopImgPreviewImg").src = shop.img;
+		document.getElementById("shopImgPreviewImg").hidden = false;
+		document.getElementById("shopImgUploadBox").classList.add("haspreview");
 		document.getElementById("shopDish").value = shop.dish;
 		document.getElementById("shopPriceLow").value = shop.priceLow;
 		document.getElementById("shopPriceHigh").value = shop.priceHigh;
@@ -254,7 +222,7 @@ if (shopPop) {
 	document.getElementById("shopForm").addEventListener("submit", function(e) {
 		e.preventDefault();
 		var session = getSession();
-		if (!session || session.role !== "vendor") return;
+		if (!session) return;
 
 		var errBox = document.getElementById("shopErr");
 		errBox.classList.remove("show");
@@ -348,16 +316,62 @@ if (shopPop) {
 	modal.innerHTML =
 		'<div class="pvbox">' +
 			'<button class="pvclose" id="pvClose"><i class="fas fa-times"></i></button>' +
-			'<img id="pvImg" src="" alt=""/>' +
+			'<div class="pvimgs">' +
+				'<div class="pvimgstrip" id="pvImgStrip"></div>' +
+				'<div class="pvdots" id="pvDots" hidden></div>' +
+			"</div>" +
 			'<div class="pvinfo">' +
 				'<div class="pvhead">' +
 					'<div class="pvavatar" id="pvAvatar"></div>' +
 					'<div class="pvname" id="pvName"></div>' +
 				"</div>" +
 				'<div class="pvcap" id="pvCap"></div>' +
+				'<div class="pvactions">' +
+					'<button class="pvlikebtn" id="pvLikeBtn" type="button"><i class="far fa-heart"></i><span id="pvLikeCount"></span></button>' +
+				"</div>" +
+				'<div class="pvcomments" id="pvComments"></div>' +
+				'<form class="pvcommentform" id="pvCommentForm">' +
+					'<input type="text" id="pvCommentInput" placeholder="แสดงความคิดเห็น..." autocomplete="off"/>' +
+					'<button type="submit"><i class="fas fa-paper-plane"></i></button>' +
+				"</form>" +
 			"</div>" +
 		"</div>";
 	document.body.appendChild(modal);
+
+	var currentPostId = null;
+
+	function refreshPvLike() {
+		if (!currentPostId) return;
+		var liked = isPostLiked(currentPostId);
+		var btn = document.getElementById("pvLikeBtn");
+		var ico = btn.querySelector("i");
+		ico.classList.toggle("far", !liked);
+		ico.classList.toggle("fas", liked);
+		btn.classList.toggle("liked", liked);
+		document.getElementById("pvLikeCount").textContent = formatLikeCount(getPostLikeCount(currentPostId));
+	}
+	document.getElementById("pvLikeBtn").addEventListener("click", function() {
+		if (!currentPostId) return;
+		togglePostLike(currentPostId);
+		refreshPvLike();
+	});
+
+	function renderPvComments() {
+		var list = document.getElementById("pvComments");
+		if (!currentPostId) {
+			list.innerHTML = "";
+			return;
+		}
+		var comments = getComments(currentPostId);
+		if (comments.length === 0) {
+			list.innerHTML = '<p class="pvcommentsempty">ยังไม่มีความคิดเห็น เป็นคนแรกที่คอมเมนต์สิ!</p>';
+			return;
+		}
+		list.innerHTML = comments.map(function(c) {
+			return '<div class="pvcommentrow"><b>' + escapeHtml(c.author) + "</b> " + escapeHtml(c.text) + "</div>";
+		}).join("");
+		list.scrollTop = list.scrollHeight;
+	}
 
 	function closePostView() {
 		modal.classList.remove("open");
@@ -370,21 +384,164 @@ if (shopPop) {
 	document.addEventListener("keydown", function(e) {
 		if (e.key === "Escape") closePostView();
 	});
+	document.getElementById("pvCommentForm").addEventListener("submit", function(e) {
+		e.preventDefault();
+		if (!currentPostId) return;
+		var input = document.getElementById("pvCommentInput");
+		var text = input.value.trim();
+		if (!text) return;
+		var me = getSession();
+		addComment(currentPostId, me ? me.name : "นักชิมไม่ระบุตัวตน", text);
+		input.value = "";
+		renderPvComments();
+	});
 
 	window.openPostView = function(post) {
-		document.getElementById("pvImg").src = post.img;
-		document.getElementById("pvImg").alt = post.caption || "";
+		var images = post.images && post.images.length ? post.images : [post.img];
+		var strip = document.getElementById("pvImgStrip");
+		var dots = document.getElementById("pvDots");
+		strip.innerHTML = images.map(function(src) {
+			return '<img src="' + src + '" alt=""/>';
+		}).join("");
+		if (images.length > 1) {
+			dots.hidden = false;
+			dots.innerHTML = images.map(function(_, i) {
+				return '<span class="' + (i === 0 ? "active" : "") + '"></span>';
+			}).join("");
+			var dotEls = dots.querySelectorAll("span");
+			strip.onscroll = function() {
+				var idx = Math.round(strip.scrollLeft / strip.clientWidth);
+				dotEls.forEach(function(d, i) { d.classList.toggle("active", i === idx); });
+			};
+		} else {
+			dots.hidden = true;
+			strip.onscroll = null;
+		}
+		strip.scrollLeft = 0;
 		document.getElementById("pvCap").textContent = post.caption || "";
 		var avatarEl = document.getElementById("pvAvatar");
-		avatarEl.style.background = post.posterColor || "linear-gradient(135deg, var(--dark), #7d6fb0)";
-		avatarEl.textContent = (post.posterName || "?").trim().charAt(0).toUpperCase();
+		if (post.posterAvatarUrl) {
+			avatarEl.style.background = "var(--cream2) center/cover no-repeat url('" + post.posterAvatarUrl + "')";
+			avatarEl.textContent = "";
+		} else {
+			avatarEl.style.background = post.posterColor || "linear-gradient(135deg, var(--dark), #7d6fb0)";
+			avatarEl.textContent = (post.posterName || "?").trim().charAt(0).toUpperCase();
+		}
 		document.getElementById("pvName").textContent = post.posterName || "";
+		currentPostId = post.id || null;
+		renderPvComments();
+		refreshPvLike();
 		modal.classList.add("open");
 		document.body.style.overflow = "hidden";
 	};
 })();
 
 /* =====================================================================
+   ฟีดชุมชนหน้าแรก (Instagram/Facebook/Lemon8 style) — ใช้ getFeedItems() จาก core.js
+   โพสต์เดียวโชว์ได้หลายรูปแบบปัดซ้าย-ขวา กดรูปเปิดโมดัลดูเต็มจอ + คอมเมนต์ได้เหมือนอินสตาแกรม
+   ===================================================================== */
+function formatFeedTime(dateStr) {
+	var diffMs = Date.now() - new Date(dateStr).getTime();
+	var mins = Math.floor(diffMs / 60000);
+	if (mins < 1) return t("feed.justNow");
+	if (mins < 60) return mins + t("feed.minsAgo");
+	var hrs = Math.floor(mins / 60);
+	if (hrs < 24) return hrs + t("feed.hoursAgo");
+	var days = Math.floor(hrs / 24);
+	return days + t("feed.daysAgo");
+}
+
+function renderCommunityFeed(container) {
+	var emptyMsg = document.getElementById("communityFeedEmpty");
+	var items = getFeedItems();
+	container.innerHTML = "";
+	if (items.length === 0) {
+		if (emptyMsg) emptyMsg.hidden = false;
+		return;
+	}
+	if (emptyMsg) emptyMsg.hidden = true;
+
+	items.forEach(function(item) {
+		var el = document.createElement("div");
+		el.className = "feeditem";
+
+		var avatarHtml = item.posterAvatarUrl
+			? '<div class="feedavatar" style="background:var(--cream2) center/cover no-repeat url(\'' + item.posterAvatarUrl + '\')"></div>'
+			: '<div class="feedavatar" style="background:' + item.posterColor + '">' + escapeHtml((item.posterName || "?").trim().charAt(0).toUpperCase()) + '</div>';
+
+		var imgsHtml = item.images.map(function(src) {
+			return '<img src="' + src + '" alt=""/>';
+		}).join("");
+		var dotsHtml = item.images.length > 1
+			? '<div class="feeddots">' + item.images.map(function(_, i) { return '<span class="' + (i === 0 ? "active" : "") + '"></span>'; }).join("") + '</div>'
+			: "";
+
+		el.innerHTML =
+			'<div class="feedhead">' +
+				avatarHtml +
+				'<div class="feednm">' +
+					'<div class="feedname">' + escapeHtml(item.posterName) + (item.kind === "mockup" ? ' <i class="fas fa-store feedstoreico" title="ร้านอาหาร"></i>' : "") + "</div>" +
+					'<div class="feedtime">' + formatFeedTime(item.date) + "</div>" +
+				"</div>" +
+			"</div>" +
+			'<div class="feedimgs"><div class="feedimgstrip">' + imgsHtml + "</div>" + dotsHtml + "</div>" +
+			'<div class="feedactions">' +
+				'<button class="feedlikebtn" type="button"><i class="far fa-heart"></i><span></span></button>' +
+				'<button class="feedcommentbtn" type="button"><i class="far fa-comment"></i><span></span></button>' +
+			"</div>" +
+			'<div class="feedcap"><b>' + escapeHtml(item.posterName) + "</b> " + escapeHtml(item.caption) + "</div>";
+
+		if (item.posterLink) {
+			var headEl = el.querySelector(".feedhead");
+			headEl.style.cursor = "pointer";
+			headEl.addEventListener("click", function() {
+				window.location.href = item.posterLink;
+			});
+		}
+
+		var strip = el.querySelector(".feedimgstrip");
+		var dotsBox = el.querySelector(".feeddots");
+		if (dotsBox) {
+			var dotEls = dotsBox.querySelectorAll("span");
+			strip.addEventListener("scroll", function() {
+				var idx = Math.round(strip.scrollLeft / strip.clientWidth);
+				dotEls.forEach(function(d, i) { d.classList.toggle("active", i === idx); });
+			});
+		}
+		strip.addEventListener("click", function() {
+			openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl });
+		});
+
+		var likeBtn = el.querySelector(".feedlikebtn");
+		function refreshFeedLike() {
+			var liked = isPostLiked(item.id);
+			var ico = likeBtn.querySelector("i");
+			ico.classList.toggle("far", !liked);
+			ico.classList.toggle("fas", liked);
+			likeBtn.classList.toggle("liked", liked);
+			likeBtn.querySelector("span").textContent = formatLikeCount(getPostLikeCount(item.id));
+		}
+		likeBtn.addEventListener("click", function() {
+			togglePostLike(item.id);
+			refreshFeedLike();
+		});
+		refreshFeedLike();
+
+		var commentBtn = el.querySelector(".feedcommentbtn");
+		commentBtn.querySelector("span").textContent = getComments(item.id).length;
+		commentBtn.addEventListener("click", function() {
+			openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl });
+		});
+
+		container.appendChild(el);
+	});
+}
+
+/* =====================================================================
    เริ่มต้น UI ตอนโหลดหน้า
    ===================================================================== */
 refreshAuthUI();
+(function initCommunityFeedIfPresent() {
+	var feed = document.getElementById("communityFeed");
+	if (feed) renderCommunityFeed(feed);
+})();

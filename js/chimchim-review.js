@@ -57,9 +57,10 @@ if (!revร้าน) {
 			service: scores.service,
 			text: document.getElementById("reviewText").value.trim(),
 			author: author,
+			userId: meSession ? meSession.id : null,
 			date: new Date().toISOString()
 		});
 
-		window.location.href = "restaurant.html?id=" + revร้าน.id + "&reviewed=1";
+		window.location.href = "home.html?reviewed=1";
 	});
 }

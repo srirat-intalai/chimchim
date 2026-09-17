@@ -160,9 +160,67 @@ function สร้างข้อความตอบกลับ(cond) {
 	if (cond.รส !== "ไม่รู้") ท่อน.push("รส" + cond.รส);
 	if (cond.งบ) ท่อน.push("งบ" + cond.งบ);
 	if (ท่อน.length === 0) {
-		return "โอเค! ให้ชิมชิมช่วยเลือกจาก Food DNA ของคุณเลยนะ รอแป๊บ 🦖";
+		return "งั้นให้ชิมชิมลองเลือกจาก Food DNA ของคุณดูนะ น่าจะถูกใจอยู่ 🦖";
 	}
-	return "เข้าใจแล้ว! กำลังหาเมนู" + ท่อน.join(" ") + " ให้อยู่นะ รอแป๊บ 🦖";
+	return "โอเค เข้าใจละ! อยากได้แนว" + ท่อน.join(" ") + " ใช่ไหม เดี๋ยวชิมชิมหามาให้ดูนะ 🦖";
+}
+
+/* -----------------------------------------------------
+   ข้อความสำรองตอน Gemini เรียกไม่ได้ + ข้อความไม่เกี่ยวกับอาหาร
+   แทนที่จะบอกตรง ๆ ว่า "ตอบไม่ได้" ให้คุยเล่นรับคำแล้ววกเข้าเรื่องกินแบบเนียน ๆ เหมือนเพื่อนคุยกัน
+   สุ่มหยิบมาสักประโยค กันดูเป็น pattern ซ้ำเดิมทุกครั้ง
+----------------------------------------------------- */
+function สุ่มข้อความสำรองทั่วไป() {
+	var ตัวเลือก = [1, 2, 3, 4];
+	var เลือก = ตัวเลือก[Math.floor(Math.random() * ตัวเลือก.length)];
+	return t("ai.genericFallback" + เลือก);
+}
+
+/* -----------------------------------------------------
+   เดาว่าข้อความนี้ "เกี่ยวกับการหาของกิน" ไหม — ใช้ตัดสินใจว่าควรโชว์การ์ดร้านต่อท้ายคำตอบหรือเปล่า
+   เพื่อไม่ให้ทุกข้อความ (แม้แต่คำถามทั่วไปที่ไม่เกี่ยวกับอาหาร) โดนยัดการ์ดร้านใส่ให้เหมือนแพตเทิร์นตายตัว
+----------------------------------------------------- */
+function ดูเหมือนถามเรื่องอาหารไหม(text, cond) {
+	if (cond.หมวด !== "ไม่รู้" || cond.งบ !== "" || cond.ระยะ !== "ทุกระยะ" || cond.รส !== "ไม่รู้") return true;
+	return /กิน|หิว|แนะนำ|เมนู|ร้าน|สุ่ม|ลอง|อาหาร|ของหวาน/.test(text);
+}
+
+var AI_REQUEST_TIMEOUT_MS = 15000;
+
+/* -----------------------------------------------------
+   ขอให้ "ชิมชิม" (Gemini) พูดคำตอบจริง ๆ ออกมา แทนที่จะใช้ข้อความสำเร็จรูปเดิม
+   ส่งเฉพาะผลลัพธ์ที่คำนวณจริงแล้วไปให้ (ชื่อร้าน/เมนู/Match %/ราคา) กันไม่ให้ AI มั่วร้านขึ้นมาเอง
+   ถ้าเรียกไม่ได้ จะคืนค่า null แล้วผู้เรียกใช้ข้อความสำเร็จรูปเดิมแทน
+----------------------------------------------------- */
+var AI_CHAT_REPLY_URL = "http://localhost:8787/api/chat-reply";
+
+function ขอคำตอบจากชิมชิม(text, ผลลัพธ์, เกี่ยวกับอาหาร) {
+	var results = เกี่ยวกับอาหาร ? ผลลัพธ์.map(function(item) {
+		return {
+			name: item.ข้อมูล.เมนู,
+			shop: item.ข้อมูล.ร้าน,
+			match: item.คะแนน,
+			priceLow: item.ข้อมูล.ราคาต่ำ,
+			priceHigh: item.ข้อมูล.ราคาสูง
+		};
+	}) : [];
+	var controller = ("AbortController" in window) ? new AbortController() : null;
+	var timer = controller ? setTimeout(function() { controller.abort(); }, AI_REQUEST_TIMEOUT_MS) : null;
+
+	return fetch(AI_CHAT_REPLY_URL, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ message: text, results: results }),
+		signal: controller ? controller.signal : undefined
+	}).then(function(res) {
+		if (timer) clearTimeout(timer);
+		if (!res.ok) throw new Error("bad status " + res.status);
+		return res.json();
+	}).then(function(data) {
+		return data && data.reply ? data.reply : null;
+	}).catch(function() {
+		return null;
+	});
 }
 
 /* -----------------------------------------------------
@@ -174,17 +232,26 @@ function ส่งข้อความ(text) {
 	addUserBubble(text);
 	aiChatInput.value = "";
 	renderQuickSuggestions();
-
-	var cond = แปลข้อความเป็นเงื่อนไข(text);
 	addTyping();
-	setTimeout(function() {
+
+	// ใช้ตัวจับ keyword ในเครื่อง (เร็ว ไม่กิน quota) สำหรับแยกเงื่อนไข แล้วเก็บ quota Gemini
+	// ไว้ใช้กับส่วนที่สำคัญที่สุด คือให้ "ชิมชิม" พูดคำตอบจริง ๆ ออกมาแทน (เห็นผลชัดกว่ามาก)
+	var cond = แปลข้อความเป็นเงื่อนไข(text);
+	var เกี่ยวกับอาหาร = ดูเหมือนถามเรื่องอาหารไหม(text, cond);
+	var ผลลัพธ์ = เกี่ยวกับอาหาร ? หาร้านให้ฉัน(cond.หมวด, cond.งบ, cond.ระยะ, cond.รส) : [];
+	ขอคำตอบจากชิมชิม(text, ผลลัพธ์, เกี่ยวกับอาหาร).then(function(replyText) {
 		removeTyping();
-		addBotBubble(สร้างข้อความตอบกลับ(cond));
-		var ผลลัพธ์ = หาร้านให้ฉัน(cond.หมวด, cond.งบ, cond.ระยะ, cond.รส);
-		setTimeout(function() {
-			addResultCards(ผลลัพธ์);
-		}, 250);
-	}, 700);
+		if (replyText) {
+			addBotBubble(replyText);
+		} else {
+			addBotBubble(เกี่ยวกับอาหาร ? สร้างข้อความตอบกลับ(cond) : สุ่มข้อความสำรองทั่วไป());
+		}
+		if (เกี่ยวกับอาหาร && ผลลัพธ์.length) {
+			setTimeout(function() {
+				addResultCards(ผลลัพธ์);
+			}, 250);
+		}
+	});
 }
 
 aiChatForm.addEventListener("submit", function(e) {
@@ -195,5 +262,5 @@ aiChatForm.addEventListener("submit", function(e) {
 /* -----------------------------------------------------
    เริ่มบทสนทนา
 ----------------------------------------------------- */
-addBotBubble("อยากกินอะไรวันนี้ บอกชิมชิมได้เลย จะพิมพ์เองหรือกดตัวเลือกด้านล่างก็ได้นะ 👇");
+addBotBubble(t("ai.startBubble"));
 renderQuickSuggestions();

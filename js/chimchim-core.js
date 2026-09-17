@@ -12,9 +12,70 @@ function escapeHtml(str) {
 	return div.innerHTML.replace(/"/g, "&quot;");
 }
 
+// สับลำดับอาร์เรย์แบบสุ่มจริง (Fisher-Yates) — ไม่แก้อาร์เรย์เดิม คืนอาร์เรย์ใหม่
+function สับลำดับ(arr) {
+	var result = arr.slice();
+	var i, j, temp;
+	for (i = result.length - 1; i > 0; i--) {
+		j = Math.floor(Math.random() * (i + 1));
+		temp = result[i];
+		result[i] = result[j];
+		result[j] = temp;
+	}
+	return result;
+}
+
+// true แค่ตอนผู้ใช้กดปุ่ม "เทรนด์" ซ้ำตอนอยู่หน้าแรกอยู่แล้ว (ดู chimchim-nav.js) เพื่อขอให้สลับเนื้อหาใหม่
+// อ่านค่าครั้งเดียวตอนโหลดหน้า แล้วล้างทิ้งทันที กันมีผลติดค้างข้ามการเข้าชมปกติครั้งต่อไป
+var ขอสลับเนื้อหาใหม่ = sessionStorage.getItem("chimchim_shuffle_feed") === "1";
+if (ขอสลับเนื้อหาใหม่) sessionStorage.removeItem("chimchim_shuffle_feed");
+
+// ผูกกล่องอัปโหลดรูปเอง (input type=file) เข้ากับ hidden input ที่เก็บค่าจริง (data URL) + รูปพรีวิว
+// ใช้ร่วมกันได้ทุกฟอร์มที่ให้ผู้ใช้อัปโหลดรูปเอง (รูปเพจร้าน, รูปเมนูเด่นตอนโพสต์ร้าน) แทนดรอปดาวน์เลือกรูปสต็อกเดิม
+function wireImageUpload(fileInputId, hiddenInputId, previewImgId, boxId, existingValue) {
+	var fileInput = document.getElementById(fileInputId);
+	var hiddenInput = document.getElementById(hiddenInputId);
+	var previewImg = document.getElementById(previewImgId);
+	var box = document.getElementById(boxId);
+	if (!fileInput || !hiddenInput) return;
+
+	function showPreview(dataUrl) {
+		hiddenInput.value = dataUrl;
+		if (previewImg) {
+			previewImg.src = dataUrl;
+			previewImg.hidden = false;
+		}
+		if (box) box.classList.add("haspreview");
+	}
+
+	if (existingValue) showPreview(existingValue);
+
+	fileInput.addEventListener("change", function() {
+		var file = fileInput.files && fileInput.files[0];
+		if (!file) return;
+		var reader = new FileReader();
+		reader.onload = function(e) {
+			showPreview(e.target.result);
+		};
+		reader.readAsDataURL(file);
+	});
+}
+
 function catEmoji(cat) {
 	var map = { "ข้าว": "🍚", "เส้น": "🍜", "ซุป": "🥣", "Fast Food": "🍔", "ญี่ปุ่น": "🍣", "ของหวาน": "🍰", "เผ็ด": "🌶️" };
 	return map[cat] || "🍽️";
+}
+
+// กันไม่ให้แถวรูปภาพ/วงล้อไหนก็ตามโชว์ร้านที่ใช้รูปซ้ำกันติดกัน — ใช้กับแถวที่เรียงตาม Match แล้ว
+// เพราะบางร้าน (โดยเฉพาะร้านที่ชุมชนโพสต์) อาจเลือกรูปเดียวกันโดยไม่ตั้งใจ
+function กรองรูปไม่ซ้ำ(list, getImg) {
+	var seen = {};
+	return list.filter(function(item) {
+		var img = getImg(item);
+		if (seen[img]) return false;
+		seen[img] = true;
+		return true;
+	});
 }
 
 /* =====================================================================
@@ -45,7 +106,7 @@ function getSession() {
 	}
 }
 function setSession(user) {
-	localStorage.setItem(CHIMCHIM_SESSION_KEY, JSON.stringify({ id: user.id, name: user.name, email: user.email, role: user.role }));
+	localStorage.setItem(CHIMCHIM_SESSION_KEY, JSON.stringify({ id: user.id, name: user.name, email: user.email }));
 }
 function clearSession() {
 	localStorage.removeItem(CHIMCHIM_SESSION_KEY);
@@ -217,6 +278,49 @@ function addReview(shopId, review) {
 	all[shopId].unshift(review);
 	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
 }
+// นับจำนวนรีวิวทั้งหมดที่ผู้ใช้คนนี้เคยเขียนไว้ (ใช้คำนวณ XP) — รีวิวต้องมี userId ติดไว้ตอนบันทึกถึงจะนับได้
+function countReviewsByUser(userId) {
+	var all;
+	try {
+		all = JSON.parse(localStorage.getItem(CHIMCHIM_REVIEWS_KEY)) || {};
+	} catch (e) {
+		return 0;
+	}
+	var count = 0;
+	Object.keys(all).forEach(function(shopId) {
+		all[shopId].forEach(function(r) {
+			if (r.userId === userId) count++;
+		});
+	});
+	return count;
+}
+// ดึงรีวิวทั้งหมดที่ผู้ใช้คนนี้เคยเขียน (พร้อม shopId ติดไปด้วย) เรียงใหม่สุดก่อน — ใช้แสดงประวัติการรีวิวในโปรไฟล์
+function getReviewsByUser(userId) {
+	var all;
+	try {
+		all = JSON.parse(localStorage.getItem(CHIMCHIM_REVIEWS_KEY)) || {};
+	} catch (e) {
+		return [];
+	}
+	var result = [];
+	Object.keys(all).forEach(function(shopId) {
+		all[shopId].forEach(function(r) {
+			if (r.userId === userId) {
+				result.push({
+					shopId: parseInt(shopId, 10),
+					taste: r.taste,
+					atmosphere: r.atmosphere,
+					service: r.service,
+					text: r.text,
+					author: r.author,
+					date: r.date
+				});
+			}
+		});
+	});
+	result.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+	return result;
+}
 
 /* =====================================================================
    Follow ร้าน (บันทึกไว้ในเบราว์เซอร์)
@@ -305,6 +409,67 @@ function initLikeUI(card) {
 	refresh();
 }
 
+/* =====================================================================
+   Like โพสต์ในฟีดชุมชน (แยกจาก Like ร้านด้านบน) — postId เป็น string เสมอ
+   ===================================================================== */
+var CHIMCHIM_POST_LIKES_KEY = "chimchim_post_likes";
+function getLikedPosts() {
+	try {
+		return JSON.parse(localStorage.getItem(CHIMCHIM_POST_LIKES_KEY)) || [];
+	} catch (e) {
+		return [];
+	}
+}
+function isPostLiked(postId) {
+	return getLikedPosts().indexOf(postId) !== -1;
+}
+function togglePostLike(postId) {
+	var list = getLikedPosts();
+	var idx = list.indexOf(postId);
+	if (idx === -1) list.push(postId); else list.splice(idx, 1);
+	localStorage.setItem(CHIMCHIM_POST_LIKES_KEY, JSON.stringify(list));
+	return idx === -1;
+}
+// ยอดไลก์เริ่มต้นของโพสต์ คำนวณแบบ deterministic จาก id (string) เหมือนร้าน กันต้องเก็บ state กลาง
+function seedPostLikeCount(postId) {
+	var h = 0, i;
+	for (i = 0; i < postId.length; i++) h = (h * 31 + postId.charCodeAt(i)) >>> 0;
+	return 5 + (h % 120);
+}
+function getPostLikeCount(postId) {
+	return seedPostLikeCount(postId) + (isPostLiked(postId) ? 1 : 0);
+}
+
+// การ์ดร้านแบบย่อ (รูป + Match% + ชื่อร้าน/เมนู + ระยะทาง) ใช้ร่วมกันได้ทุกหน้าที่อยากโชว์ร้านแนะนำ
+// เช่น แถวเทรนด์/มื้อนี้/แนะนำบนหน้าแรก และร้านที่คล้ายกันในหน้าวงล้อสุ่มเมนู
+function buildMiniCard(ร้าน, onClick) {
+	var คะแนน = คำนวณMatch(ร้าน, foodDNA);
+	var card = document.createElement("div");
+	card.className = "mcard";
+	card.setAttribute("data-id", ร้าน.id);
+	card.innerHTML =
+		'<div class="mimg">' +
+			'<img src="' + ร้าน.รูป + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
+			'<div class="mmatch" data-match-score="' + คะแนน + '">' + matchBadgeText(คะแนน) + "</div>" +
+			'<div class="mhrt"><i class="far fa-heart"></i></div>' +
+		"</div>" +
+		'<div class="mbody">' +
+			'<div class="mcat">' + catEmoji(ร้าน.หมวด) + " " + escapeHtml(catLabel(ร้าน.หมวด)) + "</div>" +
+			'<div class="mrestaurant">' + escapeHtml(ร้าน.ร้าน) + "</div>" +
+			'<div class="mtit">' + escapeHtml(ร้าน.เมนู) + "</div>" +
+			'<div class="mmeta"><span><i class="fas fa-location-dot"></i>' + distanceText(ร้าน.ระยะทาง) + '</span><span class="muni"><i class="fas fa-graduation-cap"></i>' + escapeHtml(ร้าน.มหาลัย) + "</span></div>" +
+		"</div>";
+	card.addEventListener("click", function() {
+		if (onClick) {
+			onClick(ร้าน);
+		} else {
+			window.location.href = "restaurant.html?id=" + ร้าน.id;
+		}
+	});
+	initLikeUI(card);
+	return card;
+}
+
 /* --- Follow นักรีวิว/เพื่อนในชุมชน (แยกจาก Follow ร้าน) --- */
 var CHIMCHIM_FOLLOWED_USERS_KEY = "chimchim_followed_users";
 function getFollowedUsers() {
@@ -359,6 +524,17 @@ function เลือกไม่ซ้ำวันนี้(pool, n) {
 	markShownToday(ผล.map(function(r) { return r.id; }));
 	return ผล;
 }
+// สำหรับแถวที่เรียงตาม Match แล้ว (Recommended / Match Hero): ร้านที่ยังไม่เคยโชว์วันนี้ขึ้นก่อนเสมอ
+// ร้านที่เคยโชว์ไปแล้ว "ไม่หายไป" แค่ไหลลงไปอยู่ท้าย ๆ แทน (คงลำดับ Match เดิมไว้ในแต่ละกลุ่ม)
+// เพื่อให้เปิดแอปแต่ละรอบในวันเดียวกันเห็นอะไรใหม่ ๆ ขึ้นก่อนบ้าง โดยของเดิมยังตามหาเจอ
+function หมุนเวียนตามวันนี้(list, getId, n) {
+	var shown = getShownToday();
+	var ยังไม่เคย = list.filter(function(item) { return shown.indexOf(getId(item)) === -1; });
+	var เคยแล้ว = list.filter(function(item) { return shown.indexOf(getId(item)) !== -1; });
+	var ผล = ยังไม่เคย.concat(เคยแล้ว).slice(0, n);
+	markShownToday(ผล.map(getId));
+	return ผล;
+}
 
 /* =====================================================================
    โพสต์ของสมาชิก (ภาพ + แคปชั่น) — โชว์ในหน้าโปรไฟล์ตัวเอง และหน้าโปรไฟล์สาธารณะ
@@ -371,17 +547,181 @@ function getAllPosts() {
 		return [];
 	}
 }
+// โพสต์ส่วนตัวของผู้ใช้เท่านั้น (ไม่รวมโพสต์ที่โพสต์ในนาม "เพจร้าน" ของเขา — ดู getPostsByPage)
 function getPostsByUser(userId) {
-	return getAllPosts().filter(function(p) { return p.userId === userId; });
+	return getAllPosts().filter(function(p) { return p.userId === userId && !p.pageId; });
 }
-function addPost(userId, img, caption) {
+function getPostsByPage(pageId) {
+	return getAllPosts().filter(function(p) { return p.pageId === pageId; });
+}
+// pageId ใส่เฉพาะตอนโพสต์ในนามเพจร้าน (ไม่ใส่ = โพสต์ในนามตัวเอง) userId เก็บไว้เสมอเพื่อ audit/คำนวณ XP
+// images รับได้ทั้ง string เดียว (รูปเดียว) หรืออาร์เรย์ (โพสต์ได้หลายรูปในโพสต์เดียวเหมือน IG)
+function addPost(userId, images, caption, pageId) {
+	var imgList = Array.isArray(images) ? images.filter(Boolean) : [images];
 	var posts = getAllPosts();
-	posts.unshift({ id: "post" + Date.now(), userId: userId, img: img, caption: caption, date: new Date().toISOString() });
+	posts.unshift({ id: "post" + Date.now(), userId: userId, pageId: pageId || null, images: imgList, img: imgList[0], caption: caption, date: new Date().toISOString() });
 	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+}
+// คืนอาร์เรย์รูปของโพสต์เสมอ ไม่ว่าโพสต์นั้นจะเป็นโพสต์เก่า (มีแค่ img เดียว) หรือใหม่ (มี images หลายรูป)
+function getPostImages(p) {
+	if (p.images && p.images.length) return p.images;
+	return p.img ? [p.img] : [];
 }
 function deletePost(postId) {
 	var posts = getAllPosts().filter(function(p) { return p.id !== postId; });
 	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+	// ลบโพสต์แล้วลบคอมเมนต์ที่ผูกกับโพสต์นั้นทิ้งไปด้วย กันคอมเมนต์ค้างเป็นขยะ
+	var allComments;
+	try {
+		allComments = JSON.parse(localStorage.getItem(CHIMCHIM_COMMENTS_KEY)) || {};
+	} catch (e) {
+		allComments = {};
+	}
+	delete allComments[postId];
+	localStorage.setItem(CHIMCHIM_COMMENTS_KEY, JSON.stringify(allComments));
+}
+
+/* =====================================================================
+   ฟีดชุมชนรวม (หน้าแรก) — รวมโพสต์จริงของผู้ใช้/เพจร้าน + โพสต์ของ 11 ร้านจริงใกล้ ม.กรุงเทพ (เพจร้านBU)
+   คืนค่าเป็นรูปแบบเดียวกันหมด เรียงใหม่สุดก่อนเสมอ ไม่ว่าจะเป็นโพสต์จริงหรือของร้าน BU
+   ===================================================================== */
+function getFeedItems() {
+	var users = getUsers();
+	var pages = getPages();
+	var fromReal = getAllPosts().map(function(p) {
+		var page = p.pageId ? pages.filter(function(pg) { return pg.id === p.pageId; })[0] : null;
+		var user = users.filter(function(u) { return u.id === p.userId; })[0];
+		var posterName = page ? page.name : (user ? user.name : "นักชิมชิมชิม");
+		return {
+			id: p.id,
+			kind: page ? "page" : "user",
+			images: getPostImages(p),
+			caption: p.caption || "",
+			date: p.date,
+			posterName: posterName,
+			posterAvatarUrl: page ? page.avatar : null,
+			posterColor: page ? "var(--cream2)" : "linear-gradient(135deg, var(--dark), #7d6fb0)",
+			posterLink: page ? ("public-profile.html?u=page-" + page.id) : ("public-profile.html?u=" + p.userId)
+		};
+	});
+	var fromBuShops = [];
+	เพจร้านBU.forEach(function(shop) {
+		shop.posts.forEach(function(post, idx) {
+			// ตัดเวลาทิ้งเหลือแค่วัน (เที่ยงคืน) กันปัญหาลำดับโพสต์ที่ daysAgo เท่ากันสลับกันไปมาทุกครั้งที่โหลดหน้า
+			// เพราะ new Date() ปกติจะได้เวลาต่างกันเป็นมิลลิวินาทีทุกครั้ง ทำให้เรียงลำดับไม่นิ่ง
+			var d = new Date();
+			d.setHours(0, 0, 0, 0);
+			d.setDate(d.getDate() - (post.daysAgo || 0));
+			fromBuShops.push({
+				id: "bu-" + shop.id + "-post" + idx,
+				kind: "bushop",
+				images: post.images,
+				caption: post.caption,
+				date: d.toISOString(),
+				posterName: shop.name,
+				posterAvatarUrl: shop.avatar,
+				posterColor: "linear-gradient(135deg, var(--primary), var(--secondary))",
+				posterLink: "public-profile.html?u=bu-" + shop.id
+			});
+		});
+	});
+	var combined = fromReal.concat(fromBuShops).sort(function(a, b) {
+		return new Date(b.date) - new Date(a.date);
+	});
+	// ปกติเรียงใหม่สุดก่อนเสมอ แต่ถ้าผู้ใช้กดปุ่ม "เทรนด์" ซ้ำเพื่อขอเนื้อหาใหม่ ให้สลับลำดับสุ่มแทนสักรอบ
+	return ขอสลับเนื้อหาใหม่ ? สับลำดับ(combined) : combined;
+}
+
+/* =====================================================================
+   คอมเมนต์บนโพสต์ (ทุกบัญชีคอมเมนต์กันได้ เหมือนเฟซบุ๊ค/IG) เก็บแยกตาม postId
+   ===================================================================== */
+var CHIMCHIM_COMMENTS_KEY = "chimchim_comments";
+function getComments(postId) {
+	try {
+		var all = JSON.parse(localStorage.getItem(CHIMCHIM_COMMENTS_KEY)) || {};
+		return all[postId] || [];
+	} catch (e) {
+		return [];
+	}
+}
+function addComment(postId, author, text) {
+	var all;
+	try {
+		all = JSON.parse(localStorage.getItem(CHIMCHIM_COMMENTS_KEY)) || {};
+	} catch (e) {
+		all = {};
+	}
+	if (!all[postId]) all[postId] = [];
+	all[postId].push({ id: "cmt" + Date.now(), author: author, text: text, date: new Date().toISOString() });
+	localStorage.setItem(CHIMCHIM_COMMENTS_KEY, JSON.stringify(all));
+}
+
+/* =====================================================================
+   เพจร้านอาหาร (เหมือนเพจ Facebook) — ผู้ใช้คนไหนก็สร้างได้จากหน้า Settings
+   โดยไม่ต้องสมัครบัญชีร้านค้าแยก แล้วสลับ "โพสต์ในนาม" ตัวเอง/เพจได้ตลอด
+   ===================================================================== */
+var CHIMCHIM_PAGES_KEY = "chimchim_pages";
+var CHIMCHIM_ACTIVE_PERSONA_KEY = "chimchim_active_persona";
+function getPages() {
+	try {
+		return JSON.parse(localStorage.getItem(CHIMCHIM_PAGES_KEY)) || [];
+	} catch (e) {
+		return [];
+	}
+}
+function savePages(list) {
+	localStorage.setItem(CHIMCHIM_PAGES_KEY, JSON.stringify(list));
+}
+function getMyPage() {
+	var me = getMe();
+	if (!me) return null;
+	return getPages().filter(function(p) { return p.ownerId === me.id; })[0] || null;
+}
+function getPageById(id) {
+	return getPages().filter(function(p) { return p.id === id; })[0] || null;
+}
+function createOrUpdateMyPage(data) {
+	var me = getMe();
+	if (!me) return null;
+	var pages = getPages();
+	var existing = pages.filter(function(p) { return p.ownerId === me.id; })[0];
+	if (existing) {
+		existing.name = data.name;
+		existing.avatar = data.avatar;
+		existing.cat = data.cat;
+		existing.bio = data.bio;
+	} else {
+		existing = { id: "page" + Date.now(), ownerId: me.id, name: data.name, avatar: data.avatar, cat: data.cat, bio: data.bio };
+		pages.push(existing);
+	}
+	savePages(pages);
+	return existing;
+}
+// "โพสต์ในนามใคร" ตอนนี้ — "self" (ค่าเริ่มต้น) หรือ id ของเพจร้านที่ตัวเองเป็นเจ้าของ
+function getActivePersona() {
+	return localStorage.getItem(CHIMCHIM_ACTIVE_PERSONA_KEY) || "self";
+}
+function setActivePersona(v) {
+	localStorage.setItem(CHIMCHIM_ACTIVE_PERSONA_KEY, v);
+}
+
+/* =====================================================================
+   Level / XP ของผู้ใช้ — คำนวณจากกิจกรรมจริงที่ทำในแอป (Follow / Like / โพสต์ / รีวิว / สร้างเพจ / โพสต์ร้าน)
+   ===================================================================== */
+function calcUserXP(me) {
+	if (!me) return 0;
+	var xp = 0;
+	xp += getFollowedUsers().length * 5;
+	xp += getLikedShops().length * 2;
+	xp += getAllPosts().filter(function(p) { return p.userId === me.id; }).length * 10;
+	xp += countReviewsByUser(me.id) * 15;
+	if (me.foodDNA) xp += 20;
+	if (getPages().some(function(p) { return p.ownerId === me.id; })) xp += 15;
+	xp += getShops().filter(function(s) { return s.vendorId === me.id; }).length * 20;
+	return xp;
+}
+function calcUserLevel(xp) {
+	return 1 + Math.floor(xp / 50);
 }
 
 /* --- รันทันทีตอนโหลดไฟล์: เตรียมข้อมูลให้พร้อมก่อนหน้าเพจจะคำนวณ Match % --- */

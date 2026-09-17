@@ -1,131 +1,101 @@
 // chimchim-following.js
-// รายชื่อนักรีวิวเด่น (กดรูปเพื่อดูโปรไฟล์สาธารณะ + โพสต์ของเขา) และ
-// รายการร้านที่ผู้ใช้กด Follow ไว้จากหน้ารายละเอียดร้าน
+// รายชื่อ 11 ร้านจริงใกล้ ม.กรุงเทพ (เพจร้านBU) + คนจริงที่ผู้ใช้ติดตามไว้ (กดรูปเพื่อดูโปรไฟล์สาธารณะ + ดูโพสต์)
+// ทุกอย่างอยู่ในลิสต์เดียว ไม่มีแท็บแยกร้าน/คนแล้ว — Follow ร้านจากหน้ารายละเอียดร้านก็ขึ้นที่นี่เหมือนกัน
+// รองรับลิงก์ตรงจากหน้าโปรไฟล์ผ่าน query param ?filter=following
 
-/* --- สลับแท็บ People / Restaurants --- */
-(function setupFollowTabs() {
-	var tabs = document.querySelectorAll('#followTabs .rmodebtn');
-	var panePeople = document.getElementById('followPanePeople');
-	var paneRestaurants = document.getElementById('followPaneRestaurants');
-	if (!tabs.length) return;
-	tabs.forEach(function(btn) {
+/* --- ร้าน/คนในชุมชน — "ทั้งหมด" (11 ร้านจริงใกล้ ม.กรุงเทพ) หรือ "ที่ติดตามแล้ว" (รวมสมาชิกจริงที่ Follow ไว้ด้วย) --- */
+var currentPeopleFilter = 'all';
+function buildPersonCard(person) {
+	var col = document.createElement('div');
+	col.className = 'col-6 col-lg-3';
+	var avatarInner = person.avatarImg
+		? '<img src="' + person.avatarImg + '" alt="" style="width:100%;height:100%;object-fit:cover;"/>'
+		: '<span style="font-size:3rem;font-weight:800;color:#fff;">' + escapeHtml(person.name.charAt(0).toUpperCase()) + '</span>';
+	col.innerHTML =
+		'<div class="chcard">' +
+			'<a href="public-profile.html?u=' + encodeURIComponent(person.linkId || person.id) + '" class="chimg" style="background:' + person.color + ';display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
+				avatarInner +
+			'</a>' +
+			'<div class="chbody">' +
+				'<a href="public-profile.html?u=' + encodeURIComponent(person.linkId || person.id) + '" class="chnm" style="text-decoration:none;color:inherit;display:block;">' + escapeHtml(person.name) + '</a>' +
+				'<div class="chlv">' + person.sub + '</div>' +
+				'<button class="followbtn" data-uid="' + person.id + '">+ Follow</button>' +
+			'</div>' +
+		'</div>';
+	return col;
+}
+
+function renderCreators() {
+	var grid = document.getElementById('creatorGrid');
+	var emptyMsg = document.getElementById('followedPeopleEmpty');
+	var lbl = document.getElementById('peopleSectionLbl');
+	if (!grid) return;
+	grid.innerHTML = '';
+
+	var seedPeople = เพจร้านBU.map(function(shop) {
+		return { id: 'bu-' + shop.id, name: shop.name, color: 'linear-gradient(135deg, var(--primary), var(--secondary))', avatarImg: shop.avatar, sub: '🏪 ' + catEmoji(shop.cat) + ' ' + catLabel(shop.cat) };
+	});
+
+	var list;
+	if (currentPeopleFilter === 'following') {
+		var realPeople = getUsers().map(function(u) {
+			return { id: u.id, name: u.name, color: 'linear-gradient(135deg, var(--dark), #7d6fb0)', sub: '🧑‍🎓 Member' };
+		});
+		var followedPages = getPages().map(function(p) {
+			return { id: p.id, linkId: 'page-' + p.id, name: p.name, color: 'var(--cream2)', avatarImg: p.avatar, sub: '🏪 ' + catEmoji(p.cat) + ' ' + catLabel(p.cat) };
+		});
+		list = seedPeople.concat(realPeople).concat(followedPages).filter(function(p) { return isUserFollowed(p.id); });
+		if (lbl) lbl.textContent = t('following.onlyFollowing');
+	} else {
+		list = seedPeople;
+		if (lbl) lbl.textContent = t('following.topReviewers');
+	}
+
+	if (emptyMsg) emptyMsg.hidden = !(currentPeopleFilter === 'following' && list.length === 0);
+
+	list.forEach(function(person) {
+		grid.appendChild(buildPersonCard(person));
+	});
+
+	document.querySelectorAll('.followbtn').forEach(function(btn) {
+		var uid = btn.getAttribute('data-uid');
+		if (isUserFollowed(uid)) {
+			btn.classList.add('following');
+			btn.textContent = '✓ Following';
+		}
 		btn.addEventListener('click', function() {
-			tabs.forEach(function(b) { b.classList.remove('active'); });
-			this.classList.add('active');
-			var tab = this.getAttribute('data-followtab');
-			panePeople.hidden = tab !== 'people';
-			paneRestaurants.hidden = tab !== 'restaurants';
+			var nowFollowing = toggleFollowUser(uid);
+			this.classList.toggle('following', nowFollowing);
+			this.textContent = nowFollowing ? '✓ Following' : '+ Follow';
+			if (currentPeopleFilter === 'following' && !nowFollowing) {
+				renderCreators();
+			}
 		});
 	});
-})();
+}
+renderCreators();
 
-/* --- ฟีดอัปเดตจากร้านที่ Follow ไว้ (โปรโมชั่น/เมนูใหม่/ประกาศ) --- */
-(function renderRestaurantUpdates() {
-	var feed = document.getElementById('restaurantUpdatesFeed');
-	var emptyMsg = document.getElementById('updatesEmpty');
-	if (!feed) return;
-
-	var ids = getFollowedShops();
-	if (ids.length === 0) {
-		emptyMsg.hidden = false;
-		return;
-	}
-	emptyMsg.hidden = true;
-
-	var html = "";
-	ids.forEach(function(id) {
-		var ร้าน = หาร้านจากId(id);
-		if (!ร้าน) return;
-		var เสริม = getShopExtra(id);
-		html +=
-			'<a href="restaurant.html?id=' + id + '" class="updatecard">' +
-				'<img src="' + ร้าน.รูป + '" alt=""/>' +
-				'<div class="updatebody">' +
-					'<div class="updateshop">' + escapeHtml(ร้าน.ร้าน) + '</div>' +
-					'<div class="updatetxt"><span class="updateicon">' + เสริม.promo.icon + '</span>' + escapeHtml(เสริม.promo.text) + '</div>' +
-				'</div>' +
-			'</a>';
+var peopleFilterAllBtn = document.getElementById('peopleFilterAll');
+var peopleFilterFollowingBtn = document.getElementById('peopleFilterFollowing');
+if (peopleFilterAllBtn && peopleFilterFollowingBtn) {
+	peopleFilterAllBtn.addEventListener('click', function() {
+		currentPeopleFilter = 'all';
+		this.classList.add('active');
+		peopleFilterFollowingBtn.classList.remove('active');
+		renderCreators();
 	});
-	feed.innerHTML = html;
-})();
+	peopleFilterFollowingBtn.addEventListener('click', function() {
+		currentPeopleFilter = 'following';
+		this.classList.add('active');
+		peopleFilterAllBtn.classList.remove('active');
+		renderCreators();
+	});
+}
 
-/* --- แสดงการ์ดนักรีวิวเด่น จากข้อมูลใน chimchim-data.js --- */
-(function renderCreators() {
-    var grid = document.getElementById('creatorGrid');
-    if (!grid) return;
-
-    นักรีวิวเด่น.forEach(function(คน) {
-        var col = document.createElement('div');
-        col.className = 'col-6 col-lg-3';
-        col.innerHTML =
-            '<div class="chcard">' +
-                '<a href="public-profile.html?u=' + encodeURIComponent(คน.id) + '" class="chimg" style="background:' + คน.สี + ';display:flex;align-items:center;justify-content:center;">' +
-                    '<span style="font-size:3rem;font-weight:800;color:#fff;">' + escapeHtml(คน.ชื่อ.charAt(0).toUpperCase()) + '</span>' +
-                '</a>' +
-                '<div class="chbody">' +
-                    '<a href="public-profile.html?u=' + encodeURIComponent(คน.id) + '" class="chnm" style="text-decoration:none;color:inherit;display:block;">' + escapeHtml(คน.ชื่อ) + '</a>' +
-                    '<div class="chlv">🦖 Food Explorer Lv.' + คน.ระดับ + '</div>' +
-                    '<div class="chexp">' + คน.รีวิว + ' รีวิว</div>' +
-                    '<button class="followbtn" data-uid="' + คน.id + '">+ Follow</button>' +
-                '</div>' +
-            '</div>';
-        grid.appendChild(col);
-    });
-
-    document.querySelectorAll('.followbtn').forEach(function(btn) {
-        var uid = btn.getAttribute('data-uid');
-        if (isUserFollowed(uid)) {
-            btn.classList.add('following');
-            btn.textContent = '✓ Following';
-        }
-        btn.addEventListener('click', function() {
-            var nowFollowing = toggleFollowUser(uid);
-            this.classList.toggle('following', nowFollowing);
-            this.textContent = nowFollowing ? '✓ Following' : '+ Follow';
-        });
-    });
-})();
-
-/* --- แสดงร้านที่ผู้ใช้กด Follow ไว้จากหน้ารายละเอียดร้าน --- */
-(function renderFollowedShops() {
-    var ids = getFollowedShops();
-    var grid = document.getElementById('followedGrid');
-    var emptyMsg = document.getElementById('followedEmpty');
-    if (!grid) return;
-
-    if (ids.length === 0) {
-        emptyMsg.hidden = false;
-        return;
-    }
-    emptyMsg.hidden = true;
-
-    var i;
-    for (i = 0; i < ids.length; i++) {
-        var ร้าน = หาร้านจากId(ids[i]);
-        if (!ร้าน) continue;
-        var คะแนน = คำนวณMatch(ร้าน, foodDNA);
-
-        var col = document.createElement('div');
-        col.className = 'col-sm-6 col-lg-4';
-        col.innerHTML =
-            '<div class="mcard" data-id="' + ร้าน.id + '">' +
-                '<div class="mimg">' +
-                    '<img src="' + ร้าน.รูป + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
-                    '<div class="mmatch" data-match-score="' + คะแนน + '">' + matchBadgeText(คะแนน) + '</div>' +
-                    '<div class="mhrt"><i class="far fa-heart"></i></div>' +
-                '</div>' +
-                '<div class="mbody">' +
-                    '<div class="mcat">' + catEmoji(ร้าน.หมวด) + ' ' + escapeHtml(catLabel(ร้าน.หมวด)) + '</div>' +
-                    '<div class="mrestaurant">' + escapeHtml(ร้าน.ร้าน) + '</div>' +
-                    '<div class="mtit">' + escapeHtml(ร้าน.เมนู) + '</div>' +
-                    '<div class="mmeta"><span><i class="fas fa-tag"></i>฿' + ร้าน.ราคาต่ำ + '–' + ร้าน.ราคาสูง + '</span><span><i class="fas fa-location-dot"></i>' + distanceText(ร้าน.ระยะทาง) + '</span></div>' +
-                '</div>' +
-            '</div>';
-        var cardEl = col.querySelector('.mcard');
-        cardEl.addEventListener('click', function() {
-            window.location.href = 'restaurant.html?id=' + this.getAttribute('data-id');
-        });
-        initLikeUI(cardEl);
-        grid.appendChild(col);
-    }
+/* --- รองรับลิงก์ตรงจากหน้าโปรไฟล์: ?filter=following --- */
+(function applyFollowingQueryParams() {
+	var params = new URLSearchParams(window.location.search);
+	if (params.get('filter') === 'following' && peopleFilterFollowingBtn) {
+		peopleFilterFollowingBtn.click();
+	}
 })();

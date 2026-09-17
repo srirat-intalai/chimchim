@@ -63,10 +63,14 @@ if (!ร้านปัจจุบัน) {
 		refreshLikeBtn();
 	});
 
-	/* --- ปุ่ม Follow ร้าน (บันทึกจริงใน localStorage) --- */
+	/* --- ปุ่ม Follow ร้าน — รวมเป็นระบบเดียวกับ Follow คน/เพจร้าน (toggleFollowUser)
+	   ถ้าร้านนี้มีเพจร้าน BU ของตัวเอง ให้ Follow ผ่าน id ของเพจนั้นเลย จะได้เป็นสถานะเดียวกัน
+	   ไม่ว่าจะกด Follow จากหน้าร้าน หรือจากหน้าโปรไฟล์เพจก็ตาม --- */
 	var followBtn = document.getElementById("rdFollowBtn");
+	var buShopของร้านนี้ = (typeof เพจร้านBU !== "undefined") ? เพจร้านBU.filter(function(s) { return s.menuId === ร้านปัจจุบัน.id; })[0] : null;
+	var followId = buShopของร้านนี้ ? ("bu-" + buShopของร้านนี้.id) : ร้านปัจจุบัน.id;
 	function refreshFollowBtn() {
-		var followed = isShopFollowed(ร้านปัจจุบัน.id);
+		var followed = buShopของร้านนี้ ? isUserFollowed(followId) : isShopFollowed(followId);
 		followBtn.classList.toggle("following", followed);
 		followBtn.innerHTML = followed ?
 			'<i class="fas fa-check me-1"></i>' + t("restaurant.following") :
@@ -74,7 +78,7 @@ if (!ร้านปัจจุบัน) {
 	}
 	refreshFollowBtn();
 	followBtn.addEventListener("click", function() {
-		var nowFollowing = toggleFollowShop(ร้านปัจจุบัน.id);
+		var nowFollowing = buShopของร้านนี้ ? toggleFollowUser(followId) : toggleFollowShop(followId);
 		refreshFollowBtn();
 		showToast(nowFollowing ? "Follow ร้านนี้แล้ว 🎉" : "เลิก Follow ร้านนี้แล้ว");
 	});
@@ -84,9 +88,10 @@ if (!ร้านปัจจุบัน) {
 		showToast("คัดลอกลิงก์ร้านนี้แล้ว! (โหมดสาธิต)");
 	});
 
-	/* --- ปุ่มนำทาง --- */
+	/* --- ปุ่มนำทาง — เปิด Google Maps ค้นหาตำแหน่งร้านจริงจากชื่อร้าน + มหาวิทยาลัยใกล้เคียง --- */
 	document.getElementById("rdNavBtn").addEventListener("click", function() {
-		alert("🧭 กำลังพาไปหน้าแผนที่... (โหมดสาธิต ยังไม่เปิดใช้งานจริงใน prototype นี้)");
+		var q = ร้านปัจจุบัน.ร้าน + (ร้านปัจจุบัน.มหาลัย ? " ใกล้ " + ร้านปัจจุบัน.มหาลัย : "");
+		window.open("https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q), "_blank");
 	});
 
 	/* --- ปุ่มเขียนรีวิว --- */
@@ -124,10 +129,5 @@ if (!ร้านปัจจุบัน) {
 				"</div>";
 		});
 		listBox.innerHTML = html;
-	}
-
-	if (params.get("reviewed") === "1") {
-		document.querySelector('.rdtab[data-tab="reviews"]').click();
-		showToast("ขอบคุณสำหรับรีวิว! 🎉");
 	}
 }

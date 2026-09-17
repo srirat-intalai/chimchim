@@ -102,20 +102,82 @@ function revealWheelResult(idx, baseScore) {
 	if (matchScore > 98) matchScore = 98;
 	if (matchScore < 5) matchScore = 5;
 
-	document.getElementById("wresultImg").src = item.img;
-	document.getElementById("wresultImg").alt = item.name;
+	// หมวดนี้มีร้านจริงในระบบไหม (ผูกกับ รายการร้าน จริงหรือเปล่า) — ถ้าไม่มี ห้ามโชว์รูปมั่ว ๆ แทนของจริง โชว์แค่ชื่อพอ
+	var มีร้านจริง = cat.กรองได้ && รายการร้าน.some(function(r) { return r.หมวด === cat.กรองได้; });
+	var imgEl = document.getElementById("wresultImg");
+	imgEl.hidden = !มีร้านจริง;
+	if (มีร้านจริง) {
+		imgEl.src = item.img;
+		imgEl.alt = item.name;
+	}
 	document.getElementById("wresultTag").textContent = cat.emoji + " " + cat.label + " • 🎯 " + matchScore + "% Match";
 	document.getElementById("wresultTitle").textContent = item.name;
-	document.getElementById("wresultDesc").textContent = rresultDescByMode[currentRouletteMode] || rresultDescByMode.mix;
+	document.getElementById("wresultDesc").textContent = มีร้านจริง
+		? (rresultDescByMode[currentRouletteMode] || rresultDescByMode.mix)
+		: "ยังไม่มีร้านหมวดนี้ในระบบตอนนี้ ลองหมุนใหม่ดูร้านหมวดอื่นที่มีอยู่จริงได้เลย 🦖";
 	document.getElementById("wresultBtns").hidden = false;
 
-	// ปุ่ม "ดูร้านแนะนำ" พาไปหน้าแรก แล้วกรอง Discovery Feed ตามหมวดที่สุ่มได้
+	// ปุ่ม "ดูร้านแนะนำ" พาไปหน้าแรก (ทางเลือกเสริม เผื่ออยากดูร้านเพิ่ม — หน้าแรกไม่มีกริดกรองตามหมวดแล้ว)
 	var feedBtn = document.getElementById("wfeedBtn");
-	if (cat.กรองได้) {
-		feedBtn.href = "home.html?cat=" + encodeURIComponent(cat.กรองได้);
-	} else {
-		feedBtn.href = "home.html";
+	feedBtn.href = "home.html";
+
+	renderSimilarShops(cat);
+}
+
+// ร้านที่คล้ายกับผลที่สุ่มได้ — โชว์ 2-3 ร้านจริงในหมวดเดียวกันตรงนี้เลย ไม่ต้องกลับไปหน้าแรก
+// ถ้าหมวดนั้นไม่ได้ผูกกับ หมวด ในรายการร้านโดยตรง (เช่น อิตาเลียน/ปิ้งย่าง) ใช้ร้าน Match สูงสุดโดยรวมแทน
+function renderSimilarShops(cat) {
+	var section = document.getElementById("wSimilarSection");
+	var row = document.getElementById("wSimilarRow");
+	if (!section || !row) return;
+
+	var pool = cat.กรองได้ ? รายการร้าน.filter(function(r) { return r.หมวด === cat.กรองได้; }) : รายการร้าน;
+	var ranked = pool
+		.map(function(r) { return { r: r, m: คำนวณMatch(r, foodDNA) }; })
+		.sort(function(a, b) { return b.m - a.m; })
+		.slice(0, 3);
+
+	row.innerHTML = "";
+	if (!ranked.length) {
+		section.hidden = true;
+		return;
 	}
+	ranked.forEach(function(item) {
+		row.appendChild(buildMiniCard(item.r, openShopDetailPopup));
+	});
+	section.hidden = false;
+}
+
+/* --- กดร้านที่คล้ายกันแล้วเด้ง popup ดูรายละเอียดตรงนี้เลย ไม่ต้องออกจากหน้าวงล้อ --- */
+var shopDetailPop = document.getElementById("shopDetailPop");
+function openShopDetailPopup(ร้าน) {
+	if (!shopDetailPop) return;
+	var คะแนน = คำนวณMatch(ร้าน, foodDNA);
+	document.getElementById("sdImg").src = ร้าน.รูป;
+	document.getElementById("sdImg").alt = ร้าน.เมนู;
+	document.getElementById("sdCat").textContent = catEmoji(ร้าน.หมวด) + " " + catLabel(ร้าน.หมวด);
+	document.getElementById("sdTitle").textContent = ร้าน.เมนู;
+	document.getElementById("sdRestaurant").innerHTML = '<i class="fas fa-store"></i> ' + escapeHtml(ร้าน.ร้าน);
+	document.getElementById("sdMatchPct").textContent = matchBadgeText(คะแนน);
+	document.getElementById("sdMeta").textContent = "฿" + ร้าน.ราคาต่ำ + "–" + ร้าน.ราคาสูง + " · " + distanceText(ร้าน.ระยะทาง) + " · ใกล้" + ร้าน.มหาลัย;
+	document.getElementById("sdDesc").textContent = สร้างเหตุผลmatch(ร้าน, foodDNA);
+	document.getElementById("sdFullLink").href = "restaurant.html?id=" + ร้าน.id;
+	shopDetailPop.classList.add("open");
+	document.body.style.overflow = "hidden";
+}
+function closeShopDetailPopup() {
+	if (!shopDetailPop) return;
+	shopDetailPop.classList.remove("open");
+	document.body.style.overflow = "";
+}
+if (shopDetailPop) {
+	document.getElementById("sdClose").addEventListener("click", closeShopDetailPopup);
+	shopDetailPop.addEventListener("click", function(e) {
+		if (e.target === shopDetailPop) closeShopDetailPopup();
+	});
+	document.addEventListener("keydown", function(e) {
+		if (e.key === "Escape") closeShopDetailPopup();
+	});
 }
 
 spinBtn.addEventListener("click", spinWheel);

@@ -865,6 +865,7 @@ section {
 .hs {
   position: absolute;
   border-radius: 50%;
+  pointer-events: none;
 }
 .hs1 {
   width: 480px;
@@ -4542,6 +4543,7 @@ body.appshell {
 /* ---- Welcome / splash screen ---- */
 #welcome {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -4550,7 +4552,29 @@ body.appshell {
   padding: 40px 24px;
   background: radial-gradient(circle at 50% 0%, var(--cream), #fff 65%);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+/* บนมือถือจริง 100vh มักสูงกว่าพื้นที่มองเห็นจริง (เพราะแถบ URL ของเบราว์เซอร์กินพื้นที่ไป)
+   ถ้าเนื้อหาสูงเกินพอดี ปุ่ม "ดูแอปเลย" ที่อยู่ล่างสุดจะโดนตัดมองไม่เห็น กดไม่ได้เลย (overflow:hidden เดิมซ่อนไว้)
+   เปลี่ยนเป็น overflow-y:auto ด้านบนให้เลื่อนดูได้ถ้าจำเป็น + ลดระยะห่างบนจอเตี้ยกันไม่ให้ล้นตั้งแต่แรก */
+@media (max-height: 700px) {
+  #welcome {
+    padding: 24px 24px;
+  }
+  .weldino {
+    width: 140px;
+    margin-bottom: 2px;
+  }
+  .weltag {
+    margin-bottom: 20px;
+  }
+  .welbtns {
+    gap: 8px;
+  }
+  .welskip {
+    margin-top: 12px;
+  }
 }
 .weldino {
   width: 200px;

@@ -5867,24 +5867,6 @@ body.appshell {
 }
 
 /* ---- เลือกรูปหลายรูปตอนสร้างโพสต์ (เหมือน IG) ---- */
-.postimgpicker {
-  display: flex;
-  gap: 8px;
-}
-.postimgpicker select {
-  flex: 1;
-  min-width: 0;
-}
-.postimgaddbtn {
-  flex-shrink: 0;
-  width: 42px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--dark), #7d6fb0);
-  color: #fff;
-  font-size: 1rem;
-  cursor: pointer;
-}
 .postimglist {
   display: flex;
   flex-wrap: wrap;

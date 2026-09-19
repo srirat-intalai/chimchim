@@ -122,22 +122,8 @@ if (!session) {
 function initMyPosts() {
 	var toggle = document.getElementById("addPostToggle");
 	var form = document.getElementById("postForm");
-	var imgSelect = document.getElementById("postImg");
 	var listBox = document.getElementById("postImgList");
 	var chosenImages = [];
-
-	// เติมตัวเลือกรูปจากคลังรูปเดียวกับวงล้อสุ่มเมนู
-	วงล้อหมวดอาหาร.forEach(function(cat) {
-		var og = document.createElement("optgroup");
-		og.label = cat.emoji + " " + cat.label;
-		cat.pool.forEach(function(item) {
-			var opt = document.createElement("option");
-			opt.value = item.img;
-			opt.textContent = item.name;
-			og.appendChild(opt);
-		});
-		imgSelect.appendChild(og);
-	});
 
 	function renderChosenImages() {
 		listBox.innerHTML = "";
@@ -153,9 +139,12 @@ function initMyPosts() {
 		});
 	}
 
-	document.getElementById("postImgAddBtn").addEventListener("click", function() {
-		if (chosenImages.length >= 10) return;
-		chosenImages.push(imgSelect.value);
+	// อัปโหลดรูปจริงจากเครื่องผู้ใช้เอง (แทนดรอปดาวน์เลือกรูปสต็อกเดิม) เลือกได้หลายรูปพร้อมกัน สูงสุด 10 รูปต่อโพสต์
+	wireMultiImageUpload("postImgFile", function(dataUrls) {
+		dataUrls.forEach(function(dataUrl) {
+			if (chosenImages.length >= 10) return;
+			chosenImages.push(dataUrl);
+		});
 		renderChosenImages();
 	});
 
@@ -168,7 +157,6 @@ function initMyPosts() {
 		var errBox = document.getElementById("postErr");
 		errBox.classList.remove("show");
 		var caption = document.getElementById("postCaption").value.trim();
-		if (chosenImages.length === 0) chosenImages.push(imgSelect.value);
 		if (chosenImages.length === 0 || !caption) {
 			errBox.textContent = "เลือกรูปอย่างน้อย 1 รูปและใส่แคปชั่นก่อนนะ";
 			errBox.classList.add("show");

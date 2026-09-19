@@ -43,6 +43,28 @@ function wireImageUpload(fileInputId, hiddenInputId, previewImgId, boxId, existi
 	});
 }
 
+// เหมือน wireImageUpload แต่รองรับเลือกได้หลายรูปพร้อมกัน (หรือกดเพิ่มทีละรอบหลายครั้งก็ได้) — ใช้กับฟอร์มโพสต์ที่แนบได้หลายรูป
+// onFilesAdded(dataUrls) จะถูกเรียกพร้อมอาร์เรย์ data URL ของรูปที่เพิ่งเลือกทั้งหมด
+function wireMultiImageUpload(fileInputId, onFilesAdded) {
+	var fileInput = document.getElementById(fileInputId);
+	if (!fileInput) return;
+	fileInput.addEventListener("change", function() {
+		var files = Array.prototype.slice.call(fileInput.files || []);
+		if (!files.length) return;
+		var readers = files.map(function(file) {
+			return new Promise(function(resolve) {
+				var reader = new FileReader();
+				reader.onload = function(e) { resolve(e.target.result); };
+				reader.readAsDataURL(file);
+			});
+		});
+		Promise.all(readers).then(function(dataUrls) {
+			onFilesAdded(dataUrls);
+			fileInput.value = ""; // เคลียร์ค่าเดิม เผื่อผู้ใช้อยากเลือกรูปเดิมซ้ำได้อีกรอบ
+		});
+	});
+}
+
 var CHIMCHIM_CAT_EMOJI = {
 	"ข้าว": "🍚", "เส้น": "🍜", "ซุป": "🥣", "Fast Food": "🍔", "ญี่ปุ่น": "🍣", "ของหวาน": "🍰", "เผ็ด": "🌶️",
 	"อาหารเจ": "🥬", "อาหารฮาลาล": "🕌", "มังสวิรัติ": "🥗", "วีแกน": "🌱", "อาหารตามสั่ง": "🍳",

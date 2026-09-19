@@ -88,10 +88,10 @@
             <form id="postForm" class="apform" style="display:none;margin-bottom:14px;">
                <div class="aperr" id="postErr"></div>
                <label class="flbl" data-i18n="profile.pickPhotos">เลือกรูป (เพิ่มได้หลายรูปเหมือน IG)</label>
-               <div class="postimgpicker">
-                  <select class="fctrl" id="postImg"></select>
-                  <button type="button" class="postimgaddbtn" id="postImgAddBtn"><i class="fas fa-plus"></i></button>
+               <div class="imguploadbox" id="postImgUploadBox">
+                  <label class="imguploadlbl" for="postImgFile"><i class="fas fa-camera"></i><span data-i18n="shop.uploadPhoto">Upload a photo</span></label>
                </div>
+               <input type="file" id="postImgFile" accept="image/*" multiple hidden/>
                <div class="postimglist" id="postImgList"></div>
                <label class="flbl" data-i18n="profile.captionLbl">แคปชั่น</label>
                <input class="fctrl" type="text" id="postCaption" placeholder="เล่าอะไรสั้น ๆ เกี่ยวกับมื้อนี้..." required/>

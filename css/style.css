@@ -4569,6 +4569,20 @@ body.appshell {
   display: block;
 }
 
+/* ---- ตัวหมุนโหลดโพสต์เพิ่มท้ายฟีดชุมชน ---- */
+.feedloadingmore {
+  color: #999;
+  font-size: 0.78rem;
+  padding: 14px 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.feedloadingmore i {
+  color: var(--primary);
+}
+
 /* ---- แถบหมวดหมู่อาหารหน้าเทรนด์ (แทนแบนเนอร์ Match % เดิม) — กดแล้วกรองทั้งหน้าเลย ---- */
 .trendcatstrip {
   display: flex;

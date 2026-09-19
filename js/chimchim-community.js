@@ -307,7 +307,7 @@ function formatFeedTime(dateStr) {
 }
 
 /* --- ฟีดชุมชน: โชว์ 6 โพสต์แรก พอเลื่อนถึงล่างสุดค่อยเพิ่มทีละ 5 (ต่อท้ายในหน้าเดิม ไม่รีเฟรชหน้า) --- */
-var FEED_INITIAL_SIZE = 6;
+var FEED_INITIAL_SIZE = 5;
 var FEED_PAGE_STEP = 5;
 var feedState = { items: [], shown: 0, container: null };
 
@@ -425,7 +425,8 @@ function appendNextFeedBatch(count) {
 	feedState.shown += next.length;
 }
 
-/* --- sentinel ท้ายฟีด: เลื่อนถึงแล้วเพิ่มโพสต์ชุดถัดไปต่อท้ายทันที (ไม่รีเฟรชหน้า) ---
+/* --- sentinel ท้ายฟีด: เลื่อนถึงแล้วโชว์ตัวหมุนโหลดก่อน (เนื้อหาเดิมยังอยู่ครบ ไม่หาย) จากนั้นค่อยเพิ่มโพสต์ชุดถัดไปต่อท้าย
+   ทำซ้ำแบบนี้ไปเรื่อย ๆ ทุกครั้งที่เลื่อนถึงท้ายฟีด จนกว่าโพสต์จะหมด (ไม่รีเฟรชหน้าเลย)
    ข้าม callback แรกสุด (ที่ยิงทันทีตอน observe() เพื่อรายงานสถานะปัจจุบัน ไม่ใช่การเลื่อนจริงของผู้ใช้) --- */
 function wireFeedLoadMoreSentinel() {
 	var sentinel = document.getElementById("communityFeedSentinel");
@@ -434,21 +435,24 @@ function wireFeedLoadMoreSentinel() {
 	if (feedState.shown >= feedState.items.length) return;
 
 	var isFirstCallback = true;
+	var isLoading = false;
 	var observer = new IntersectionObserver(function(entries) {
 		if (isFirstCallback) {
 			isFirstCallback = false;
 			return;
 		}
-		if (!entries[0].isIntersecting) return;
-		appendNextFeedBatch(FEED_PAGE_STEP);
-		if (feedState.shown >= feedState.items.length) {
-			observer.disconnect();
-			window.__chimchimFeedSentinelObserver = null;
+		if (!entries[0].isIntersecting || isLoading) return;
+		isLoading = true;
+		if (loadingMore) loadingMore.hidden = false;
+		setTimeout(function() {
+			appendNextFeedBatch(FEED_PAGE_STEP);
+			isLoading = false;
 			if (loadingMore) loadingMore.hidden = true;
-		} else if (loadingMore) {
-			loadingMore.hidden = false;
-			setTimeout(function() { loadingMore.hidden = true; }, 500);
-		}
+			if (feedState.shown >= feedState.items.length) {
+				observer.disconnect();
+				window.__chimchimFeedSentinelObserver = null;
+			}
+		}, 600);
 	}, { threshold: 0.1 });
 	observer.observe(sentinel);
 	window.__chimchimFeedSentinelObserver = observer;

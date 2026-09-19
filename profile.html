@@ -53,69 +53,28 @@
 
       <!-- โชว์เมื่อเข้าสู่ระบบแล้ว -->
       <div class="profwrap" id="profContent" hidden>
-         <div class="profhead">
-            <div class="profavatar" id="profAvatar"></div>
-            <div>
-               <div class="profname" id="profName"></div>
-               <div class="profemail" id="profEmail"></div>
-               <span class="profrole" id="profRole"></span>
+         <div class="ighead">
+            <div class="profavatar igavatar" id="profAvatar"></div>
+            <div class="igstats">
+               <div class="igstat"><b id="igStatPosts">0</b><span data-i18n="profile.statPosts">โพสต์</span></div>
+               <a class="igstat" href="following.html?filter=following"><b id="igStatFollowing">0</b><span data-i18n="profile.statFollowing">กำลังติดตาม</span></a>
             </div>
          </div>
-
-         <div class="profxpbox">
-            <div class="profxprow">
-               <span class="profxplv">🦖 Lv.<b id="profLvVal"></b></span>
-               <span class="profxpval" id="profXpVal"></span>
-            </div>
-            <div class="profxpbar"><span id="profXpBarFill"></span></div>
-            <p class="profxphint" id="profXpHint"></p>
+         <div class="ignamewrap">
+            <div class="profname" id="profName"></div>
+            <span class="profrole" id="profRole"></span>
+            <div class="profemail" id="profEmail"></div>
+         </div>
+         <div class="igbtnrow">
+            <a href="settings.html" class="igbtn" data-i18n="profile.editProfile">แก้ไขโปรไฟล์</a>
+            <button type="button" class="igbtn" id="igShareBtn"><i class="fas fa-share me-1"></i><span data-i18n="profile.shareProfile">แชร์โปรไฟล์</span></button>
          </div>
 
-         <!-- Food DNA (บัญชีผู้ใช้ทั่วไป) -->
-         <div class="profcard" id="profDnaCard" hidden>
+         <!-- Food DNA — กดเป็นปุ่มเพื่อดูรายละเอียดเป็น popup แทนที่จะกางไว้เต็มหน้าตลอด -->
+         <button type="button" class="profcard profcardbtn" id="dnaCardBtn">
             <div class="profcardtit"><i class="fas fa-dna me-1"></i><span data-i18n="profile.foodDna">Food DNA ของคุณ</span></div>
-            <div id="profDnaBody"></div>
-            <a href="profile-setup.html" class="rdghost" style="width:100%;margin-top:12px;"><i class="fas fa-rotate me-1"></i><span data-i18n="profile.retakeTest">ทำแบบทดสอบใหม่อีกครั้ง</span></a>
-         </div>
-         <div class="profcard" id="profNoDnaCard" hidden>
-            <div class="profcardtit"><i class="fas fa-dna me-1"></i><span data-i18n="profile.foodDna">Food DNA ของคุณ</span></div>
-            <p style="font-size:.82rem;color:#999;margin-bottom:14px;" data-i18n="profile.noDnaDesc">ยังไม่ได้ทำแบบทดสอบ Food DNA ทำแบบทดสอบสั้น ๆ เพื่อให้ชิมชิมแนะนำร้านได้ตรงใจคุณมากขึ้น</p>
-            <a href="profile-setup.html" class="btn-red profbtn"><i class="fas fa-flask"></i><span data-i18n="profile.takeTest">ทำแบบทดสอบ Food DNA</span></a>
-         </div>
-
-         <!-- ร้านและคนที่ Follow -->
-         <div class="profcard">
-            <div class="profcardtit"><i class="fas fa-heart me-1"></i><span data-i18n="profile.following">ที่คุณติดตามไว้</span></div>
-            <p style="font-size:.82rem;color:#999;" id="profFollowPeopleCount"></p>
-            <a href="following.html?filter=following" class="rdghost" style="width:100%;" data-i18n="profile.viewAllPeople">ดูทั้งหมดที่ Follow ไว้</a>
-         </div>
-
-         <!-- ประวัติการกดถูกใจ -->
-         <div class="profcard">
-            <div class="profcardtit"><i class="fas fa-heart-circle-check me-1"></i><span data-i18n="profile.likeHistory">ประวัติการกดถูกใจ</span></div>
-            <div id="profLikesList"></div>
-            <p id="profLikesEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:10px 0;" hidden data-i18n="profile.likeHistoryEmpty">ยังไม่ได้กดถูกใจเมนูไหนเลย</p>
-         </div>
-
-         <!-- ประวัติการรีวิว -->
-         <div class="profcard">
-            <div class="profcardtit"><i class="fas fa-star me-1"></i><span data-i18n="profile.reviewHistory">ประวัติการรีวิว</span></div>
-            <div id="profReviewsList"></div>
-            <p id="profReviewsEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:10px 0;" hidden data-i18n="profile.reviewHistoryEmpty">ยังไม่ได้เขียนรีวิวไว้เลย</p>
-         </div>
-
-         <!-- ร้านของฉัน (บัญชีร้านค้า) -->
-         <div class="profcard" id="profShopsCard" hidden>
-            <div class="profcardtit"><i class="fas fa-store me-1"></i><span data-i18n="profile.myShops">ร้านของฉัน</span></div>
-            <div id="profShopsList"></div>
-            <button class="btn-red profbtn mt-3" id="postShopBtn"><i class="fas fa-plus"></i><span data-i18n="profile.postNewShop">โพสต์ร้านใหม่</span></button>
-         </div>
-
-         <!-- เพจร้านของฉัน (สไตล์ Facebook Page — แยกจากโปรไฟล์ส่วนตัว) -->
-         <div class="profcard" id="profPageCard">
-            <div class="profcardtit"><i class="fas fa-shop me-1"></i><span data-i18n="profile.myPage">เพจร้านของฉัน</span></div>
-            <div id="profPageBody"></div>
-         </div>
+            <p class="profcardbtnhint" id="dnaCardHint"></p>
+         </button>
 
          <!-- โพสต์ของฉัน (เหมือนฟีดคอมมูนิตี้ย่อ ๆ) -->
          <div class="profcard" id="profPostsCard" hidden>
@@ -190,71 +149,13 @@
       </div>
 
       <!-- ============================================================
-         SHOP POPUP — โพสต์ร้านของฉัน (สำหรับบัญชีร้านค้า)
+         PROFILE DETAIL POPUP — ใช้ร่วมกัน 3 อย่าง: Food DNA / ดูถูกใจทั้งหมด / ดูรีวิวทั้งหมด
          ============================================================ -->
-      <div id="shopPop">
+      <div id="profDetailPop">
          <div class="apbox spbox2">
-            <button class="apclose" id="spClose"><i class="fas fa-times"></i></button>
-            <h4 class="sptitle2" id="shopPopTitle"><i class="fas fa-store me-2"></i><span data-i18n="shop.postMyShop">โพสต์ร้านของฉัน</span></h4>
-            <p class="apsub" data-i18n="shop.formHint">กรอกรายละเอียดร้าน แล้วร้านของคุณจะไปโผล่ใน Discovery Feed ทันที</p>
-            <form id="shopForm" class="apform">
-               <input type="hidden" id="shopEditId" value=""/>
-               <div class="aperr" id="shopErr"></div>
-               <label class="flbl" data-i18n="shop.shopName">ชื่อร้าน *</label>
-               <input class="fctrl" type="text" id="shopName" placeholder="เช่น ป้าหน่อย ข้าวมันไก่" required/>
-               <label class="flbl" data-i18n="shop.category">หมวดอาหาร *</label>
-               <select class="fctrl" id="shopCat" required>
-                  <option value="ข้าว">🍚 ข้าว</option>
-                  <option value="เส้น">🍜 เส้น</option>
-                  <option value="ซุป">🥣 ซุป</option>
-                  <option value="Fast Food">🍔 Fast Food</option>
-                  <option value="ญี่ปุ่น">🍣 ญี่ปุ่น</option>
-                  <option value="ของหวาน">🍰 ของหวาน</option>
-                  <option value="เผ็ด">🌶️ เผ็ด</option>
-               </select>
-               <label class="flbl" data-i18n="shop.featuredImage">รูปเมนูเด่น *</label>
-               <div class="imguploadbox" id="shopImgUploadBox">
-                  <img class="imguploadpreview" id="shopImgPreviewImg" src="" alt="" hidden/>
-                  <label class="imguploadlbl" for="shopImgFile"><i class="fas fa-camera"></i><span data-i18n="shop.uploadPhoto">Upload a photo</span></label>
-               </div>
-               <input type="file" id="shopImgFile" accept="image/*" hidden/>
-               <input type="hidden" id="shopImg" required/>
-               <label class="flbl" data-i18n="shop.featuredDish">เมนูเด่น *</label>
-               <input class="fctrl" type="text" id="shopDish" placeholder="เช่น ข้าวมันไก่ทอด" required/>
-               <div class="row g-2">
-                  <div class="col-4">
-                     <label class="flbl" data-i18n="shop.priceLow">ราคาต่ำ (฿) *</label>
-                     <input class="fctrl" type="number" id="shopPriceLow" min="0" placeholder="40" required/>
-                  </div>
-                  <div class="col-4">
-                     <label class="flbl" data-i18n="shop.priceHigh">ราคาสูง (฿) *</label>
-                     <input class="fctrl" type="number" id="shopPriceHigh" min="0" placeholder="70" required/>
-                  </div>
-                  <div class="col-4">
-                     <label class="flbl" data-i18n="shop.distance">ระยะทาง (ม.) *</label>
-                     <input class="fctrl" type="number" id="shopDistance" min="0" placeholder="300" required/>
-                  </div>
-               </div>
-               <label class="flbl" data-i18n="shop.nearUni">ใกล้มหาวิทยาลัยไหน *</label>
-               <select class="fctrl" id="shopUni" required>
-                  <option value="ธรรมศาสตร์ รังสิต">ธรรมศาสตร์ รังสิต</option>
-                  <option value="มหาวิทยาลัยกรุงเทพ">มหาวิทยาลัยกรุงเทพ</option>
-                  <option value="เกษตรศาสตร์">เกษตรศาสตร์</option>
-               </select>
-               <label class="flbl" data-i18n="shop.shortDesc">คำโปรยสั้น ๆ *</label>
-               <textarea class="fctrl" id="shopDesc" rows="3" placeholder="บอกจุดเด่นร้านคุณสั้น ๆ ให้คนอยากลอง" required></textarea>
-               <div class="row g-2">
-                  <div class="col-6">
-                     <label class="flbl" data-i18n="shop.hours">เวลาเปิด-ปิด</label>
-                     <input class="fctrl" type="text" id="shopHours" placeholder="เช่น 10:00 – 20:00 น."/>
-                  </div>
-                  <div class="col-6">
-                     <label class="flbl" data-i18n="shop.promo">โปรโมชั่นพิเศษ (ถ้ามี)</label>
-                     <input class="fctrl" type="text" id="shopPromo" placeholder="เช่น ลด 10% ทุกวันจันทร์"/>
-                  </div>
-               </div>
-               <button type="submit" class="btn-red w-100 justify-content-center mt-2" id="shopSubmitBtn"><i class="fas fa-paper-plane"></i><span data-i18n="shop.submit">โพสต์ร้านเข้าชุมชน</span></button>
-            </form>
+            <button class="apclose" id="pdClose"><i class="fas fa-times"></i></button>
+            <h4 class="sptitle2" id="pdTitle"></h4>
+            <div id="pdBody"></div>
          </div>
       </div>
 

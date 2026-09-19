@@ -12,24 +12,6 @@ function escapeHtml(str) {
 	return div.innerHTML.replace(/"/g, "&quot;");
 }
 
-// สับลำดับอาร์เรย์แบบสุ่มจริง (Fisher-Yates) — ไม่แก้อาร์เรย์เดิม คืนอาร์เรย์ใหม่
-function สับลำดับ(arr) {
-	var result = arr.slice();
-	var i, j, temp;
-	for (i = result.length - 1; i > 0; i--) {
-		j = Math.floor(Math.random() * (i + 1));
-		temp = result[i];
-		result[i] = result[j];
-		result[j] = temp;
-	}
-	return result;
-}
-
-// true แค่ตอนผู้ใช้กดปุ่ม "เทรนด์" ซ้ำตอนอยู่หน้าแรกอยู่แล้ว (ดู chimchim-nav.js) เพื่อขอให้สลับเนื้อหาใหม่
-// อ่านค่าครั้งเดียวตอนโหลดหน้า แล้วล้างทิ้งทันที กันมีผลติดค้างข้ามการเข้าชมปกติครั้งต่อไป
-var ขอสลับเนื้อหาใหม่ = sessionStorage.getItem("chimchim_shuffle_feed") === "1";
-if (ขอสลับเนื้อหาใหม่) sessionStorage.removeItem("chimchim_shuffle_feed");
-
 // ผูกกล่องอัปโหลดรูปเอง (input type=file) เข้ากับ hidden input ที่เก็บค่าจริง (data URL) + รูปพรีวิว
 // ใช้ร่วมกันได้ทุกฟอร์มที่ให้ผู้ใช้อัปโหลดรูปเอง (รูปเพจร้าน, รูปเมนูเด่นตอนโพสต์ร้าน) แทนดรอปดาวน์เลือกรูปสต็อกเดิม
 function wireImageUpload(fileInputId, hiddenInputId, previewImgId, boxId, existingValue) {
@@ -61,9 +43,17 @@ function wireImageUpload(fileInputId, hiddenInputId, previewImgId, boxId, existi
 	});
 }
 
+var CHIMCHIM_CAT_EMOJI = {
+	"ข้าว": "🍚", "เส้น": "🍜", "ซุป": "🥣", "Fast Food": "🍔", "ญี่ปุ่น": "🍣", "ของหวาน": "🍰", "เผ็ด": "🌶️",
+	"อาหารเจ": "🥬", "อาหารฮาลาล": "🕌", "มังสวิรัติ": "🥗", "วีแกน": "🌱", "อาหารตามสั่ง": "🍳",
+	"ส้มตำ": "🥭", "ยำ": "🌶️", "หม่าล่า": "🍲", "ของทอด": "🍤", "ผลไม้": "🍉", "ของหวาน/เบเกอรี่": "🍰",
+	"ปิ้งย่าง": "🍖", "อาหารญี่ปุ่น": "🍣", "อาหารจีน": "🥟", "อาหารเกาหลี": "🍚", "เครื่องดื่ม": "🥤",
+	"สเต็ก": "🥩", "เบอร์เกอร์": "🍔", "เมนูเส้น": "🍜", "ก๋วยเตี๋ยว": "🍲", "อาหารอินเดีย": "🍛",
+	"อาหารเวียดนาม": "🍜", "พิซซ่า": "🍕", "อาหารใต้": "🌶️", "อีสาน": "🍢", "เหนือ": "🍛", "กลาง": "🍚",
+	"อาหารป่า": "🦌", "ข้าวแกง": "🍛"
+};
 function catEmoji(cat) {
-	var map = { "ข้าว": "🍚", "เส้น": "🍜", "ซุป": "🥣", "Fast Food": "🍔", "ญี่ปุ่น": "🍣", "ของหวาน": "🍰", "เผ็ด": "🌶️" };
-	return map[cat] || "🍽️";
+	return CHIMCHIM_CAT_EMOJI[cat] || "🍽️";
 }
 
 // กันไม่ให้แถวรูปภาพ/วงล้อไหนก็ตามโชว์ร้านที่ใช้รูปซ้ำกันติดกัน — ใช้กับแถวที่เรียงตาม Match แล้ว
@@ -142,7 +132,7 @@ function updateMe(patch) {
 
 /* --- ใช้ Food DNA ส่วนตัวของผู้ใช้ (ถ้าทำแบบสอบถามตอนสมัครไว้แล้ว) แทนค่าเริ่มต้น
    ถ้ายังไม่ได้ทำแบบทดสอบ/ยังไม่ได้ล็อกอิน ให้เดาความชอบจากพฤติกรรมจริงแทน (ร้านที่เคย
-   กดถูกใจ/Follow ไว้ในเบราว์เซอร์นี้) เพื่อให้ Match % ตรงกับผู้ใช้จริง ไม่ใช่ค่ากลาง ๆ เดิมทุกคน --- */
+   กดถูกใจ/Follow/รีวิวดี ๆ ไว้ในเบราว์เซอร์นี้) เพื่อให้ Match % ตรงกับผู้ใช้จริง ไม่ใช่ค่ากลาง ๆ เดิมทุกคน --- */
 function applyPersonalFoodDNA() {
 	var me = getMe();
 	if (me && me.foodDNA) {
@@ -150,19 +140,38 @@ function applyPersonalFoodDNA() {
 		foodDNA.ชอบรส = me.foodDNA.ชอบรส;
 		foodDNA.งบเฉลี่ยที่ใช้บ่อย = me.foodDNA.งบเฉลี่ยที่ใช้บ่อย;
 		foodDNA.ระยะที่ยอมไป = me.foodDNA.ระยะที่ยอมไป;
+		// ชอบหมวด เก็บไว้ตอนทำแบบทดสอบอยู่แล้ว แต่เอามาใช้จริงในคำนวณMatch ด้วยเลย (เดิมเก็บไว้เฉยๆ ไม่ได้ใช้)
+		foodDNA.ชอบหมวด = me.foodDNA.ชอบหมวด || [];
 		return;
 	}
 	var inferred = inferDnaFromBehavior();
 	if (inferred) {
 		if (inferred.ชอบชาติอาหาร.length) foodDNA.ชอบชาติอาหาร = inferred.ชอบชาติอาหาร;
 		if (inferred.ชอบรส.length) foodDNA.ชอบรส = inferred.ชอบรส;
+		if (inferred.ชอบหมวด.length) foodDNA.ชอบหมวด = inferred.ชอบหมวด;
 	}
 }
+
+// เรียนรู้พฤติกรรมจริงของผู้ใช้ในเบราว์เซอร์นี้ (กดถูกใจ / Follow / เขียนรีวิวให้คะแนนดี ๆ)
+// แล้วสรุปออกมาเป็นแนวโน้มที่ชอบ 3 มิติ: ชาติอาหาร / รสชาติ / หมวดหมู่ ใช้แทนแบบทดสอบ Food DNA
+// สำหรับคนที่ยังไม่ได้ทำแบบทดสอบ หรือใช้เสริมแบบทดสอบเดิมให้แม่นขึ้นเรื่อย ๆ ตามการใช้งานจริง
 function inferDnaFromBehavior() {
-	var ids = getLikedShops().concat(getFollowedShops());
+	var likedIds = getLikedShops();
+	var followedIds = getFollowedShops();
+	var reviewedIds = [];
+	var session = getSession();
+	if (session) {
+		getReviewsByUser(session.id).forEach(function(r) {
+			// รีวิวที่ให้คะแนนเฉลี่ย 4/5 ขึ้นไป นับเป็นสัญญาณว่าชอบร้านนี้จริง ๆ (ต่ำกว่านั้นไม่เอามานับ กันทายผิดทาง)
+			var avg = (r.taste + r.atmosphere + r.service) / 3;
+			if (avg >= 4) reviewedIds.push(r.shopId);
+		});
+	}
+	var ids = likedIds.concat(followedIds).concat(reviewedIds);
 	if (!ids.length) return null;
 	var cuisineCount = {};
 	var flavorCount = {};
+	var catCount = {};
 	ids.forEach(function(id) {
 		var r = หาร้านจากId(id);
 		if (!r) return;
@@ -170,10 +179,67 @@ function inferDnaFromBehavior() {
 		(r.รส || []).forEach(function(f) {
 			flavorCount[f] = (flavorCount[f] || 0) + 1;
 		});
+		if (r.หมวด) catCount[r.หมวด] = (catCount[r.หมวด] || 0) + 1;
 	});
 	var topCuisines = Object.keys(cuisineCount).sort(function(a, b) { return cuisineCount[b] - cuisineCount[a]; }).slice(0, 3);
 	var topFlavors = Object.keys(flavorCount).sort(function(a, b) { return flavorCount[b] - flavorCount[a]; }).slice(0, 3);
-	return { ชอบชาติอาหาร: topCuisines, ชอบรส: topFlavors };
+	var topCats = Object.keys(catCount).sort(function(a, b) { return catCount[b] - catCount[a]; }).slice(0, 3);
+	return { ชอบชาติอาหาร: topCuisines, ชอบรส: topFlavors, ชอบหมวด: topCats };
+}
+
+/* =====================================================================
+   ตำแหน่งที่อยู่จริงของผู้ใช้ (Geolocation) — ใช้หามหาวิทยาลัยที่ใกล้ที่สุดจากพิกัดจริง 3 แห่ง
+   (ไม่มีพิกัด GPS จริงของร้านแต่ละร้าน มีแค่ระยะทางประมาณจากมหาลัยที่ใส่ไว้ตอนโพสต์ร้าน
+   เลยใช้ "มหาลัยที่ใกล้คุณที่สุด" แทนการเทียบระยะทางร้านทีละร้านตรงๆ เพื่อไม่ต้องเดาพิกัดร้านที่ไม่มีข้อมูลจริง) --- */
+var CHIMCHIM_LOCATION_KEY = "chimchim_user_location";
+function getUserLocation() {
+	try {
+		return JSON.parse(localStorage.getItem(CHIMCHIM_LOCATION_KEY));
+	} catch (e) {
+		return null;
+	}
+}
+// สูตร Haversine — ระยะทางจริงระหว่างพิกัด 2 จุดบนโลก (หน่วยเมตร)
+function ระยะทางฮาเวอร์ไซน์(lat1, lng1, lat2, lng2) {
+	var R = 6371000;
+	var toRad = function(d) { return (d * Math.PI) / 180; };
+	var dLat = toRad(lat2 - lat1);
+	var dLng = toRad(lng2 - lng1);
+	var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+		Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+	var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+	return R * c;
+}
+// ขอตำแหน่งจริงจากเบราว์เซอร์ (ต้องเรียกตอนผู้ใช้กดปุ่มเอง ไม่เรียกลอยๆ ตอนโหลดหน้า) แล้วหามหาลัยที่ใกล้สุด
+// เก็บผลไว้ใน localStorage เพื่อให้คำนวณMatch ให้คะแนนโบนัสร้านแถวมหาลัยนั้นในครั้งถัดไปทุกหน้า
+function ขอตำแหน่งผู้ใช้() {
+	return new Promise(function(resolve, reject) {
+		if (!navigator.geolocation) {
+			reject(new Error("เบราว์เซอร์นี้ไม่รองรับการขอตำแหน่ง"));
+			return;
+		}
+		navigator.geolocation.getCurrentPosition(
+			function(pos) {
+				var lat = pos.coords.latitude;
+				var lng = pos.coords.longitude;
+				var nearestUni = null;
+				var nearestDist = Infinity;
+				Object.keys(มหาวิทยาลัยพิกัด).forEach(function(uni) {
+					var p = มหาวิทยาลัยพิกัด[uni];
+					var d = ระยะทางฮาเวอร์ไซน์(lat, lng, p.lat, p.lng);
+					if (d < nearestDist) {
+						nearestDist = d;
+						nearestUni = uni;
+					}
+				});
+				var result = { lat: lat, lng: lng, nearestUni: nearestUni, nearestUniDistance: Math.round(nearestDist), updatedAt: new Date().toISOString() };
+				localStorage.setItem(CHIMCHIM_LOCATION_KEY, JSON.stringify(result));
+				resolve(result);
+			},
+			function(err) { reject(err); },
+			{ timeout: 10000 }
+		);
+	});
 }
 
 /* =====================================================================
@@ -320,6 +386,43 @@ function getReviewsByUser(userId) {
 	});
 	result.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
 	return result;
+}
+
+/* --- แถวประวัติกดถูกใจ/รีวิว ใช้ร่วมกันได้ทุกหน้า (ตอนนี้ใช้ในหน้าตั้งค่า) --- */
+function buildLikeRow(ร้าน) {
+	var row = document.createElement("div");
+	row.className = "profshoprow";
+	row.style.cursor = "pointer";
+	row.innerHTML =
+		'<img src="' + ร้าน.รูป + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
+		'<div style="flex:1;min-width:0;">' +
+			'<div class="profshopnm">' + escapeHtml(ร้าน.เมนู) + "</div>" +
+			'<div class="profshopmeta">' + escapeHtml(ร้าน.ร้าน) + " · " + catEmoji(ร้าน.หมวด) + " " + escapeHtml(catLabel(ร้าน.หมวด)) + "</div>" +
+		"</div>";
+	row.addEventListener("click", function() {
+		window.location.href = "restaurant.html?id=" + ร้าน.id;
+	});
+	return row;
+}
+function buildReviewItem(r) {
+	var ร้าน = หาร้านจากId(r.shopId);
+	if (!ร้าน) return null;
+	var avgScore = Math.round((r.taste + r.atmosphere + r.service) / 3 * 10) / 10;
+	var item = document.createElement("div");
+	item.className = "profreviewitem";
+	item.innerHTML =
+		'<div class="profreviewrow">' +
+			'<img src="' + ร้าน.รูป + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
+			'<div style="flex:1;min-width:0;">' +
+				'<div class="profshopnm">' + escapeHtml(ร้าน.ร้าน) + "</div>" +
+				'<div class="profshopmeta">🎯 ' + avgScore + "/5 คะแนนเฉลี่ย</div>" +
+			"</div>" +
+		"</div>" +
+		(r.text ? '<p class="profreviewtxt">' + escapeHtml(r.text) + "</p>" : "");
+	item.querySelector(".profreviewrow").addEventListener("click", function() {
+		window.location.href = "restaurant.html?id=" + ร้าน.id;
+	});
+	return item;
 }
 
 /* =====================================================================
@@ -601,7 +704,8 @@ function getFeedItems() {
 			posterName: posterName,
 			posterAvatarUrl: page ? page.avatar : null,
 			posterColor: page ? "var(--cream2)" : "linear-gradient(135deg, var(--dark), #7d6fb0)",
-			posterLink: page ? ("public-profile.html?u=page-" + page.id) : ("public-profile.html?u=" + p.userId)
+			posterLink: page ? ("public-profile.html?u=page-" + page.id) : ("public-profile.html?u=" + p.userId),
+			cat: page ? page.cat : null
 		};
 	});
 	var fromBuShops = [];
@@ -621,15 +725,14 @@ function getFeedItems() {
 				posterName: shop.name,
 				posterAvatarUrl: shop.avatar,
 				posterColor: "linear-gradient(135deg, var(--primary), var(--secondary))",
-				posterLink: "public-profile.html?u=bu-" + shop.id
+				posterLink: "public-profile.html?u=bu-" + shop.id,
+				cat: shop.cat
 			});
 		});
 	});
-	var combined = fromReal.concat(fromBuShops).sort(function(a, b) {
+	return fromReal.concat(fromBuShops).sort(function(a, b) {
 		return new Date(b.date) - new Date(a.date);
 	});
-	// ปกติเรียงใหม่สุดก่อนเสมอ แต่ถ้าผู้ใช้กดปุ่ม "เทรนด์" ซ้ำเพื่อขอเนื้อหาใหม่ ให้สลับลำดับสุ่มแทนสักรอบ
-	return ขอสลับเนื้อหาใหม่ ? สับลำดับ(combined) : combined;
 }
 
 /* =====================================================================
@@ -703,25 +806,6 @@ function getActivePersona() {
 }
 function setActivePersona(v) {
 	localStorage.setItem(CHIMCHIM_ACTIVE_PERSONA_KEY, v);
-}
-
-/* =====================================================================
-   Level / XP ของผู้ใช้ — คำนวณจากกิจกรรมจริงที่ทำในแอป (Follow / Like / โพสต์ / รีวิว / สร้างเพจ / โพสต์ร้าน)
-   ===================================================================== */
-function calcUserXP(me) {
-	if (!me) return 0;
-	var xp = 0;
-	xp += getFollowedUsers().length * 5;
-	xp += getLikedShops().length * 2;
-	xp += getAllPosts().filter(function(p) { return p.userId === me.id; }).length * 10;
-	xp += countReviewsByUser(me.id) * 15;
-	if (me.foodDNA) xp += 20;
-	if (getPages().some(function(p) { return p.ownerId === me.id; })) xp += 15;
-	xp += getShops().filter(function(s) { return s.vendorId === me.id; }).length * 20;
-	return xp;
-}
-function calcUserLevel(xp) {
-	return 1 + Math.floor(xp / 50);
 }
 
 /* --- รันทันทีตอนโหลดไฟล์: เตรียมข้อมูลให้พร้อมก่อนหน้าเพจจะคำนวณ Match % --- */

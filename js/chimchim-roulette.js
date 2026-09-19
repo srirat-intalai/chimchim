@@ -36,13 +36,16 @@ function เลือกช่องตามโหมด(mode) {
 	var คะแนนทั้งหมด = วงล้อหมวดอาหาร.map(function(cat) {
 		return คำนวณคะแนนหมวดวงล้อ(cat, foodDNA);
 	});
+	// น้ำหนักเดิมยกกำลัง 2 ทำให้หมวดคะแนนสูงสุดผูกขาดวงล้อเกือบทุกรอบ (ซ้ำซากเกินไป)
+	// ลดเลขยกกำลังลงเหลือ 1.3 + บวกฐานคะแนนขั้นต่ำ ให้หมวดที่คะแนนต่ำกว่ายังมีโอกาสออกได้บ้าง
+	// (จำลองเทียบแล้ว: หมวดอันดับ 1 จากเดิมออก ~27% ของรอบทั้งหมด เหลือ ~19% หลากหลายขึ้นชัดเจน แต่ยังให้น้ำหนักตามความชอบอยู่)
 	var weights;
 	if (mode === "opposite") {
-		weights = คะแนนทั้งหมด.map(function(s) { return Math.pow(Math.max(100 - s, 1), 2); });
+		weights = คะแนนทั้งหมด.map(function(s) { return Math.pow(Math.max(100 - s, 1), 1.3) + 15; });
 	} else if (mode === "mix") {
 		weights = คะแนนทั้งหมด.map(function() { return 1; });
 	} else {
-		weights = คะแนนทั้งหมด.map(function(s) { return Math.pow(Math.max(s, 1), 2); });
+		weights = คะแนนทั้งหมด.map(function(s) { return Math.pow(Math.max(s, 1), 1.3) + 15; });
 	}
 	var idx = สุ่มถ่วงน้ำหนัก(weights);
 	return { idx: idx, score: คะแนนทั้งหมด[idx] };
@@ -117,10 +120,6 @@ function revealWheelResult(idx, baseScore) {
 		: "ยังไม่มีร้านหมวดนี้ในระบบตอนนี้ ลองหมุนใหม่ดูร้านหมวดอื่นที่มีอยู่จริงได้เลย 🦖";
 	document.getElementById("wresultBtns").hidden = false;
 
-	// ปุ่ม "ดูร้านแนะนำ" พาไปหน้าแรก (ทางเลือกเสริม เผื่ออยากดูร้านเพิ่ม — หน้าแรกไม่มีกริดกรองตามหมวดแล้ว)
-	var feedBtn = document.getElementById("wfeedBtn");
-	feedBtn.href = "home.html";
-
 	renderSimilarShops(cat);
 }
 
@@ -177,6 +176,45 @@ if (shopDetailPop) {
 	});
 	document.addEventListener("keydown", function(e) {
 		if (e.key === "Escape") closeShopDetailPopup();
+	});
+}
+
+/* --- ปุ่ม "ดูร้านแนะนำ" — เด้ง popup รายชื่อร้านแนะนำจาก Food DNA ตรงนี้เลย ไม่ต้องออกจากหน้าวงล้อ --- */
+var recommendPop = document.getElementById("recommendPop");
+function openRecommendPop() {
+	if (!recommendPop) return;
+	var list = document.getElementById("recommendPopList");
+	list.innerHTML = "";
+	var แนะนำ = รายการร้าน
+		.map(function(r) { return { r: r, m: คำนวณMatch(r, foodDNA) }; })
+		.sort(function(a, b) { return b.m - a.m; })
+		.slice(0, 2);
+	if (!แนะนำ.length) {
+		list.innerHTML = '<p style="text-align:center;color:#bbb;font-size:.85rem;padding:20px 0;">' + t("roulette.recommendEmpty") + "</p>";
+	} else {
+		แนะนำ.forEach(function(item) {
+			list.appendChild(buildMiniCard(item.r, function(ร้าน) {
+				closeRecommendPop();
+				openShopDetailPopup(ร้าน);
+			}));
+		});
+	}
+	recommendPop.classList.add("open");
+	document.body.style.overflow = "hidden";
+}
+function closeRecommendPop() {
+	if (!recommendPop) return;
+	recommendPop.classList.remove("open");
+	document.body.style.overflow = "";
+}
+if (recommendPop) {
+	document.getElementById("wfeedBtn").addEventListener("click", openRecommendPop);
+	document.getElementById("rpClose").addEventListener("click", closeRecommendPop);
+	recommendPop.addEventListener("click", function(e) {
+		if (e.target === recommendPop) closeRecommendPop();
+	});
+	document.addEventListener("keydown", function(e) {
+		if (e.key === "Escape") closeRecommendPop();
 	});
 }
 

@@ -89,7 +89,7 @@
                   <p id="wresultDesc">ชิมชิมจะช่วยเลือกเมนูให้ 1 อย่างจากฐานข้อมูลกว่า 60 เมนู เผื่อวันไหนคิดไม่ออกว่าจะกินอะไรดี</p>
                   <div class="wresultbtns" id="wresultBtns" hidden>
                      <button class="btn-red" id="wagainBtn"><i class="fas fa-rotate"></i><span>หมุนอีกครั้ง</span></button>
-                     <a href="home.html" class="wghostbtn" id="wfeedBtn"><i class="fas fa-utensils"></i><span>ดูร้านแนะนำ</span></a>
+                     <button type="button" class="wghostbtn" id="wfeedBtn"><i class="fas fa-utensils"></i><span>ดูร้านแนะนำ</span></button>
                   </div>
                </div>
             </div>
@@ -108,6 +108,18 @@
          <a href="following.html" class="anitem"><i class="fas fa-users"></i><span data-i18n="nav.following">ติดตาม</span></a>
          <a href="profile.html" class="anitem"><i class="fas fa-user"></i><span data-i18n="nav.profile">โปรไฟล์</span></a>
       </nav>
+
+      <!-- ============================================================
+         RECOMMEND POPUP — กด "ดูร้านแนะนำ" แล้วเด้งดูรายชื่อร้านแนะนำตรงนี้เลย ไม่ต้องออกจากหน้าวงล้อ
+         ============================================================ -->
+      <div id="recommendPop">
+         <div class="apbox spbox2">
+            <button class="apclose" id="rpClose"><i class="fas fa-times"></i></button>
+            <h4 class="sptitle2"><i class="fas fa-utensils me-2"></i><span data-i18n="roulette.recommendTitle">ร้านแนะนำสำหรับคุณ</span></h4>
+            <p class="apsub" data-i18n="roulette.recommendSub">เรียงจาก Match % ที่ตรงกับ Food DNA ของคุณมากที่สุด</p>
+            <div class="rprecgrid" id="recommendPopList"></div>
+         </div>
+      </div>
 
       <!-- ============================================================
          SHOP DETAIL POPUP — กดร้านที่คล้ายกันแล้วเด้งดูรายละเอียดตรงนี้เลย ไม่ต้องออกจากหน้าวงล้อ

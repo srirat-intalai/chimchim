@@ -5,6 +5,48 @@
 // (buildMiniCard ย้ายไปอยู่ chimchim-core.js แล้ว เพื่อให้หน้าอื่น เช่น วงล้อสุ่มเมนู เรียกใช้ได้ด้วย)
 
 /* -----------------------------------------------------
+   แถบหมวดหมู่อาหารหน้าเทรนด์ — กดหมวดไหนแล้วทั้งหน้า (แนะนำสำหรับคุณ + ฟีดชุมชน) กรองตามหมวดนั้นทันที
+   จำหมวดที่เลือกไว้ใน sessionStorage กันหายตอนเลื่อนฟีดจนสุดแล้วรีเฟรชอัตโนมัติ
+----------------------------------------------------- */
+var currentTrendCat = sessionStorage.getItem('chimchim_trend_cat') || 'all';
+
+function renderTrendCatStrip() {
+    var strip = document.getElementById('trendCatStrip');
+    if (!strip) return;
+    strip.innerHTML = '';
+
+    var allChip = document.createElement('div');
+    allChip.className = 'trendcatchip' + (currentTrendCat === 'all' ? ' active' : '');
+    allChip.setAttribute('data-cat', 'all');
+    allChip.innerHTML = '<div class="trendcaticon">🍽️</div><span data-i18n="home.catAll">' + t('home.catAll') + '</span>';
+    // หมายเหตุ: data-i18n อยู่บน <span> ลูกโดยตรง (ไม่ใช่ .trendcatchip เอง) กัน applyI18n() ไปเขียนทับไอคอนหมวดด้วย
+    strip.appendChild(allChip);
+
+    หมวดหมู่ทั้งหมด.forEach(function(cat) {
+        var chip = document.createElement('div');
+        chip.className = 'trendcatchip' + (currentTrendCat === cat ? ' active' : '');
+        chip.setAttribute('data-cat', cat);
+        chip.innerHTML = '<div class="trendcaticon">' + catEmoji(cat) + '</div><span>' + catLabel(cat) + '</span>';
+        strip.appendChild(chip);
+    });
+
+    strip.querySelectorAll('.trendcatchip').forEach(function(chip) {
+        chip.addEventListener('click', function() {
+            currentTrendCat = this.getAttribute('data-cat');
+            sessionStorage.setItem('chimchim_trend_cat', currentTrendCat);
+            strip.querySelectorAll('.trendcatchip').forEach(function(c) { c.classList.remove('active'); });
+            this.classList.add('active');
+            renderMatchHero();
+            renderRecommendedRow();
+            var feedContainer = document.getElementById('communityFeed');
+            if (feedContainer && typeof renderCommunityFeed === 'function') {
+                renderCommunityFeed(feedContainer, currentTrendCat);
+            }
+        });
+    });
+}
+
+/* -----------------------------------------------------
    Match Hero — วงกลมเดียว แต่ภาพข้างในเลื่อนซ้ายขวาดูร้าน Match สูงสุดได้ทีละร้าน
    (Match% / ระยะทางจริง คำนวณจาก Food DNA ปัจจุบัน) ป้ายลอยอัปเดตตามภาพที่เลื่อนมาอยู่ตรงกลาง
    เรียก renderMatchHero() ซ้ำได้ทุกครั้งที่สลับภาษา เพื่อสร้างภาพชุดใหม่ให้ข้อความตรงโหมด
@@ -21,15 +63,18 @@ function renderMatchHero() {
     var slidesEl = document.getElementById('mhSlides');
     if (!wrap || !slidesEl) return;
 
+    var mhPool = currentTrendCat === 'all' ? รายการร้าน : รายการร้าน.filter(function(r) { return r.หมวด === currentTrendCat; });
     var mhDeduped = กรองรูปไม่ซ้ำ(
-        รายการร้าน
+        mhPool
             .map(function(r) { return { r: r, m: คำนวณMatch(r, foodDNA) }; })
             .sort(function(a, b) { return b.m - a.m; }),
         function(item) { return item.r.รูป; }
     );
     mhState.ranked = หมุนเวียนตามวันนี้(mhDeduped, function(item) { return 'hero-' + item.r.id; }, 8);
-    if (ขอสลับเนื้อหาใหม่) mhState.ranked = สับลำดับ(mhState.ranked);
-    if (!mhState.ranked.length) return;
+    if (!mhState.ranked.length) {
+        wrap.hidden = true;
+        return;
+    }
     mhState.currentIndex = 0;
 
     slidesEl.innerHTML = '';
@@ -94,25 +139,35 @@ renderMatchHero();
 /* -----------------------------------------------------
    🎯 Recommended For You — เฉพาะร้าน Match 70% ขึ้นไป เรียงมากไปน้อย สูงสุด 6 ร้าน
 ----------------------------------------------------- */
-(function renderRecommendedRow() {
+function renderRecommendedRow() {
     var row = document.getElementById('recommendedRow');
     if (!row) return;
+    row.innerHTML = '';
+    var recPool = currentTrendCat === 'all' ? รายการร้าน : รายการร้าน.filter(function(r) { return r.หมวด === currentTrendCat; });
     var recDeduped = กรองรูปไม่ซ้ำ(
-        รายการร้าน
+        recPool
             .map(function(r) { return { r: r, m: คำนวณMatch(r, foodDNA) }; })
             .filter(function(x) { return x.m >= 70; })
             .sort(function(a, b) { return b.m - a.m; }),
         function(x) { return x.r.รูป; }
     );
     var แนะนำ = หมุนเวียนตามวันนี้(recDeduped, function(x) { return 'rec-' + x.r.id; }, 6);
-    if (ขอสลับเนื้อหาใหม่) แนะนำ = สับลำดับ(แนะนำ);
     แนะนำ.forEach(function(x) {
         row.appendChild(buildMiniCard(x.r));
     });
+    var emptyEl = document.getElementById('trendCatEmptyRec');
     if (แนะนำ.length === 0) {
-        row.innerHTML = '<p style="color:#bbb;font-size:.82rem;padding:6px 2px;">ยังไม่มีร้านที่ Match 70% ขึ้นไปตอนนี้ ลองทำแบบทดสอบ Food DNA เพื่อผลลัพธ์ที่แม่นขึ้น</p>';
+        if (emptyEl) {
+            emptyEl.hidden = false;
+            emptyEl.textContent = currentTrendCat === 'all'
+                ? 'ยังไม่มีร้านที่ Match 70% ขึ้นไปตอนนี้ ลองทำแบบทดสอบ Food DNA เพื่อผลลัพธ์ที่แม่นขึ้น'
+                : t('home.recNoResultsCat');
+        }
+    } else if (emptyEl) {
+        emptyEl.hidden = true;
     }
-})();
+}
+renderRecommendedRow();
 
 /* -----------------------------------------------------
    ค้นหาแบบใช้งานได้จริง — ค้นหาข้าม 4 ประเภท: เมนูอาหาร / ร้านอาหาร / คน / สถานที่
@@ -212,8 +267,11 @@ renderMatchHero();
     });
 })();
 
+renderTrendCatStrip();
+
 /* หมายเหตุ: ฟีดชุมชน (#communityFeed) render โดย renderCommunityFeed() ใน chimchim-community.js
    เพราะไฟล์นั้นโหลดทีหลังสุด (หลัง chimchim-home.js) และมีฟังก์ชัน openPostView/like ที่ฟีดต้องใช้ร่วมกัน
+   (อ่าน currentTrendCat ที่ประกาศไว้ด้านบนไฟล์นี้ไปกรองด้วยตอนโหลดหน้าครั้งแรก)
    หมายเหตุ 2: หน้านี้ไม่มีกริด "ร้านทั้งหมด" (#mgrid) แล้ว เหลือแค่ "แนะนำสำหรับคุณ" (Food DNA Match) + ฟีดชุมชน
    ตามที่ตกลงไว้ — ดูร้านทีละร้านได้ผ่านการ์ดแนะนำ/ฟีด/ค้นหา ซึ่งลิงก์ไป restaurant.html โดยตรงอยู่แล้ว */
 

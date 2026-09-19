@@ -5,9 +5,10 @@
 
 /* --- ร้าน/คนในชุมชน — "ทั้งหมด" (11 ร้านจริงใกล้ ม.กรุงเทพ) หรือ "ที่ติดตามแล้ว" (รวมสมาชิกจริงที่ Follow ไว้ด้วย) --- */
 var currentPeopleFilter = 'all';
+var currentPeopleSearch = '';
 function buildPersonCard(person) {
 	var col = document.createElement('div');
-	col.className = 'col-6 col-lg-3';
+	col.className = 'col-6';
 	var avatarInner = person.avatarImg
 		? '<img src="' + person.avatarImg + '" alt="" style="width:100%;height:100%;object-fit:cover;"/>'
 		: '<span style="font-size:3rem;font-weight:800;color:#fff;">' + escapeHtml(person.name.charAt(0).toUpperCase()) + '</span>';
@@ -51,7 +52,15 @@ function renderCreators() {
 		if (lbl) lbl.textContent = t('following.topReviewers');
 	}
 
-	if (emptyMsg) emptyMsg.hidden = !(currentPeopleFilter === 'following' && list.length === 0);
+	var searchEmptyMsg = document.getElementById('followingSearchEmpty');
+	var q = currentPeopleSearch.trim().toLowerCase();
+	var listBeforeSearch = list;
+	if (q) {
+		list = list.filter(function(p) { return p.name.toLowerCase().indexOf(q) !== -1; });
+	}
+
+	if (emptyMsg) emptyMsg.hidden = !(currentPeopleFilter === 'following' && listBeforeSearch.length === 0);
+	if (searchEmptyMsg) searchEmptyMsg.hidden = !(q && listBeforeSearch.length > 0 && list.length === 0);
 
 	list.forEach(function(person) {
 		grid.appendChild(buildPersonCard(person));
@@ -88,6 +97,15 @@ if (peopleFilterAllBtn && peopleFilterFollowingBtn) {
 		currentPeopleFilter = 'following';
 		this.classList.add('active');
 		peopleFilterAllBtn.classList.remove('active');
+		renderCreators();
+	});
+}
+
+/* --- ค้นหาร้าน/คนในกริดนี้แบบสด ๆ พิมพ์แล้วกรองทันที --- */
+var followingSearchInput = document.getElementById('followingSearchInput');
+if (followingSearchInput) {
+	followingSearchInput.addEventListener('input', function() {
+		currentPeopleSearch = this.value;
 		renderCreators();
 	});
 }

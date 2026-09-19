@@ -46,6 +46,11 @@
       </header>
 
       <div class="container" style="padding-top:22px;">
+         <div class="mb-3 searchwrap" data-aos="fade-up">
+            <label class="homesearch" for="followingSearchInput"><i class="fas fa-search"></i>
+               <input type="text" id="followingSearchInput" data-i18n-ph="following.searchPlaceholder" placeholder="ค้นหาร้าน หรือชื่อคน..." autocomplete="off"/>
+            </label>
+         </div>
          <div class="text-center mb-3 mt-3" data-aos="fade-up">
             <span class="slbl" id="peopleSectionLbl" data-i18n="following.topReviewers">ร้านใกล้ ม.กรุงเทพ</span>
          </div>
@@ -56,6 +61,7 @@
          <p class="sdesc text-center mb-3" style="font-size:.8rem;">กดรูปเพื่อดูโปรไฟล์และดูโพสต์ของแต่ละคนได้เลย</p>
          <div class="row g-3" id="creatorGrid" data-aos="fade-up"></div>
          <p id="followedPeopleEmpty" class="text-center" style="color:#bbb;font-size:.85rem;padding:20px 0;" data-i18n="following.emptyFollowedPeople" hidden>ยังไม่ได้ติดตามใครเลย ลองกดปุ่ม Follow ที่โปรไฟล์คนอื่นดูนะ</p>
+         <p id="followingSearchEmpty" class="text-center" style="color:#bbb;font-size:.85rem;padding:20px 0;" data-i18n="following.searchEmpty" hidden>ไม่พบร้านหรือคนที่ค้นหา</p>
       </div>
 
       <nav class="appnav">

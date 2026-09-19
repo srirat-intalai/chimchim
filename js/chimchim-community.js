@@ -157,153 +157,8 @@ if (authPop) {
 document.addEventListener("keydown", function(e) {
 	if (e.key === "Escape") {
 		closeAuthPop();
-		if (typeof closeShopPop === "function") closeShopPop();
 	}
 });
-
-/* =====================================================================
-   โพสต์ร้านเข้าชุมชน (เฉพาะหน้า profile.html ที่มีฟอร์มนี้อยู่จริง)
-   ===================================================================== */
-var shopPop = document.getElementById("shopPop");
-if (shopPop) {
-	var openShopPop = function() {
-		shopPop.classList.add("open");
-		document.body.style.overflow = "hidden";
-	};
-	var closeShopPop = function() {
-		shopPop.classList.remove("open");
-		document.body.style.overflow = "";
-	};
-	document.getElementById("spClose").addEventListener("click", closeShopPop);
-	shopPop.addEventListener("click", function(e) {
-		if (e.target === shopPop) closeShopPop();
-	});
-
-	/* --- อัปโหลดรูปเมนูเด่นเอง (แทนดรอปดาวน์เลือกรูปสต็อกเดิม) --- */
-	wireImageUpload("shopImgFile", "shopImg", "shopImgPreviewImg", "shopImgUploadBox");
-
-	document.getElementById("postShopBtn").addEventListener("click", function() {
-		resetShopFormToCreateMode();
-		openShopPop();
-	});
-
-	/* --- รีเซ็ตฟอร์มกลับเป็นโหมด "โพสต์ร้านใหม่" (ล้าง id ที่กำลังแก้ไขทิ้ง) --- */
-	function resetShopFormToCreateMode() {
-		document.getElementById("shopForm").reset();
-		document.getElementById("shopEditId").value = "";
-		document.getElementById("shopImgPreviewImg").hidden = true;
-		document.getElementById("shopImgUploadBox").classList.remove("haspreview");
-		document.getElementById("shopPopTitle").innerHTML = '<i class="fas fa-store me-2"></i><span data-i18n="shop.postMyShop">' + t("shop.postMyShop") + "</span>";
-		document.getElementById("shopSubmitBtn").innerHTML = '<i class="fas fa-paper-plane"></i><span data-i18n="shop.submit">' + t("shop.submit") + "</span>";
-	}
-
-	/* --- เปิดฟอร์มพร้อมข้อมูลเดิม เพื่อแก้ไขร้านที่โพสต์ไปแล้ว (เรียกจากหน้าโปรไฟล์) --- */
-	window.openShopPopForEdit = function(shop) {
-		document.getElementById("shopEditId").value = shop.id;
-		document.getElementById("shopName").value = shop.name;
-		document.getElementById("shopCat").value = shop.cat;
-		document.getElementById("shopImg").value = shop.img;
-		document.getElementById("shopImgPreviewImg").src = shop.img;
-		document.getElementById("shopImgPreviewImg").hidden = false;
-		document.getElementById("shopImgUploadBox").classList.add("haspreview");
-		document.getElementById("shopDish").value = shop.dish;
-		document.getElementById("shopPriceLow").value = shop.priceLow;
-		document.getElementById("shopPriceHigh").value = shop.priceHigh;
-		document.getElementById("shopDistance").value = shop.distance;
-		document.getElementById("shopUni").value = shop.uni;
-		document.getElementById("shopDesc").value = shop.desc;
-		document.getElementById("shopHours").value = shop.hours || "";
-		document.getElementById("shopPromo").value = shop.promo || "";
-		document.getElementById("shopPopTitle").innerHTML = '<i class="fas fa-store me-2"></i><span>' + t("shop.editMyShop") + "</span>";
-		document.getElementById("shopSubmitBtn").innerHTML = '<i class="fas fa-check"></i><span>' + t("shop.saveChanges") + "</span>";
-		openShopPop();
-	};
-
-	document.getElementById("shopForm").addEventListener("submit", function(e) {
-		e.preventDefault();
-		var session = getSession();
-		if (!session) return;
-
-		var errBox = document.getElementById("shopErr");
-		errBox.classList.remove("show");
-
-		var editId = document.getElementById("shopEditId").value;
-		var name = document.getElementById("shopName").value.trim();
-		var cat = document.getElementById("shopCat").value;
-		var img = document.getElementById("shopImg").value;
-		var dish = document.getElementById("shopDish").value.trim();
-		var priceLow = parseInt(document.getElementById("shopPriceLow").value, 10);
-		var priceHigh = parseInt(document.getElementById("shopPriceHigh").value, 10);
-		var distance = parseInt(document.getElementById("shopDistance").value, 10);
-		var uni = document.getElementById("shopUni").value;
-		var desc = document.getElementById("shopDesc").value.trim();
-		var hours = document.getElementById("shopHours").value.trim();
-		var promo = document.getElementById("shopPromo").value.trim();
-
-		if (!name || !dish || !desc || isNaN(priceLow) || isNaN(priceHigh) || isNaN(distance)) {
-			errBox.textContent = "กรอกข้อมูลให้ครบทุกช่องนะ";
-			errBox.classList.add("show");
-			return;
-		}
-		if (priceHigh < priceLow) {
-			errBox.textContent = "ราคาสูงต้องมากกว่าหรือเท่ากับราคาต่ำ";
-			errBox.classList.add("show");
-			return;
-		}
-
-		var shops = getShops();
-
-		if (editId) {
-			/* --- โหมดแก้ไข: อัปเดตร้านเดิมในอาร์เรย์ตาม id --- */
-			var i;
-			for (i = 0; i < shops.length; i++) {
-				if (shops[i].id === editId) {
-					shops[i].name = name;
-					shops[i].cat = cat;
-					shops[i].img = img;
-					shops[i].dish = dish;
-					shops[i].priceLow = priceLow;
-					shops[i].priceHigh = priceHigh;
-					shops[i].distance = distance;
-					shops[i].uni = uni;
-					shops[i].desc = desc;
-					shops[i].hours = hours;
-					shops[i].promo = promo;
-					break;
-				}
-			}
-			saveShops(shops);
-			closeShopPop();
-			showToast("บันทึกการแก้ไขร้าน “" + name + "” แล้ว! ✅");
-		} else {
-			/* --- โหมดโพสต์ใหม่ --- */
-			var shop = {
-				id: "shop" + Date.now(),
-				numId: 9000000 + (Date.now() % 1000000),
-				vendorId: session.id,
-				vendorName: session.name,
-				name: name,
-				cat: cat,
-				img: img,
-				dish: dish,
-				priceLow: priceLow,
-				priceHigh: priceHigh,
-				distance: distance,
-				uni: uni,
-				desc: desc,
-				hours: hours,
-				promo: promo
-			};
-			shops.unshift(shop);
-			saveShops(shops);
-			closeShopPop();
-			showToast("โพสต์ร้าน “" + name + "” เข้าชุมชนเรียบร้อยแล้ว! 🎉");
-		}
-
-		resetShopFormToCreateMode();
-		if (typeof renderMyShops === "function") renderMyShops();
-	});
-}
 
 /* =====================================================================
    Post Viewer Modal — กดดูโพสต์แบบเต็มจอเหมือนอินสตาแกรม
@@ -451,17 +306,43 @@ function formatFeedTime(dateStr) {
 	return days + t("feed.daysAgo");
 }
 
-function renderCommunityFeed(container) {
+/* --- ฟีดชุมชน: โชว์ 6 โพสต์แรก พอเลื่อนถึงล่างสุดค่อยเพิ่มทีละ 5 (ต่อท้ายในหน้าเดิม ไม่รีเฟรชหน้า) --- */
+var FEED_INITIAL_SIZE = 6;
+var FEED_PAGE_STEP = 5;
+var feedState = { items: [], shown: 0, container: null };
+
+function renderCommunityFeed(container, catFilter) {
+	if (window.__chimchimFeedSentinelObserver) {
+		window.__chimchimFeedSentinelObserver.disconnect();
+		window.__chimchimFeedSentinelObserver = null;
+	}
 	var emptyMsg = document.getElementById("communityFeedEmpty");
 	var items = getFeedItems();
+	if (catFilter && catFilter !== "all") {
+		items = items.filter(function(item) { return item.cat === catFilter; });
+	}
 	container.innerHTML = "";
+	feedState.items = items;
+	feedState.shown = 0;
+	feedState.container = container;
+
+	var loadingMore = document.getElementById("communityFeedLoadingMore");
+	if (loadingMore) loadingMore.hidden = true;
+
 	if (items.length === 0) {
-		if (emptyMsg) emptyMsg.hidden = false;
+		if (emptyMsg) {
+			emptyMsg.textContent = (catFilter && catFilter !== "all") ? (t("home.feedEmptyCat") || "ยังไม่มีโพสต์ในหมวดนี้") : t("home.feedEmpty");
+			emptyMsg.hidden = false;
+		}
 		return;
 	}
 	if (emptyMsg) emptyMsg.hidden = true;
 
-	items.forEach(function(item) {
+	appendNextFeedBatch(FEED_INITIAL_SIZE);
+	wireFeedLoadMoreSentinel();
+}
+
+function buildFeedItemEl(item) {
 		var el = document.createElement("div");
 		el.className = "feeditem";
 
@@ -527,14 +408,50 @@ function renderCommunityFeed(container) {
 		});
 		refreshFeedLike();
 
-		var commentBtn = el.querySelector(".feedcommentbtn");
-		commentBtn.querySelector("span").textContent = getComments(item.id).length;
-		commentBtn.addEventListener("click", function() {
-			openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl });
-		});
-
-		container.appendChild(el);
+	var commentBtn = el.querySelector(".feedcommentbtn");
+	commentBtn.querySelector("span").textContent = getComments(item.id).length;
+	commentBtn.addEventListener("click", function() {
+		openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl });
 	});
+
+	return el;
+}
+
+function appendNextFeedBatch(count) {
+	var next = feedState.items.slice(feedState.shown, feedState.shown + count);
+	next.forEach(function(item) {
+		feedState.container.appendChild(buildFeedItemEl(item));
+	});
+	feedState.shown += next.length;
+}
+
+/* --- sentinel ท้ายฟีด: เลื่อนถึงแล้วเพิ่มโพสต์ชุดถัดไปต่อท้ายทันที (ไม่รีเฟรชหน้า) ---
+   ข้าม callback แรกสุด (ที่ยิงทันทีตอน observe() เพื่อรายงานสถานะปัจจุบัน ไม่ใช่การเลื่อนจริงของผู้ใช้) --- */
+function wireFeedLoadMoreSentinel() {
+	var sentinel = document.getElementById("communityFeedSentinel");
+	var loadingMore = document.getElementById("communityFeedLoadingMore");
+	if (!sentinel || !("IntersectionObserver" in window)) return;
+	if (feedState.shown >= feedState.items.length) return;
+
+	var isFirstCallback = true;
+	var observer = new IntersectionObserver(function(entries) {
+		if (isFirstCallback) {
+			isFirstCallback = false;
+			return;
+		}
+		if (!entries[0].isIntersecting) return;
+		appendNextFeedBatch(FEED_PAGE_STEP);
+		if (feedState.shown >= feedState.items.length) {
+			observer.disconnect();
+			window.__chimchimFeedSentinelObserver = null;
+			if (loadingMore) loadingMore.hidden = true;
+		} else if (loadingMore) {
+			loadingMore.hidden = false;
+			setTimeout(function() { loadingMore.hidden = true; }, 500);
+		}
+	}, { threshold: 0.1 });
+	observer.observe(sentinel);
+	window.__chimchimFeedSentinelObserver = observer;
 }
 
 /* =====================================================================
@@ -543,5 +460,5 @@ function renderCommunityFeed(container) {
 refreshAuthUI();
 (function initCommunityFeedIfPresent() {
 	var feed = document.getElementById("communityFeed");
-	if (feed) renderCommunityFeed(feed);
+	if (feed) renderCommunityFeed(feed, typeof currentTrendCat !== "undefined" ? currentTrendCat : "all");
 })();

@@ -53,14 +53,12 @@
             <div class="searchpanel" id="searchPanel" hidden></div>
          </div>
 
-         <div class="sellpoint mb-4" data-aos="fade-up">
-            <i class="fas fa-dna"></i>
-            <span data-i18n="home.sellpoint">Match % ทุกร้านคำนวณจาก Food DNA จริงของคุณ ไม่ใช่การเดา 🦖</span>
-         </div>
+         <div class="trendcatstrip mb-4" id="trendCatStrip" data-aos="fade-up"></div>
 
          <div class="mb-4" data-aos="fade-up">
             <div class="rowtitle" data-i18n="home.recommendedTitle">🎯 แนะนำสำหรับคุณ</div>
             <p class="rowsub" data-i18n="home.recommendedSub">แสดงเฉพาะร้าน Match 70% ขึ้นไป เรียงจากมากไปน้อย</p>
+            <p class="rowsub" id="trendCatEmptyRec" hidden></p>
 
             <div class="matchhero" id="matchHero" hidden>
                <div class="mhring"></div>
@@ -85,6 +83,8 @@
             <p class="rowsub" data-i18n="home.feedSub">โพสต์จากร้านและเพื่อนนักชิมที่คุณติดตาม อัปเดตล่าสุดก่อนเสมอ</p>
             <div id="communityFeed"></div>
             <p id="communityFeedEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:16px 0;" hidden data-i18n="home.feedEmpty">ยังไม่มีโพสต์ในฟีด ลองเป็นคนแรกที่โพสต์สิ!</p>
+            <div id="communityFeedSentinel" style="height:1px;"></div>
+            <p class="text-center" id="communityFeedLoadingMore" style="color:#ccc;font-size:.78rem;padding:6px 0 2px;" hidden data-i18n="home.feedLoadingMore">กำลังโหลดโพสต์เพิ่ม...</p>
          </div>
 
       </div>

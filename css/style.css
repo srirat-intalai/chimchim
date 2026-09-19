@@ -589,10 +589,11 @@ img {
 
 /* ===================== AUTH / SHOP / ABOUT POPUPS ===================== */
 #authPop,
-#shopPop,
+#profDetailPop,
 #aboutPop,
 #postViewModal,
-#shopDetailPop {
+#shopDetailPop,
+#recommendPop {
   display: none;
   position: fixed;
   inset: 0;
@@ -604,12 +605,39 @@ img {
   padding: 18px;
 }
 #authPop.open,
-#shopPop.open,
+#profDetailPop.open,
 #aboutPop.open,
 #postViewModal.open,
-#shopDetailPop.open {
+#shopDetailPop.open,
+#recommendPop.open {
   display: flex;
   animation: fadeov 0.25s ease;
+}
+.rphrowwrap {
+  max-height: 60vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 2px;
+}
+.rphrowwrap .mcard {
+  width: 100%;
+}
+.rphrowwrap .mimg {
+  height: 140px;
+}
+/* ---- popup "ร้านแนะนำ" บนหน้าวงล้อ — โชว์แค่ 2 ร้านท็อปสุด เรียงคู่กันสวย ๆ แทนลิสต์ยาว ---- */
+.rprecgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.rprecgrid .mcard {
+  width: 100%;
+}
+.rprecgrid .mimg {
+  height: 150px;
 }
 .apbox {
   position: relative;
@@ -2089,7 +2117,8 @@ section {
 .chimg {
   position: relative;
   overflow: hidden;
-  height: 268px;
+  aspect-ratio: 1 / 1;
+  height: auto;
   background: var(--cream2);
   display: block;
 }
@@ -4540,6 +4569,54 @@ body.appshell {
   display: block;
 }
 
+/* ---- แถบหมวดหมู่อาหารหน้าเทรนด์ (แทนแบนเนอร์ Match % เดิม) — กดแล้วกรองทั้งหน้าเลย ---- */
+.trendcatstrip {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  scrollbar-width: none;
+}
+.trendcatstrip::-webkit-scrollbar {
+  display: none;
+}
+.trendcatchip {
+  flex-shrink: 0;
+  width: 66px;
+  text-align: center;
+  cursor: pointer;
+}
+.trendcaticon {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: var(--cream2);
+  border: 3px solid transparent;
+  margin: 0 auto 6px;
+  transition: 0.25s;
+}
+.trendcatchip.active .trendcaticon {
+  border-color: var(--dark);
+  background: var(--surface);
+  box-shadow: 0 4px 14px rgba(143, 130, 184, 0.3);
+  transform: scale(1.06);
+}
+.trendcatchip span {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--text);
+  display: block;
+  line-height: 1.25;
+}
+.trendcatchip.active span {
+  color: var(--dark);
+  font-weight: 800;
+}
+
 /* ---- Welcome / splash screen ---- */
 #welcome {
   min-height: 100vh;
@@ -5190,46 +5267,6 @@ body.appshell {
   gap: 16px;
   padding: 22px 0 26px;
 }
-.profxpbox {
-  background: linear-gradient(135deg, var(--dark), #7d6fb0);
-  border-radius: 18px;
-  padding: 16px 18px;
-  margin-bottom: 20px;
-  color: #fff;
-}
-.profxprow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-.profxplv {
-  font-weight: 800;
-  font-size: 0.95rem;
-}
-.profxpval {
-  font-size: 0.78rem;
-  opacity: 0.85;
-}
-.profxpbar {
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 20px;
-  height: 8px;
-  overflow: hidden;
-}
-.profxpbar span {
-  display: block;
-  height: 100%;
-  background: #fff;
-  border-radius: 20px;
-  transition: width 0.5s ease;
-}
-.profxphint {
-  font-size: 0.72rem;
-  opacity: 0.8;
-  margin-top: 8px;
-  margin-bottom: 0;
-}
 /* ---- เพจร้านอาหาร (หน้า Settings) ---- */
 .pagepreview {
   display: flex;
@@ -5315,6 +5352,74 @@ body.appshell {
   background: rgba(143, 130, 184, 0.14);
   color: var(--dark);
 }
+
+/* ---- โปรไฟล์สไตล์ IG: อวตาร+สถิติแถวบน / ชื่อ+bio / ปุ่มแก้ไข-แชร์ ---- */
+.ighead {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 22px 0 14px;
+}
+.igavatar {
+  width: 86px;
+  height: 86px;
+  font-size: 2rem;
+  border: 3px solid var(--surface);
+  box-shadow: 0 0 0 1px rgba(143, 130, 184, 0.25);
+}
+.igstats {
+  display: flex;
+  flex: 1;
+  justify-content: space-around;
+}
+.igstat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-decoration: none;
+  color: inherit;
+}
+.igstat b {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--darkbg);
+}
+.igstat span {
+  font-size: 0.72rem;
+  color: #999;
+}
+.ignamewrap {
+  padding-bottom: 14px;
+}
+.ignamewrap .profrole {
+  margin-left: 8px;
+}
+.ignamewrap .profemail {
+  margin-top: 4px;
+}
+.igbtnrow {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 20px;
+}
+.igbtn {
+  flex: 1;
+  text-align: center;
+  border: none;
+  background: var(--cream2);
+  color: var(--darkbg);
+  font-family: "Prompt", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 9px 10px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.igbtn:hover {
+  background: rgba(143, 130, 184, 0.18);
+}
 .profcard {
   background: var(--surface);
   border-radius: 18px;
@@ -5328,6 +5433,32 @@ body.appshell {
   color: var(--darkbg);
   margin-bottom: 12px;
   margin-bottom: 14px;
+}
+.profcardbtn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  cursor: pointer;
+  font-family: "Prompt", sans-serif;
+}
+.profcardbtn .profcardtit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
+}
+.profcardbtn .profcardtit::after {
+  content: "\f105";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  color: #ccc;
+  font-size: 0.8rem;
+}
+.profcardbtnhint {
+  font-size: 0.78rem;
+  color: #999;
+  margin: 6px 0 0;
 }
 .profshoprow {
   display: flex;
@@ -5345,25 +5476,6 @@ body.appshell {
   border-radius: 12px;
   object-fit: cover;
   flex-shrink: 0;
-}
-.profshopeditbtn {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: none;
-  background: var(--cream2);
-  color: var(--dark);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  font-size: 0.82rem;
-  transition: 0.2s;
-}
-.profshopeditbtn:hover {
-  background: var(--dark);
-  color: #fff;
 }
 .profshopnm {
   font-size: 0.86rem;
@@ -5628,12 +5740,12 @@ body.appshell {
 .ppgrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 3px;
 }
 .ppost {
   position: relative;
   aspect-ratio: 1/1;
-  border-radius: 12px;
+  border-radius: 2px;
   overflow: hidden;
   cursor: pointer;
   background: var(--cream2);

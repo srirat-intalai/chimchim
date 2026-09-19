@@ -3,6 +3,36 @@
 
 var session = getSession();
 
+/* --- Popup รายละเอียดใช้ร่วมกัน: Food DNA --- */
+var profDetailPop = document.getElementById("profDetailPop");
+function openProfDetailPop(titleHtml, bodyContent) {
+	if (!profDetailPop) return;
+	document.getElementById("pdTitle").innerHTML = titleHtml;
+	var pdBody = document.getElementById("pdBody");
+	pdBody.innerHTML = "";
+	if (typeof bodyContent === "string") {
+		pdBody.innerHTML = bodyContent;
+	} else {
+		pdBody.appendChild(bodyContent);
+	}
+	profDetailPop.classList.add("open");
+	document.body.style.overflow = "hidden";
+}
+function closeProfDetailPop() {
+	if (!profDetailPop) return;
+	profDetailPop.classList.remove("open");
+	document.body.style.overflow = "";
+}
+if (profDetailPop) {
+	document.getElementById("pdClose").addEventListener("click", closeProfDetailPop);
+	profDetailPop.addEventListener("click", function(e) {
+		if (e.target === profDetailPop) closeProfDetailPop();
+	});
+	document.addEventListener("keydown", function(e) {
+		if (e.key === "Escape") closeProfDetailPop();
+	});
+}
+
 document.getElementById("profSignupBtn").addEventListener("click", function() {
 	openAuthPop("register");
 });
@@ -29,20 +59,11 @@ if (!session) {
 	document.getElementById("profEmail").textContent = session.email;
 	document.getElementById("profRole").textContent = "🧑‍🎓 สมาชิกชิมชิม";
 
-	/* --- Level / XP: คำนวณจากกิจกรรมจริงของบัญชีนี้ --- */
-	(function renderXP() {
-		var xp = calcUserXP(me);
-		var lv = calcUserLevel(xp);
-		var xpIntoLevel = xp - (lv - 1) * 50;
-		document.getElementById("profLvVal").textContent = lv;
-		document.getElementById("profXpVal").textContent = xpIntoLevel + " / 50 XP";
-		document.getElementById("profXpBarFill").style.width = Math.round((xpIntoLevel / 50) * 100) + "%";
-		document.getElementById("profXpHint").textContent = t("profile.xpHint");
-	})();
-
-	/* --- Food DNA (ทุกบัญชี) --- */
+	/* --- Food DNA (ทุกบัญชี) — กดปุ่มเพื่อดูรายละเอียดเป็น popup --- */
+	var dnaCardBtn = document.getElementById("dnaCardBtn");
+	var dnaCardHint = document.getElementById("dnaCardHint");
 	if (me.foodDNA) {
-		document.getElementById("profDnaCard").hidden = false;
+		dnaCardHint.textContent = t("profile.dnaCardHintHas");
 		var dna = me.foodDNA;
 		var maxBudget = 300;
 		var maxDist = 3000;
@@ -54,157 +75,46 @@ if (!session) {
 		rows.push({ label: "ชอบรส", value: dna.ชอบรส.join(", "), pct: 100 });
 		rows.push({ label: "งบเฉลี่ยที่ใช้บ่อย", value: "฿" + dna.งบเฉลี่ยที่ใช้บ่อย, pct: Math.min(100, Math.round((dna.งบเฉลี่ยที่ใช้บ่อย / maxBudget) * 100)) });
 		rows.push({ label: "ระยะที่ยอมไป", value: dna.ระยะที่ยอมไป + " ม.", pct: Math.min(100, Math.round((dna.ระยะที่ยอมไป / maxDist) * 100)) });
-		var html = "";
+		var dnaHtml = "";
 		rows.forEach(function(r) {
-			html +=
+			dnaHtml +=
 				'<div class="obdnarow">' +
 					'<div class="obdnalbl"><span>' + r.label + '</span><span>' + escapeHtml(r.value) + '</span></div>' +
 					'<div class="obdnabar"><span style="width:' + r.pct + '%;"></span></div>' +
 				"</div>";
 		});
-		document.getElementById("profDnaBody").innerHTML = html;
+		dnaHtml += '<a href="profile-setup.html" class="rdghost" style="width:100%;margin-top:12px;"><i class="fas fa-rotate me-1"></i><span>' + t("profile.retakeTest") + "</span></a>";
+		dnaCardBtn.addEventListener("click", function() {
+			openProfDetailPop('<i class="fas fa-dna me-2"></i>' + t("profile.foodDna"), dnaHtml);
+		});
 	} else {
-		document.getElementById("profNoDnaCard").hidden = false;
+		dnaCardHint.textContent = t("profile.dnaCardHintNone");
+		var noDnaHtml =
+			'<p style="font-size:.82rem;color:#999;margin-bottom:14px;">' + t("profile.noDnaDesc") + "</p>" +
+			'<a href="profile-setup.html" class="btn-red profbtn"><i class="fas fa-flask"></i><span>' + t("profile.takeTest") + "</span></a>";
+		dnaCardBtn.addEventListener("click", function() {
+			openProfDetailPop('<i class="fas fa-dna me-2"></i>' + t("profile.foodDna"), noDnaHtml);
+		});
 	}
 
-	/* --- ร้านและคนที่ Follow (รวมเป็นระบบเดียว ทั้งร้านและคน ผ่าน getFollowedUsers) --- */
-	var followPeopleCount = getFollowedUsers().length;
-	document.getElementById("profFollowPeopleCount").textContent =
-		followPeopleCount > 0 ? ("ติดตามอยู่ทั้งหมด " + followPeopleCount + " ร้าน/คน") : "ยังไม่ได้ติดตามใครเลย";
+	document.getElementById("igStatFollowing").textContent = getFollowedUsers().length;
 
-	/* --- ประวัติการกดถูกใจ --- */
-	renderLikeHistory();
-
-	/* --- ประวัติการรีวิว --- */
-	renderReviewHistory();
-
-	/* --- ร้านของฉัน (ทุกบัญชีโพสต์ร้านได้เหมือนกันหมด) --- */
-	document.getElementById("profShopsCard").hidden = false;
-	renderMyShops();
-
-	/* --- เพจร้านของฉัน (สไตล์ Facebook Page) --- */
-	renderMyPage();
+	/* --- ปุ่มแชร์โปรไฟล์ (สไตล์ IG) — คัดลอกลิงก์โปรไฟล์สาธารณะไปคลิปบอร์ด --- */
+	var igShareBtn = document.getElementById("igShareBtn");
+	if (igShareBtn) {
+		igShareBtn.addEventListener("click", function() {
+			var link = window.location.origin + window.location.pathname.replace(/profile\.html$/, "") + "public-profile.html?u=" + encodeURIComponent(session.id);
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(link).then(function() {
+					showToast(t("profile.linkCopied"));
+				}).catch(function() {});
+			}
+		});
+	}
 
 	/* --- โพสต์ของฉัน (ทุกบัญชี) --- */
 	document.getElementById("profPostsCard").hidden = false;
 	initMyPosts();
-}
-
-function renderMyShops() {
-	var listBox = document.getElementById("profShopsList");
-	if (!listBox) return;
-	var myShops = getShops().filter(function(s) {
-		return s.vendorId === session.id;
-	});
-	if (myShops.length === 0) {
-		listBox.innerHTML = '<p style="font-size:.82rem;color:#999;">ยังไม่มีร้านที่โพสต์ กด "โพสต์ร้านใหม่" ด้านล่างได้เลย</p>';
-		return;
-	}
-	listBox.innerHTML = "";
-	myShops.forEach(function(shop) {
-		var row = document.createElement("div");
-		row.className = "profshoprow";
-		row.innerHTML =
-			'<img src="' + shop.img + '" alt="' + escapeHtml(shop.dish) + '"/>' +
-			'<div style="flex:1;min-width:0;">' +
-				'<div class="profshopnm">' + escapeHtml(shop.name) + "</div>" +
-				'<div class="profshopmeta">' + escapeHtml(shop.dish) + " · ฿" + shop.priceLow + "–" + shop.priceHigh + "</div>" +
-			"</div>" +
-			'<button type="button" class="profshopeditbtn" title="' + t("profile.editShop") + '"><i class="fas fa-pen"></i></button>';
-		row.querySelector(".profshopeditbtn").addEventListener("click", function() {
-			if (typeof openShopPopForEdit === "function") openShopPopForEdit(shop);
-		});
-		listBox.appendChild(row);
-	});
-}
-
-/* --- เพจร้านของฉัน (สไตล์ Facebook Page) — ถ้ายังไม่มีให้ชวนสร้างที่ Settings, ถ้ามีแล้วโชว์การ์ดพร้อมลิงก์ดู/จัดการ --- */
-function renderMyPage() {
-	var body = document.getElementById("profPageBody");
-	if (!body) return;
-	var myPage = getMyPage();
-	if (!myPage) {
-		body.innerHTML =
-			'<p style="font-size:.82rem;color:#999;margin-bottom:12px;">' + t("profile.noPageDesc") + "</p>" +
-			'<a href="settings.html" class="btn-red profbtn"><i class="fas fa-plus"></i><span>' + t("profile.createPage") + "</span></a>";
-		return;
-	}
-	body.innerHTML =
-		'<div class="pagepreview">' +
-			'<img class="pagepreviewavatar" src="' + myPage.avatar + '" alt=""/>' +
-			"<div>" +
-				'<div class="pagepreviewname">' + escapeHtml(myPage.name) + "</div>" +
-				'<div class="pagepreviewcat">' + catEmoji(myPage.cat) + " " + catLabel(myPage.cat) + "</div>" +
-			"</div>" +
-		"</div>" +
-		'<div class="d-flex" style="gap:8px;margin-top:12px;">' +
-			'<a href="public-profile.html?u=page-' + myPage.id + '" class="rdghost" style="flex:1;"><i class="fas fa-eye me-1"></i><span>' + t("profile.viewPage") + "</span></a>" +
-			'<a href="settings.html" class="rdghost" style="flex:1;"><i class="fas fa-pen me-1"></i><span>' + t("profile.managePage") + "</span></a>" +
-		"</div>";
-}
-
-/* --- ประวัติการกดถูกใจ: ร้าน/เมนูที่เคยกดหัวใจไว้ทั้งหมด --- */
-function renderLikeHistory() {
-	var listBox = document.getElementById("profLikesList");
-	var emptyMsg = document.getElementById("profLikesEmpty");
-	if (!listBox) return;
-	var likedIds = getLikedShops();
-	var likedShops = likedIds.map(function(id) { return หาร้านจากId(id); }).filter(function(r) { return r; });
-	listBox.innerHTML = "";
-	if (likedShops.length === 0) {
-		emptyMsg.hidden = false;
-		return;
-	}
-	emptyMsg.hidden = true;
-	likedShops.forEach(function(ร้าน) {
-		var row = document.createElement("div");
-		row.className = "profshoprow";
-		row.style.cursor = "pointer";
-		row.innerHTML =
-			'<img src="' + ร้าน.รูป + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
-			'<div style="flex:1;min-width:0;">' +
-				'<div class="profshopnm">' + escapeHtml(ร้าน.เมนู) + "</div>" +
-				'<div class="profshopmeta">' + escapeHtml(ร้าน.ร้าน) + " · " + catEmoji(ร้าน.หมวด) + " " + escapeHtml(catLabel(ร้าน.หมวด)) + "</div>" +
-			"</div>";
-		row.addEventListener("click", function() {
-			window.location.href = "restaurant.html?id=" + ร้าน.id;
-		});
-		listBox.appendChild(row);
-	});
-}
-
-/* --- ประวัติการรีวิว: รีวิวทั้งหมดที่เคยเขียนไว้ เรียงใหม่สุดก่อน --- */
-function renderReviewHistory() {
-	var listBox = document.getElementById("profReviewsList");
-	var emptyMsg = document.getElementById("profReviewsEmpty");
-	if (!listBox) return;
-	var reviews = getReviewsByUser(session.id);
-	listBox.innerHTML = "";
-	if (reviews.length === 0) {
-		emptyMsg.hidden = false;
-		return;
-	}
-	emptyMsg.hidden = true;
-	reviews.forEach(function(r) {
-		var ร้าน = หาร้านจากId(r.shopId);
-		if (!ร้าน) return;
-		var avgScore = Math.round((r.taste + r.atmosphere + r.service) / 3 * 10) / 10;
-		var item = document.createElement("div");
-		item.className = "profreviewitem";
-		item.innerHTML =
-			'<div class="profreviewrow">' +
-				'<img src="' + ร้าน.รูป + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
-				'<div style="flex:1;min-width:0;">' +
-					'<div class="profshopnm">' + escapeHtml(ร้าน.ร้าน) + "</div>" +
-					'<div class="profshopmeta">🎯 ' + avgScore + "/5 คะแนนเฉลี่ย</div>" +
-				"</div>" +
-			"</div>" +
-			(r.text ? '<p class="profreviewtxt">' + escapeHtml(r.text) + "</p>" : "");
-		item.querySelector(".profreviewrow").addEventListener("click", function() {
-			window.location.href = "restaurant.html?id=" + ร้าน.id;
-		});
-		listBox.appendChild(item);
-	});
 }
 
 /* --- โพสต์ของฉัน: ฟอร์มเพิ่มโพสต์ + แสดงกริดโพสต์ ---
@@ -304,6 +214,8 @@ function renderMyPosts() {
 
 	grid.innerHTML = "";
 	var posts = activePage ? getPostsByPage(activePage.id) : getPostsByUser(session.id);
+	var igStatPosts = document.getElementById("igStatPosts");
+	if (igStatPosts) igStatPosts.textContent = posts.length;
 	if (posts.length === 0) {
 		emptyMsg.hidden = false;
 		return;

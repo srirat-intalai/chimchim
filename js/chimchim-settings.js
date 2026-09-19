@@ -30,3 +30,69 @@ document.querySelectorAll("#langToggle .settopt").forEach(function(btn) {
 });
 
 refreshSettingsUI();
+
+/* --- ตำแหน่งของฉัน — ขอ GPS จริง หามหาลัยที่ใกล้สุด เก็บไว้ใช้ให้คะแนนโบนัสร้านแถวนั้นทุกหน้า --- */
+(function setupLocationButton() {
+	var btn = document.getElementById("requestLocationBtn");
+	var hint = document.getElementById("locationHint");
+	if (!btn) return;
+
+	function refreshLocationHint() {
+		var loc = getUserLocation();
+		if (loc && loc.nearestUni) {
+			hint.textContent = t("settings.locationFound").replace("{uni}", loc.nearestUni);
+		} else {
+			hint.textContent = t("settings.locationHint");
+		}
+	}
+	refreshLocationHint();
+
+	btn.addEventListener("click", function() {
+		btn.disabled = true;
+		var originalHtml = btn.innerHTML;
+		btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i><span>' + t("settings.locationLoading") + "</span>";
+		ขอตำแหน่งผู้ใช้().then(function() {
+			refreshLocationHint();
+			showToast(t("settings.locationSuccess"));
+		}).catch(function() {
+			showToast(t("settings.locationError"));
+		}).finally(function() {
+			btn.disabled = false;
+			btn.innerHTML = originalHtml;
+		});
+	});
+})();
+
+/* --- ประวัติการกดถูกใจ/รีวิว (ย้ายมาจากหน้าโปรไฟล์) — โชว์เต็มลิสต์ตรงนี้เลย ไม่ต้องมี popup ดูเพิ่ม เพราะหน้าตั้งค่ามีที่พอ --- */
+(function renderAccountHistory() {
+	var session = getSession();
+	if (!session) return;
+
+	var likesCard = document.getElementById("likesHistoryCard");
+	if (likesCard) {
+		likesCard.hidden = false;
+		var likeList = document.getElementById("settingsLikesList");
+		var likeEmpty = document.getElementById("settingsLikesEmpty");
+		var likedShops = getLikedShops().map(function(id) { return หาร้านจากId(id); }).filter(function(r) { return r; });
+		if (likedShops.length === 0) {
+			likeEmpty.hidden = false;
+		} else {
+			likeEmpty.hidden = true;
+			likedShops.forEach(function(ร้าน) { likeList.appendChild(buildLikeRow(ร้าน)); });
+		}
+	}
+
+	var reviewsCard = document.getElementById("reviewsHistoryCard");
+	if (reviewsCard) {
+		reviewsCard.hidden = false;
+		var reviewList = document.getElementById("settingsReviewsList");
+		var reviewEmpty = document.getElementById("settingsReviewsEmpty");
+		var reviews = getReviewsByUser(session.id).filter(function(r) { return หาร้านจากId(r.shopId); });
+		if (reviews.length === 0) {
+			reviewEmpty.hidden = false;
+		} else {
+			reviewEmpty.hidden = true;
+			reviews.forEach(function(r) { reviewList.appendChild(buildReviewItem(r)); });
+		}
+	}
+})();

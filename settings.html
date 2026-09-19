@@ -36,6 +36,16 @@
          </div>
 
          <!-- ============================================================
+            ตำแหน่งของฉัน — ขอ GPS จริงจากเบราว์เซอร์ แล้วหามหาลัยที่ใกล้ที่สุด (จากพิกัดจริง 3 แห่ง)
+            เอาไปให้คะแนนโบนัสร้านแถวนั้นใน Match % ทุกหน้า (ไม่มีพิกัด GPS จริงระดับร้าน จึงอิงจากมหาลัยที่ใกล้สุดแทน)
+            ============================================================ -->
+         <div class="profcard">
+            <div class="profcardtit"><i class="fas fa-location-dot me-1"></i><span data-i18n="settings.myLocation">My Location</span></div>
+            <p class="rowsub" style="margin-top:0;margin-bottom:12px;" id="locationHint" data-i18n="settings.locationHint">Let chimchim know your real location so it can prioritize shops near you.</p>
+            <button type="button" class="rdghost" style="width:100%;" id="requestLocationBtn"><i class="fas fa-crosshairs me-1"></i><span data-i18n="settings.useMyLocation">Use My Current Location</span></button>
+         </div>
+
+         <!-- ============================================================
             เพจร้านอาหาร (เหมือนเพจ Facebook) — ใครก็สร้างได้จากตรงนี้ ไม่ต้องสมัครบัญชีร้านค้าแยก
             ============================================================ -->
          <div class="profcard" id="pageGuestCard" hidden>
@@ -59,13 +69,50 @@
                <input class="fctrl" type="text" id="pageName" placeholder="เช่น ป้าหน่อย ข้าวมันไก่" required/>
                <label class="flbl" data-i18n="shop.category">Food category</label>
                <select class="fctrl" id="pageCat" required>
-                  <option value="ข้าว">🍚 ข้าว</option>
-                  <option value="เส้น">🍜 เส้น</option>
-                  <option value="ซุป">🥣 ซุป</option>
-                  <option value="Fast Food">🍔 Fast Food</option>
-                  <option value="ญี่ปุ่น">🍣 ญี่ปุ่น</option>
-                  <option value="ของหวาน">🍰 ของหวาน</option>
-                  <option value="เผ็ด">🌶️ เผ็ด</option>
+                  <optgroup label="🍽️ ทั่วไป">
+                     <option value="อาหารตามสั่ง">🍳 อาหารตามสั่ง</option>
+                     <option value="ข้าวแกง">🍛 ข้าวแกง</option>
+                     <option value="ของทอด">🍤 ของทอด</option>
+                     <option value="ปิ้งย่าง">🍖 ปิ้งย่าง</option>
+                  </optgroup>
+                  <optgroup label="🌶️ รสจัดจ้าน">
+                     <option value="ส้มตำ">🥭 ส้มตำ</option>
+                     <option value="ยำ">🌶️ ยำ</option>
+                     <option value="หม่าล่า">🍲 หม่าล่า</option>
+                  </optgroup>
+                  <optgroup label="🗺️ ตามภาค">
+                     <option value="อีสาน">🍢 อีสาน</option>
+                     <option value="เหนือ">🍛 เหนือ</option>
+                     <option value="กลาง">🍚 กลาง</option>
+                     <option value="อาหารใต้">🌶️ อาหารใต้</option>
+                     <option value="อาหารป่า">🦌 อาหารป่า</option>
+                  </optgroup>
+                  <optgroup label="🍜 เส้น/ก๋วยเตี๋ยว">
+                     <option value="เมนูเส้น">🍜 เมนูเส้น</option>
+                     <option value="ก๋วยเตี๋ยว">🍲 ก๋วยเตี๋ยว</option>
+                  </optgroup>
+                  <optgroup label="🌏 นานาชาติ">
+                     <option value="อาหารญี่ปุ่น">🍣 อาหารญี่ปุ่น</option>
+                     <option value="อาหารจีน">🥟 อาหารจีน</option>
+                     <option value="อาหารเกาหลี">🍚 อาหารเกาหลี</option>
+                     <option value="อาหารอินเดีย">🍛 อาหารอินเดีย</option>
+                     <option value="อาหารเวียดนาม">🍜 อาหารเวียดนาม</option>
+                     <option value="พิซซ่า">🍕 พิซซ่า</option>
+                     <option value="เบอร์เกอร์">🍔 เบอร์เกอร์</option>
+                     <option value="สเต็ก">🥩 สเต็ก</option>
+                     <option value="Fast Food">🍔 Fast Food</option>
+                  </optgroup>
+                  <optgroup label="🍰 ของหวาน/เครื่องดื่ม">
+                     <option value="ของหวาน/เบเกอรี่">🍰 ของหวาน/เบเกอรี่</option>
+                     <option value="ผลไม้">🍉 ผลไม้</option>
+                     <option value="เครื่องดื่ม">🥤 เครื่องดื่ม</option>
+                  </optgroup>
+                  <optgroup label="🥗 เฉพาะทาง">
+                     <option value="อาหารเจ">🥬 อาหารเจ</option>
+                     <option value="อาหารฮาลาล">🕌 อาหารฮาลาล</option>
+                     <option value="มังสวิรัติ">🥗 มังสวิรัติ</option>
+                     <option value="วีแกน">🌱 วีแกน</option>
+                  </optgroup>
                </select>
                <label class="flbl" data-i18n="settings.pageAvatar">Page photo</label>
                <div class="imguploadbox" id="pageAvatarUploadBox">
@@ -88,6 +135,20 @@
                <button type="button" data-persona="page" class="settopt"><i class="fas fa-store"></i><span id="personaPageLabel">My Page</span></button>
             </div>
             <p class="rowsub" style="margin-top:10px;margin-bottom:0;" data-i18n="settings.postingAsHint">New posts you add from your profile will be posted as whichever you pick here.</p>
+         </div>
+
+         <!-- ประวัติการกดถูกใจ (ย้ายมาจากหน้าโปรไฟล์ เพื่อไม่ให้หน้าโปรไฟล์รกเกินไป) -->
+         <div class="profcard" id="likesHistoryCard" hidden>
+            <div class="profcardtit"><i class="fas fa-heart-circle-check me-1"></i><span data-i18n="profile.likeHistory">Like History</span></div>
+            <div id="settingsLikesList"></div>
+            <p id="settingsLikesEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:10px 0;" hidden data-i18n="profile.likeHistoryEmpty">You haven't liked any dish yet.</p>
+         </div>
+
+         <!-- ประวัติการรีวิว (ย้ายมาจากหน้าโปรไฟล์) -->
+         <div class="profcard" id="reviewsHistoryCard" hidden>
+            <div class="profcardtit"><i class="fas fa-star me-1"></i><span data-i18n="profile.reviewHistory">Review History</span></div>
+            <div id="settingsReviewsList"></div>
+            <p id="settingsReviewsEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:10px 0;" hidden data-i18n="profile.reviewHistoryEmpty">You haven't written any review yet.</p>
          </div>
       </div>
 

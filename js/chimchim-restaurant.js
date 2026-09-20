@@ -18,7 +18,7 @@ if (!ร้านปัจจุบัน) {
 
 	document.getElementById("rdImg").src = ร้านปัจจุบัน.รูป;
 	document.getElementById("rdImg").alt = ร้านปัจจุบัน.เมนู;
-	document.title = ร้านปัจจุบัน.เมนู + " - ชิมชิม (CHIMCHIM)";
+	document.title = ร้านปัจจุบัน.เมนู + " - ChimChim";
 	document.getElementById("rdCat").textContent = catEmoji(ร้านปัจจุบัน.หมวด) + " " + catLabel(ร้านปัจจุบัน.หมวด);
 	document.getElementById("rdTitle").textContent = ร้านปัจจุบัน.เมนู;
 	document.getElementById("rdRestaurant").innerHTML = '<i class="fas fa-store"></i> ' + escapeHtml(ร้านปัจจุบัน.ร้าน);
@@ -29,8 +29,8 @@ if (!ร้านปัจจุบัน) {
 	document.getElementById("rdMatchPct").textContent = matchBadgeText(คะแนน);
 	document.getElementById("rdMatchReason").textContent = เหตุผล;
 	document.getElementById("rdDesc").textContent = ร้านปัจจุบัน.community ?
-		("ร้านนี้โพสต์เข้าชุมชนโดย " + ร้านปัจจุบัน.vendorName + " 🏪") :
-		"ร้านแนะนำจากทีมชิมชิม พร้อมข้อมูล Match % ที่คำนวณจาก Food DNA ของคุณจริง ๆ";
+		(ร้านปัจจุบัน.คำโปรยกำหนดเอง || ("ร้านนี้โพสต์เข้าชุมชนโดย " + ร้านปัจจุบัน.vendorName + " 🏪")) :
+		"ร้านแนะนำจากทีม ChimChim พร้อมข้อมูล Match % ที่คำนวณจาก Food DNA ของคุณจริง ๆ";
 
 	var tagsHtml = "";
 	ร้านปัจจุบัน.แท็ก.forEach(function(tag) {
@@ -69,6 +69,15 @@ if (!ร้านปัจจุบัน) {
 	var followBtn = document.getElementById("rdFollowBtn");
 	var buShopของร้านนี้ = (typeof เพจร้านBU !== "undefined") ? เพจร้านBU.filter(function(s) { return s.menuId === ร้านปัจจุบัน.id; })[0] : null;
 	var followId = buShopของร้านนี้ ? ("bu-" + buShopของร้านนี้.id) : ร้านปัจจุบัน.id;
+
+	/* --- ชื่อร้าน กดเข้าไปดูเพจร้าน (โปรไฟล์ร้าน + โพสต์อื่น ๆ ของร้านนั้น) ได้เลย ถ้าร้านนี้มีเพจร้าน BU ของตัวเอง
+	   (ร้านตัวอย่างที่ยังไม่มีเพจ จะโชว์แค่ชื่อเฉย ๆ เหมือนเดิม ไม่มีอะไรให้กดเข้าไปดูต่อ) --- */
+	var rdRestaurantLink = document.getElementById("rdRestaurant");
+	if (buShopของร้านนี้) {
+		rdRestaurantLink.href = "public-profile.html?u=bu-" + buShopของร้านนี้.id;
+		rdRestaurantLink.classList.add("rdshoplink");
+		rdRestaurantLink.innerHTML += ' <i class="fas fa-chevron-right rdshopchevron"></i>';
+	}
 	function refreshFollowBtn() {
 		var followed = buShopของร้านนี้ ? isUserFollowed(followId) : isShopFollowed(followId);
 		followBtn.classList.toggle("following", followed);

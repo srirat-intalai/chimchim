@@ -57,7 +57,7 @@ if (!session) {
 	document.getElementById("profAvatar").textContent = session.name.charAt(0).toUpperCase();
 	document.getElementById("profName").textContent = session.name;
 	document.getElementById("profEmail").textContent = session.email;
-	document.getElementById("profRole").textContent = "🧑‍🎓 สมาชิกชิมชิม";
+	document.getElementById("profRole").textContent = "🧑‍🎓 สมาชิก ChimChim";
 
 	/* --- Food DNA (ทุกบัญชี) — กดปุ่มเพื่อดูรายละเอียดเป็น popup --- */
 	var dnaCardBtn = document.getElementById("dnaCardBtn");

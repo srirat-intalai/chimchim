@@ -38,7 +38,7 @@ if (ppIsBuShop) {
 	if (!buShop) {
 		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">ไม่พบโปรไฟล์นี้</p>';
 	} else {
-		document.title = buShop.name + " - ชิมชิม (CHIMCHIM)";
+		document.title = buShop.name + " - ChimChim";
 		var ppAvatarBu = document.getElementById("ppAvatar");
 		ppAvatarBu.textContent = "";
 		ppAvatarBu.style.background = "var(--cream2) center/cover no-repeat url('" + buShop.avatar + "')";
@@ -76,7 +76,7 @@ if (ppIsBuShop) {
 	if (!page) {
 		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">ไม่พบโปรไฟล์นี้</p>';
 	} else {
-		document.title = page.name + " - ชิมชิม (CHIMCHIM)";
+		document.title = page.name + " - ChimChim";
 		var ppAvatarEl = document.getElementById("ppAvatar");
 		ppAvatarEl.textContent = "";
 		ppAvatarEl.style.background = "var(--cream2) center/cover no-repeat url('" + page.avatar + "')";
@@ -110,7 +110,7 @@ if (ppIsBuShop) {
 	if (!creator) {
 		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">ไม่พบโปรไฟล์นี้</p>';
 	} else {
-		document.title = creator.ชื่อ + " - ชิมชิม (CHIMCHIM)";
+		document.title = creator.ชื่อ + " - ChimChim";
 		document.getElementById("ppAvatar").style.background = creator.สี;
 		document.getElementById("ppAvatar").textContent = creator.ชื่อ.charAt(0).toUpperCase();
 		document.getElementById("ppName").textContent = creator.ชื่อ;
@@ -137,12 +137,12 @@ if (ppIsBuShop) {
 	if (!user) {
 		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">ไม่พบโปรไฟล์นี้</p>';
 	} else {
-		document.title = user.name + " - ชิมชิม (CHIMCHIM)";
+		document.title = user.name + " - ChimChim";
 		document.getElementById("ppAvatar").textContent = user.name.charAt(0).toUpperCase();
 		document.getElementById("ppName").textContent = user.name;
-		document.getElementById("ppSub").textContent = "ผู้ใช้ชิมชิม";
-		document.getElementById("ppLevel").textContent = "🧑‍🎓 นักชิมชิมชิม";
-		document.getElementById("ppBio").textContent = "สมาชิกชิมชิม แชร์เมนูและร้านโปรดผ่านโพสต์ด้านล่าง";
+		document.getElementById("ppSub").textContent = "ผู้ใช้ ChimChim";
+		document.getElementById("ppLevel").textContent = "🧑‍🎓 นักชิม ChimChim";
+		document.getElementById("ppBio").textContent = "สมาชิก ChimChim แชร์เมนูและร้านโปรดผ่านโพสต์ด้านล่าง";
 
 		var followBtn2 = document.getElementById("ppFollowBtn");
 		if (ppSession && ppSession.id === user.id) {

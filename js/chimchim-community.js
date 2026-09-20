@@ -87,6 +87,7 @@ if (authPop) {
 	/* --- สมัครสมาชิก --- */
 	document.getElementById("registerForm").addEventListener("submit", function(e) {
 		e.preventDefault();
+		var form = this;
 		var errBox = document.getElementById("registerErr");
 		errBox.classList.remove("show");
 
@@ -110,21 +111,25 @@ if (authPop) {
 			return;
 		}
 
-		var newUser = { id: "u" + Date.now(), name: name, email: email, password: password };
-		users.push(newUser);
-		saveUsers(users);
-		setSession(newUser);
-		closeAuthPop();
-		refreshAuthUI();
-		this.reset();
+		var salt = generateSalt();
+		hashPassword(password, salt).then(function(passwordHash) {
+			var newUser = { id: "u" + Date.now(), name: name, email: email, salt: salt, passwordHash: passwordHash };
+			users.push(newUser);
+			saveUsers(users);
+			setSession(newUser);
+			closeAuthPop();
+			refreshAuthUI();
+			form.reset();
 
-		// ทุกบัญชีเป็นแบบเดียวกันหมด -> พาไปทำแบบสอบถาม Food DNA ต่อเสมอ
-		window.location.href = "profile-setup.html";
+			// ทุกบัญชีเป็นแบบเดียวกันหมด -> พาไปทำแบบสอบถาม Food DNA ต่อเสมอ
+			window.location.href = "profile-setup.html";
+		});
 	});
 
 	/* --- เข้าสู่ระบบ --- */
 	document.getElementById("loginForm").addEventListener("submit", function(e) {
 		e.preventDefault();
+		var form = this;
 		var errBox = document.getElementById("loginErr");
 		errBox.classList.remove("show");
 
@@ -132,25 +137,33 @@ if (authPop) {
 		var password = document.getElementById("loginPassword").value;
 
 		var users = getUsers();
-		var found = users.filter(function(u) {
-			return u.email === email && u.password === password;
+		var candidate = users.filter(function(u) {
+			return u.email === email;
 		})[0];
 
-		if (!found) {
+		if (!candidate) {
 			errBox.textContent = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
 			errBox.classList.add("show");
 			return;
 		}
 
-		setSession(found);
-		closeAuthPop();
-		refreshAuthUI();
-		this.reset();
-		showToast("ยินดีต้อนรับกลับมา " + found.name + "! 🦖");
-		// รีเฟรชหน้าปัจจุบันเพื่อให้ Food DNA ส่วนตัว + สถานะล็อกอินอัปเดตทุกจุด
-		setTimeout(function() {
-			window.location.reload();
-		}, 600);
+		hashPassword(password, candidate.salt).then(function(passwordHash) {
+			if (passwordHash !== candidate.passwordHash) {
+				errBox.textContent = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+				errBox.classList.add("show");
+				return;
+			}
+
+			setSession(candidate);
+			closeAuthPop();
+			refreshAuthUI();
+			form.reset();
+			showToast("ยินดีต้อนรับกลับมา " + candidate.name + "! 🦖");
+			// รีเฟรชหน้าปัจจุบันเพื่อให้ Food DNA ส่วนตัว + สถานะล็อกอินอัปเดตทุกจุด
+			setTimeout(function() {
+				window.location.reload();
+			}, 600);
+		});
 	});
 }
 

@@ -41,7 +41,7 @@
             ============================================================ -->
          <div class="profcard">
             <div class="profcardtit"><i class="fas fa-location-dot me-1"></i><span data-i18n="settings.myLocation">My Location</span></div>
-            <p class="rowsub" style="margin-top:0;margin-bottom:12px;" id="locationHint" data-i18n="settings.locationHint">Let chimchim know your real location so it can prioritize shops near you.</p>
+            <p class="rowsub" style="margin-top:0;margin-bottom:12px;" id="locationHint" data-i18n="settings.locationHint">Let ChimChim know your real location so it can prioritize shops near you.</p>
             <button type="button" class="rdghost" style="width:100%;" id="requestLocationBtn"><i class="fas fa-crosshairs me-1"></i><span data-i18n="settings.useMyLocation">Use My Current Location</span></button>
          </div>
 
@@ -128,6 +128,98 @@
             <a href="#" id="pageViewLink" class="rdghost" style="width:100%;margin-top:10px;" hidden data-i18n="settings.pageView">View my page</a>
          </div>
 
+         <!-- ============================================================
+            ร้านของฉัน — ต่างจากเพจร้านด้านบน ร้านนี้มีราคา/ระยะทาง/หมวด เข้าไปคำนวณ Match %
+            และโชว์เป็นผลแนะนำได้จริงใน Discovery Feed / AI Finder ไม่ใช่แค่โพสต์รูปเฉย ๆ
+            ============================================================ -->
+         <div class="profcard" id="shopGuestCard" hidden>
+            <div class="profcardtit"><i class="fas fa-shop me-1"></i><span data-i18n="shop.postMyShop">Post My Shop</span></div>
+            <p style="font-size:.82rem;color:#999;margin-bottom:12px;" data-i18n="settings.shopLoginHint">Log in to post your shop to the community.</p>
+            <a href="profile.html" class="rdghost" style="width:100%;" data-i18n="auth.login">Log In</a>
+         </div>
+
+         <div class="profcard" id="shopFormCard" hidden>
+            <div class="profcardtit"><i class="fas fa-shop me-1"></i><span id="shopFormTitle" data-i18n="shop.postMyShop">Post My Shop</span></div>
+            <p class="rowsub" style="margin-top:0;margin-bottom:12px;" data-i18n="shop.formHint">Fill in your shop's details and it'll show up in the Discovery Feed right away.</p>
+            <form id="shopForm" class="apform">
+               <div class="aperr" id="shopErr"></div>
+               <label class="flbl" data-i18n="shop.shopName">Shop name</label>
+               <input class="fctrl" type="text" id="shopName" placeholder="เช่น ร้านป้าหน่อย ข้าวมันไก่" required/>
+               <label class="flbl" data-i18n="shop.featuredDish">Featured dish</label>
+               <input class="fctrl" type="text" id="shopDish" placeholder="เช่น ข้าวมันไก่ทอด" required/>
+               <label class="flbl" data-i18n="shop.category">Food category</label>
+               <select class="fctrl" id="shopCat" required>
+                  <optgroup label="🍽️ ทั่วไป">
+                     <option value="อาหารตามสั่ง">🍳 อาหารตามสั่ง</option>
+                     <option value="ข้าวแกง">🍛 ข้าวแกง</option>
+                     <option value="ของทอด">🍤 ของทอด</option>
+                     <option value="ปิ้งย่าง">🍖 ปิ้งย่าง</option>
+                  </optgroup>
+                  <optgroup label="🌶️ รสจัดจ้าน">
+                     <option value="ส้มตำ">🥭 ส้มตำ</option>
+                     <option value="ยำ">🌶️ ยำ</option>
+                     <option value="หม่าล่า">🍲 หม่าล่า</option>
+                  </optgroup>
+                  <optgroup label="🗺️ ตามภาค">
+                     <option value="อีสาน">🍢 อีสาน</option>
+                     <option value="เหนือ">🍛 เหนือ</option>
+                     <option value="กลาง">🍚 กลาง</option>
+                     <option value="อาหารใต้">🌶️ อาหารใต้</option>
+                     <option value="อาหารป่า">🦌 อาหารป่า</option>
+                  </optgroup>
+                  <optgroup label="🍜 เส้น/ก๋วยเตี๋ยว">
+                     <option value="เมนูเส้น">🍜 เมนูเส้น</option>
+                     <option value="ก๋วยเตี๋ยว">🍲 ก๋วยเตี๋ยว</option>
+                  </optgroup>
+                  <optgroup label="🌏 นานาชาติ">
+                     <option value="อาหารญี่ปุ่น">🍣 อาหารญี่ปุ่น</option>
+                     <option value="อาหารจีน">🥟 อาหารจีน</option>
+                     <option value="อาหารเกาหลี">🍚 อาหารเกาหลี</option>
+                     <option value="อาหารอินเดีย">🍛 อาหารอินเดีย</option>
+                     <option value="อาหารเวียดนาม">🍜 อาหารเวียดนาม</option>
+                     <option value="พิซซ่า">🍕 พิซซ่า</option>
+                     <option value="เบอร์เกอร์">🍔 เบอร์เกอร์</option>
+                     <option value="สเต็ก">🥩 สเต็ก</option>
+                     <option value="Fast Food">🍔 Fast Food</option>
+                  </optgroup>
+                  <optgroup label="🍰 ของหวาน/เครื่องดื่ม">
+                     <option value="ของหวาน/เบเกอรี่">🍰 ของหวาน/เบเกอรี่</option>
+                     <option value="ผลไม้">🍉 ผลไม้</option>
+                     <option value="เครื่องดื่ม">🥤 เครื่องดื่ม</option>
+                  </optgroup>
+                  <optgroup label="🥗 เฉพาะทาง">
+                     <option value="อาหารเจ">🥬 อาหารเจ</option>
+                     <option value="อาหารฮาลาล">🕌 อาหารฮาลาล</option>
+                     <option value="มังสวิรัติ">🥗 มังสวิรัติ</option>
+                     <option value="วีแกน">🌱 วีแกน</option>
+                  </optgroup>
+               </select>
+               <label class="flbl" data-i18n="shop.featuredImage">Featured photo</label>
+               <div class="imguploadbox" id="shopImageUploadBox">
+                  <img class="imguploadpreview" id="shopImagePreviewImg" src="" alt="" hidden/>
+                  <label class="imguploadlbl" for="shopImageFile"><i class="fas fa-camera"></i><span data-i18n="shop.uploadPhoto">Upload a photo</span></label>
+               </div>
+               <input type="file" id="shopImageFile" accept="image/*" hidden/>
+               <input type="hidden" id="shopImage" required/>
+               <label class="flbl" data-i18n="shop.priceLow">Price low (฿)</label>
+               <input class="fctrl" type="number" id="shopPriceLow" min="1" required/>
+               <label class="flbl" data-i18n="shop.priceHigh">Price high (฿)</label>
+               <input class="fctrl" type="number" id="shopPriceHigh" min="1" required/>
+               <label class="flbl" data-i18n="shop.distance">Distance (m)</label>
+               <input class="fctrl" type="number" id="shopDistance" min="0" required/>
+               <label class="flbl" data-i18n="shop.nearUni">Near which university</label>
+               <select class="fctrl" id="shopUni" required></select>
+               <label class="flbl" data-i18n="shop.shortDesc">Short pitch</label>
+               <textarea class="fctrl" id="shopDesc" rows="2" placeholder="บอกจุดเด่นร้านคุณสั้น ๆ"></textarea>
+               <label class="flbl" data-i18n="shop.hours">Opening hours</label>
+               <input class="fctrl" type="text" id="shopHours" placeholder="เช่น 10:00 – 20:00 น."/>
+               <label class="flbl" data-i18n="shop.promo">Special promotion (optional)</label>
+               <input class="fctrl" type="text" id="shopPromo" placeholder="เช่น ลด 10% เมื่อสั่งผ่านแอป"/>
+               <button type="submit" class="btn-red w-100 justify-content-center mt-2" id="shopSubmitBtn"><i class="fas fa-floppy-disk"></i><span data-i18n="shop.submit">Post to Community</span></button>
+            </form>
+            <a href="#" id="shopViewLink" class="rdghost" style="width:100%;margin-top:10px;" hidden data-i18n="shop.viewMyShop">View my shop</a>
+         </div>
+
          <div class="profcard" id="personaCard" hidden>
             <div class="profcardtit"><i class="fas fa-right-left me-1"></i><span data-i18n="settings.postingAs">Posting As</span></div>
             <div class="settoggle" id="personaToggle">
@@ -160,5 +252,6 @@
       <script src="js/chimchim-community.js"></script>
       <script src="js/chimchim-settings.js"></script>
       <script src="js/chimchim-page.js"></script>
+      <script src="js/chimchim-shop.js"></script>
    </body>
 </html>

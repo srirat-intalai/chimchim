@@ -106,6 +106,8 @@ function addResultCards(ร้านพร้อมคะแนน) {
 				'<div class="chatcard-meta">' + escapeHtml(ร้าน.ร้าน) + ' • ฿' + ร้าน.ราคาต่ำ + '–' + ร้าน.ราคาสูง + '</div>' +
 			'</div>';
 		card.addEventListener("click", function() {
+			// กดดูร้านที่ AI แนะนำจริง ๆ ถือเป็นสัญญาณว่าคำแนะนำครั้งนี้ตรงใจ เอาไปเรียนรู้ต่อยอด Food DNA
+			if (typeof recordAiClickedShop === "function") recordAiClickedShop(ร้าน.id);
 			window.location.href = "restaurant.html?id=" + ร้าน.id;
 		});
 		row.appendChild(card);
@@ -160,9 +162,9 @@ function สร้างข้อความตอบกลับ(cond) {
 	if (cond.รส !== "ไม่รู้") ท่อน.push("รส" + cond.รส);
 	if (cond.งบ) ท่อน.push("งบ" + cond.งบ);
 	if (ท่อน.length === 0) {
-		return "งั้นให้ชิมชิมลองเลือกจาก Food DNA ของคุณดูนะ น่าจะถูกใจอยู่ 🦖";
+		return "งั้นให้ ChimChim ลองเลือกจาก Food DNA ของคุณดูนะ น่าจะถูกใจอยู่ 🦖";
 	}
-	return "โอเค เข้าใจละ! อยากได้แนว" + ท่อน.join(" ") + " ใช่ไหม เดี๋ยวชิมชิมหามาให้ดูนะ 🦖";
+	return "โอเค เข้าใจละ! อยากได้แนว" + ท่อน.join(" ") + " ใช่ไหม เดี๋ยว ChimChim หามาให้ดูนะ 🦖";
 }
 
 /* -----------------------------------------------------
@@ -188,6 +190,21 @@ function ดูเหมือนถามเรื่องอาหารไ�
 var AI_REQUEST_TIMEOUT_MS = 15000;
 
 /* -----------------------------------------------------
+   ประวัติแชทของเซสชันนี้ (อยู่แค่ในหน่วยความจำ ไม่เก็บลง localStorage เพื่อความเป็นส่วนตัว
+   หายเมื่อรีเฟรชหน้า) — ส่งย้อนหลังไม่กี่เทิร์นไปให้ Gemini ทุกครั้ง เพื่อให้ "ชิมชิม" จำบริบท
+   บทสนทนาก่อนหน้าได้ (เช่น คุยเรื่องเผ็ดไปแล้ว รอบถัดมาไม่ต้องถามซ้ำ)
+----------------------------------------------------- */
+var ประวัติแชท = [];
+var AI_HISTORY_MAX_TURNS = 12; // 6 คู่ ผู้ใช้+ชิมชิม กันข้อความยาวเกินและกัน quota บาน
+
+function เก็บประวัติแชท(role, text) {
+	ประวัติแชท.push({ role: role, text: text });
+	if (ประวัติแชท.length > AI_HISTORY_MAX_TURNS) {
+		ประวัติแชท = ประวัติแชท.slice(-AI_HISTORY_MAX_TURNS);
+	}
+}
+
+/* -----------------------------------------------------
    ขอให้ "ชิมชิม" (Gemini) พูดคำตอบจริง ๆ ออกมา แทนที่จะใช้ข้อความสำเร็จรูปเดิม
    ส่งเฉพาะผลลัพธ์ที่คำนวณจริงแล้วไปให้ (ชื่อร้าน/เมนู/Match %/ราคา) กันไม่ให้ AI มั่วร้านขึ้นมาเอง
    ถ้าเรียกไม่ได้ จะคืนค่า null แล้วผู้เรียกใช้ข้อความสำเร็จรูปเดิมแทน
@@ -210,7 +227,7 @@ function ขอคำตอบจากชิมชิม(text, ผลลัพ�
 	return fetch(AI_CHAT_REPLY_URL, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ message: text, results: results }),
+		body: JSON.stringify({ message: text, results: results, history: ประวัติแชท }),
 		signal: controller ? controller.signal : undefined
 	}).then(function(res) {
 		if (timer) clearTimeout(timer);
@@ -239,13 +256,12 @@ function ส่งข้อความ(text) {
 	var cond = แปลข้อความเป็นเงื่อนไข(text);
 	var เกี่ยวกับอาหาร = ดูเหมือนถามเรื่องอาหารไหม(text, cond);
 	var ผลลัพธ์ = เกี่ยวกับอาหาร ? หาร้านให้ฉัน(cond.หมวด, cond.งบ, cond.ระยะ, cond.รส) : [];
+	เก็บประวัติแชท("user", text);
 	ขอคำตอบจากชิมชิม(text, ผลลัพธ์, เกี่ยวกับอาหาร).then(function(replyText) {
 		removeTyping();
-		if (replyText) {
-			addBotBubble(replyText);
-		} else {
-			addBotBubble(เกี่ยวกับอาหาร ? สร้างข้อความตอบกลับ(cond) : สุ่มข้อความสำรองทั่วไป());
-		}
+		var ข้อความบอท = replyText || (เกี่ยวกับอาหาร ? สร้างข้อความตอบกลับ(cond) : สุ่มข้อความสำรองทั่วไป());
+		addBotBubble(ข้อความบอท);
+		เก็บประวัติแชท("model", ข้อความบอท);
 		if (เกี่ยวกับอาหาร && ผลลัพธ์.length) {
 			setTimeout(function() {
 				addResultCards(ผลลัพธ์);

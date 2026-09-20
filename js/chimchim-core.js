@@ -100,6 +100,22 @@ var CHIMCHIM_REVIEWS_KEY = "chimchim_reviews";
 var CHIMCHIM_FOLLOWS_KEY = "chimchim_follows";
 var CHIMCHIM_POSTS_KEY = "chimchim_posts";
 
+/* --- แฮชรหัสผ่านก่อนเก็บ (SHA-256 + salt สุ่มต่อบัญชี) แทนการเก็บ plaintext ตรง ๆ
+   หมายเหตุ: เวอร์ชันนี้ยังเป็น localStorage ล้วน ๆ ไม่มี backend ตรวจสอบ การแฮชฝั่ง client
+   ช่วยกันไม่ให้รหัสผ่านจริงโผล่เป็นข้อความอ่านได้ในเครื่อง แต่ยังไม่เทียบเท่าระบบ auth ฝั่งเซิร์ฟเวอร์จริง
+   (แผนย้ายไป Supabase Auth จะแทนที่กลไกนี้ทั้งหมดในอนาคต) --- */
+function generateSalt() {
+	var bytes = new Uint8Array(16);
+	crypto.getRandomValues(bytes);
+	return Array.prototype.map.call(bytes, function(b) { return b.toString(16).padStart(2, "0"); }).join("");
+}
+function hashPassword(password, salt) {
+	var data = new TextEncoder().encode(salt + password);
+	return crypto.subtle.digest("SHA-256", data).then(function(buf) {
+		return Array.prototype.map.call(new Uint8Array(buf), function(b) { return b.toString(16).padStart(2, "0"); }).join("");
+	});
+}
+
 function getUsers() {
 	try {
 		return JSON.parse(localStorage.getItem(CHIMCHIM_USERS_KEY)) || [];
@@ -174,12 +190,36 @@ function applyPersonalFoodDNA() {
 	}
 }
 
-// เรียนรู้พฤติกรรมจริงของผู้ใช้ในเบราว์เซอร์นี้ (กดถูกใจ / Follow / เขียนรีวิวให้คะแนนดี ๆ)
+/* =====================================================================
+   Feedback loop จากแชท AI Food Finder — กดเข้าไปดูร้านที่ "ชิมชิม" แนะนำจริง ๆ
+   ถือเป็นสัญญาณว่าคำแนะนำครั้งนั้นตรงใจ (implicit signal อ่อนกว่าการกดถูกใจตรง ๆ
+   แต่ยังบอกแนวโน้มได้) เก็บแค่ N รายการล่าสุดพอ กันโตไม่รู้จบ
+   ===================================================================== */
+var CHIMCHIM_AI_CLICKS_KEY = "chimchim_ai_clicks";
+var AI_CLICK_HISTORY_LIMIT = 30;
+function getAiClickedShops() {
+	try {
+		return JSON.parse(localStorage.getItem(CHIMCHIM_AI_CLICKS_KEY)) || [];
+	} catch (e) {
+		return [];
+	}
+}
+function recordAiClickedShop(shopId) {
+	var list = getAiClickedShops();
+	list.push(shopId);
+	if (list.length > AI_CLICK_HISTORY_LIMIT) {
+		list = list.slice(-AI_CLICK_HISTORY_LIMIT);
+	}
+	localStorage.setItem(CHIMCHIM_AI_CLICKS_KEY, JSON.stringify(list));
+}
+
+// เรียนรู้พฤติกรรมจริงของผู้ใช้ในเบราว์เซอร์นี้ (กดถูกใจ / Follow / เขียนรีวิวให้คะแนนดี ๆ / กดดูร้านที่ AI แนะนำ)
 // แล้วสรุปออกมาเป็นแนวโน้มที่ชอบ 3 มิติ: ชาติอาหาร / รสชาติ / หมวดหมู่ ใช้แทนแบบทดสอบ Food DNA
 // สำหรับคนที่ยังไม่ได้ทำแบบทดสอบ หรือใช้เสริมแบบทดสอบเดิมให้แม่นขึ้นเรื่อย ๆ ตามการใช้งานจริง
 function inferDnaFromBehavior() {
 	var likedIds = getLikedShops();
 	var followedIds = getFollowedShops();
+	var aiClickedIds = getAiClickedShops();
 	var reviewedIds = [];
 	var session = getSession();
 	if (session) {
@@ -189,7 +229,7 @@ function inferDnaFromBehavior() {
 			if (avg >= 4) reviewedIds.push(r.shopId);
 		});
 	}
-	var ids = likedIds.concat(followedIds).concat(reviewedIds);
+	var ids = likedIds.concat(followedIds).concat(reviewedIds).concat(aiClickedIds);
 	if (!ids.length) return null;
 	var cuisineCount = {};
 	var flavorCount = {};
@@ -279,6 +319,62 @@ function saveShops(list) {
 	localStorage.setItem(CHIMCHIM_SHOPS_KEY, JSON.stringify(list));
 }
 
+// ร้านของฉัน (ผูกกับ vendorId ของบัญชีที่ล็อกอินอยู่) — ใช้บอกว่าจะสร้างร้านใหม่ หรือแก้ไขร้านเดิม
+function getMyShop() {
+	var me = getMe();
+	if (!me) return null;
+	return getShops().filter(function(s) { return s.vendorId === me.id; })[0] || null;
+}
+// สุ่ม id เลขที่ไม่ชนกับร้านชุมชนที่มีอยู่แล้ว (ตั้งตอนสร้างร้านครั้งแรกเลย จะได้เป็นค่าคงที่ถาวร
+// ไม่ต้องพึ่ง index ในอาร์เรย์ที่ขยับได้เวลามีร้านใหม่มาแทรก — กันไลก์/follow/รีวิวเดิมหลุดจากร้าน)
+function generateUniqueShopNumId() {
+	var used = getShops().map(function(s) { return s.numId; });
+	var id;
+	do {
+		id = 9000000 + Math.floor(Math.random() * 900000);
+	} while (used.indexOf(id) !== -1);
+	return id;
+}
+function createOrUpdateMyShop(data) {
+	var me = getMe();
+	if (!me) return null;
+	var shops = getShops();
+	var existing = shops.filter(function(s) { return s.vendorId === me.id; })[0];
+	if (existing) {
+		existing.name = data.name;
+		existing.dish = data.dish;
+		existing.cat = data.cat;
+		existing.img = data.img;
+		existing.priceLow = data.priceLow;
+		existing.priceHigh = data.priceHigh;
+		existing.distance = data.distance;
+		existing.uni = data.uni;
+		existing.desc = data.desc;
+		existing.hours = data.hours;
+		existing.promo = data.promo;
+	} else {
+		existing = {
+			numId: generateUniqueShopNumId(),
+			vendorId: me.id,
+			vendorName: me.name,
+			name: data.name,
+			dish: data.dish,
+			cat: data.cat,
+			img: data.img,
+			priceLow: data.priceLow,
+			priceHigh: data.priceHigh,
+			distance: data.distance,
+			uni: data.uni,
+			desc: data.desc,
+			hours: data.hours,
+			promo: data.promo
+		};
+		shops.push(existing);
+	}
+	saveShops(shops);
+	return existing;
+}
+
 function shopToร้าน(shop) {
 	var ชาติอาหาร = "ไทย";
 	if (shop.cat === "ญี่ปุ่น") ชาติอาหาร = "ญี่ปุ่น";
@@ -303,9 +399,11 @@ function shopToร้าน(shop) {
 		มหาลัย: shop.uni || มหาวิทยาลัยทั้งหมด[0],
 		เทรนด์: false,
 		มื้อที่เหมาะ: ["เช้า", "เที่ยง", "บ่าย", "เย็น", "ดึก"],
+		vendorId: shop.vendorId,
 		vendorName: shop.vendorName,
 		เวลาเปิดกำหนดเอง: shop.hours || null,
 		โปรโมชั่นกำหนดเอง: shop.promo || null,
+		คำโปรยกำหนดเอง: shop.desc || null,
 		community: true
 	};
 }
@@ -315,6 +413,8 @@ function mergeCommunityShopsIntoรายการร้าน() {
 	var shops = getShops();
 	var i;
 	for (i = shops.length - 1; i >= 0; i--) {
+		// เผื่อร้านเก่าที่เคยถูกสร้างไว้ก่อนจะมี generateUniqueShopNumId() แล้วไม่มี numId ติดมา
+		// (ร้านที่สร้างผ่าน createOrUpdateMyShop() ตอนนี้ได้ numId ถาวรตั้งแต่ตอนสร้างแล้ว ไม่ต้องพึ่งจุดนี้)
 		if (!shops[i].numId) {
 			shops[i].numId = 9000000 + i;
 		}
@@ -330,7 +430,7 @@ function mergeCommunityShopsIntoรายการร้าน() {
    ===================================================================== */
 var เวลาเปิดตัวอย่าง = ["10:00 – 20:00 น.", "08:00 – 18:00 น.", "11:00 – 22:00 น.", "09:00 – 19:00 น.", "17:00 – 01:00 น."];
 var โปรโมชั่นตัวอย่าง = [
-	{ icon: "🎉", text: "ลด 10% เมื่อสั่งผ่านแอปชิมชิม" },
+	{ icon: "🎉", text: "ลด 10% เมื่อสั่งผ่านแอป ChimChim" },
 	{ icon: "🍜", text: "ซื้อ 1 แถม 1 ทุกวันจันทร์" },
 	{ icon: "🔥", text: "เมนูใหม่ประจำสัปดาห์นี้ ลองเลย!" },
 	{ icon: "🎁", text: "สะสมแต้มครบ 10 ครั้ง รับฟรี 1 เมนู" },
@@ -716,7 +816,7 @@ function getFeedItems() {
 	var fromReal = getAllPosts().map(function(p) {
 		var page = p.pageId ? pages.filter(function(pg) { return pg.id === p.pageId; })[0] : null;
 		var user = users.filter(function(u) { return u.id === p.userId; })[0];
-		var posterName = page ? page.name : (user ? user.name : "นักชิมชิมชิม");
+		var posterName = page ? page.name : (user ? user.name : "นักชิม ChimChim");
 		return {
 			id: p.id,
 			kind: page ? "page" : "user",

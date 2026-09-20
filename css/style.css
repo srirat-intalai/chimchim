@@ -4996,13 +4996,28 @@ body.appshell {
   flex-wrap: wrap;
   gap: 12px;
 }
-.rdmeta span {
+.rdmeta span,
+.rdmeta a {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  color: inherit;
+  text-decoration: none;
 }
 .rdmeta i {
   color: var(--secondary);
+}
+.rdmeta a.rdshoplink {
+  cursor: pointer;
+  color: var(--dark);
+  font-weight: 600;
+}
+.rdmeta a.rdshoplink:hover {
+  text-decoration: underline;
+}
+.rdmeta a.rdshoplink .rdshopchevron {
+  font-size: 0.75rem;
+  opacity: 0.6;
 }
 .rdfollowbtn {
   border: 2px solid var(--dark);

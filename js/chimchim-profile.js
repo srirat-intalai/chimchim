@@ -41,7 +41,7 @@ var logoutBtnEl = document.getElementById("logoutBtn");
 if (logoutBtnEl) {
 	logoutBtnEl.addEventListener("click", function() {
 		clearSession();
-		showToast("ออกจากระบบแล้ว แล้วเจอกันใหม่นะ 👋");
+		showToast(t("profile.logoutToast"));
 		setTimeout(function() {
 			window.location.reload();
 		}, 400);
@@ -57,7 +57,7 @@ if (!session) {
 	document.getElementById("profAvatar").textContent = session.name.charAt(0).toUpperCase();
 	document.getElementById("profName").textContent = session.name;
 	document.getElementById("profEmail").textContent = session.email;
-	document.getElementById("profRole").textContent = "🧑‍🎓 สมาชิก ChimChim";
+	document.getElementById("profRole").textContent = t("profile.memberRole");
 
 	/* --- Food DNA (ทุกบัญชี) — กดปุ่มเพื่อดูรายละเอียดเป็น popup --- */
 	var dnaCardBtn = document.getElementById("dnaCardBtn");
@@ -69,12 +69,12 @@ if (!session) {
 		var maxDist = 3000;
 		var rows = [];
 		if (dna.ชอบหมวด && dna.ชอบหมวด.length) {
-			rows.push({ label: "หมวดที่ชอบ", value: dna.ชอบหมวด.join(", "), pct: 100 });
+			rows.push({ label: t("dna.category"), value: dna.ชอบหมวด.map(catLabel).join(", "), pct: 100 });
 		}
-		rows.push({ label: "ชอบชาติอาหาร", value: dna.ชอบชาติอาหาร.join(", "), pct: 100 });
-		rows.push({ label: "ชอบรส", value: dna.ชอบรส.join(", "), pct: 100 });
-		rows.push({ label: "งบเฉลี่ยที่ใช้บ่อย", value: "฿" + dna.งบเฉลี่ยที่ใช้บ่อย, pct: Math.min(100, Math.round((dna.งบเฉลี่ยที่ใช้บ่อย / maxBudget) * 100)) });
-		rows.push({ label: "ระยะที่ยอมไป", value: dna.ระยะที่ยอมไป + " ม.", pct: Math.min(100, Math.round((dna.ระยะที่ยอมไป / maxDist) * 100)) });
+		rows.push({ label: t("dna.cuisine"), value: dna.ชอบชาติอาหาร.map(catLabel).join(", "), pct: 100 });
+		rows.push({ label: t("dna.flavor"), value: dna.ชอบรส.map(catLabel).join(", "), pct: 100 });
+		rows.push({ label: t("dna.budget"), value: "฿" + dna.งบเฉลี่ยที่ใช้บ่อย, pct: Math.min(100, Math.round((dna.งบเฉลี่ยที่ใช้บ่อย / maxBudget) * 100)) });
+		rows.push({ label: t("dna.distance"), value: distanceText(dna.ระยะที่ยอมไป), pct: Math.min(100, Math.round((dna.ระยะที่ยอมไป / maxDist) * 100)) });
 		var dnaHtml = "";
 		rows.forEach(function(r) {
 			dnaHtml +=
@@ -130,7 +130,7 @@ function initMyPosts() {
 		chosenImages.forEach(function(src, idx) {
 			var thumb = document.createElement("div");
 			thumb.className = "postimgthumb";
-			thumb.innerHTML = '<img src="' + src + '" alt=""/><button type="button" title="ลบรูป"><i class="fas fa-times"></i></button>';
+			thumb.innerHTML = '<img src="' + src + '" alt=""/><button type="button" title="' + t("common.removePhoto") + '"><i class="fas fa-times"></i></button>';
 			thumb.querySelector("button").addEventListener("click", function() {
 				chosenImages.splice(idx, 1);
 				renderChosenImages();
@@ -158,7 +158,7 @@ function initMyPosts() {
 		errBox.classList.remove("show");
 		var caption = document.getElementById("postCaption").value.trim();
 		if (chosenImages.length === 0 || !caption) {
-			errBox.textContent = "เลือกรูปอย่างน้อย 1 รูปและใส่แคปชั่นก่อนนะ";
+			errBox.textContent = t("profile.selectPhotoAndCaption");
 			errBox.classList.add("show");
 			return;
 		}
@@ -168,7 +168,7 @@ function initMyPosts() {
 		chosenImages = [];
 		renderChosenImages();
 		form.style.display = "none";
-		showToast(activePage ? ("โพสต์ในนาม “" + activePage.name + "” เรียบร้อยแล้ว! 🎉") : "โพสต์เรียบร้อยแล้ว! 🎉");
+		showToast(activePage ? t("profile.postedAsToast").replace("{name}", activePage.name) : t("profile.postedToast"));
 		renderMyPosts();
 	});
 
@@ -217,9 +217,9 @@ function renderMyPosts() {
 		el.className = "ppost";
 		el.innerHTML =
 			'<img src="' + images[0] + '" alt=""/>' +
-			(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + images.length + ' รูป"></i>' : "") +
+			(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
 			'<div class="ppostcap">' + escapeHtml(p.caption) + '</div>' +
-			'<button class="ppostdel" data-id="' + p.id + '" title="ลบโพสต์"><i class="fas fa-times"></i></button>';
+			'<button class="ppostdel" data-id="' + p.id + '" title="' + t("common.deletePost") + '"><i class="fas fa-times"></i></button>';
 		el.addEventListener("click", function() {
 			openPostView({ id: p.id, images: images, caption: p.caption, posterName: posterName, posterColor: posterColor });
 		});

@@ -18,7 +18,7 @@ function obGoToStep(n) {
 	document.getElementById("obStep2").hidden = n !== 2;
 	document.getElementById("obStep3").hidden = n !== 3;
 	document.getElementById("obStep4").hidden = n !== 4;
-	document.getElementById("obStepLbl").textContent = "Step " + n + " of 5";
+	document.getElementById("obStepLbl").textContent = t("onboarding.stepOf").replace("{n}", n);
 
 	var dots = [document.getElementById("obp1"), document.getElementById("obp2"), document.getElementById("obp3"), document.getElementById("obp4"), document.getElementById("obp5")];
 	dots.forEach(function(d, i) {
@@ -116,10 +116,10 @@ function obFinish() {
 	var maxBudget = 300;
 	var maxDist = 5000;
 	var rows = [
-		{ label: "ชอบชาติอาหาร", value: newDNA.ชอบชาติอาหาร.join(", ") || "-", pct: 100 },
-		{ label: "ชอบรส", value: newDNA.ชอบรส.join(", ") || "-", pct: 100 },
-		{ label: "งบเฉลี่ยที่ใช้บ่อย", value: "฿" + newDNA.งบเฉลี่ยที่ใช้บ่อย, pct: Math.min(100, Math.round((newDNA.งบเฉลี่ยที่ใช้บ่อย / maxBudget) * 100)) },
-		{ label: "ระยะที่ยอมไป", value: newDNA.ระยะที่ยอมไป + " ม.", pct: Math.min(100, Math.round((newDNA.ระยะที่ยอมไป / maxDist) * 100)) }
+		{ label: t("dna.cuisine"), value: newDNA.ชอบชาติอาหาร.map(catLabel).join(", ") || "-", pct: 100 },
+		{ label: t("dna.flavor"), value: newDNA.ชอบรส.map(catLabel).join(", ") || "-", pct: 100 },
+		{ label: t("dna.budget"), value: "฿" + newDNA.งบเฉลี่ยที่ใช้บ่อย, pct: Math.min(100, Math.round((newDNA.งบเฉลี่ยที่ใช้บ่อย / maxBudget) * 100)) },
+		{ label: t("dna.distance"), value: distanceText(newDNA.ระยะที่ยอมไป), pct: Math.min(100, Math.round((newDNA.ระยะที่ยอมไป / maxDist) * 100)) }
 	];
 	var html = "";
 	rows.forEach(function(r) {

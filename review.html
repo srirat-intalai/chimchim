@@ -14,7 +14,7 @@
    <body class="appshell">
       <div class="obtopnav" style="max-width:480px;margin:0 auto;padding:20px 20px 0;">
          <button class="obback" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
-         <span class="obstepnum">เขียนรีวิว</span>
+         <span class="obstepnum" data-i18n="review.pageTitle">เขียนรีวิว</span>
          <span style="width:38px;"></span>
       </div>
 
@@ -29,11 +29,11 @@
 
          <form id="reviewForm">
             <div class="revrow" id="revNameRow" hidden>
-               <label class="revlbl" for="reviewAuthor">ชื่อของคุณ</label>
-               <input class="fctrl" type="text" id="reviewAuthor" placeholder="ชื่อที่จะแสดงในรีวิว"/>
+               <label class="revlbl" for="reviewAuthor" data-i18n="review.yourName">ชื่อของคุณ</label>
+               <input class="fctrl" type="text" id="reviewAuthor" placeholder="ชื่อที่จะแสดงในรีวิว" data-i18n-ph="review.namePlaceholder"/>
             </div>
             <div class="revrow">
-               <div class="revlbl">รสชาติ</div>
+               <div class="revlbl" data-i18n="review.taste">รสชาติ</div>
                <div class="revdinos" data-field="taste">
                   <div class="revdino" data-val="1"><img src="img/Dino/4.png" alt="1"/></div>
                   <div class="revdino" data-val="2"><img src="img/Dino/5.png" alt="2"/></div>
@@ -43,7 +43,7 @@
                </div>
             </div>
             <div class="revrow">
-               <div class="revlbl">บรรยากาศร้าน</div>
+               <div class="revlbl" data-i18n="review.atmosphere">บรรยากาศร้าน</div>
                <div class="revdinos" data-field="atmosphere">
                   <div class="revdino" data-val="1"><img src="img/Dino/4.png" alt="1"/></div>
                   <div class="revdino" data-val="2"><img src="img/Dino/5.png" alt="2"/></div>
@@ -53,7 +53,7 @@
                </div>
             </div>
             <div class="revrow">
-               <div class="revlbl">การบริการ</div>
+               <div class="revlbl" data-i18n="review.service">การบริการ</div>
                <div class="revdinos" data-field="service">
                   <div class="revdino" data-val="1"><img src="img/Dino/4.png" alt="1"/></div>
                   <div class="revdino" data-val="2"><img src="img/Dino/5.png" alt="2"/></div>
@@ -63,11 +63,11 @@
                </div>
             </div>
             <div class="revrow">
-               <label class="revlbl" for="reviewText">เล่าประสบการณ์ของคุณ</label>
-               <textarea class="fctrl" id="reviewText" rows="4" placeholder="อาหารเป็นยังไงบ้าง อยากบอกอะไรคนอื่นไหม..."></textarea>
+               <label class="revlbl" for="reviewText" data-i18n="review.tellExperience">เล่าประสบการณ์ของคุณ</label>
+               <textarea class="fctrl" id="reviewText" rows="4" placeholder="อาหารเป็นยังไงบ้าง อยากบอกอะไรคนอื่นไหม..." data-i18n-ph="review.textPlaceholder"></textarea>
             </div>
             <div class="aperr" id="reviewErr"></div>
-            <button type="submit" class="btn-red revsubmitbtn"><i class="fas fa-paper-plane"></i><span>ส่งรีวิว</span></button>
+            <button type="submit" class="btn-red revsubmitbtn"><i class="fas fa-paper-plane"></i><span data-i18n="review.submit">ส่งรีวิว</span></button>
          </form>
       </div>
 

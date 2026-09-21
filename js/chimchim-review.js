@@ -8,8 +8,8 @@ var revร้าน = หาร้านจากId(revShopId);
 if (!revร้าน) {
 	document.querySelector(".revwrap").innerHTML =
 		'<div style="text-align:center;padding:60px 10px;">' +
-		'<p style="color:#999;font-size:.9rem;margin-bottom:16px;">ไม่พบร้านนี้ในระบบ</p>' +
-		'<a href="home.html" class="btn-red"><i class="fas fa-house"></i><span>กลับหน้าแรก</span></a>' +
+		'<p style="color:#999;font-size:.9rem;margin-bottom:16px;">' + t("common.shopNotFound") + '</p>' +
+		'<a href="home.html" class="btn-red"><i class="fas fa-house"></i><span>' + t("common.backToHome") + '</span></a>' +
 		"</div>";
 } else {
 	document.getElementById("revShopImg").src = revร้าน.รูป;
@@ -44,12 +44,12 @@ if (!revร้าน) {
 		errBox.classList.remove("show");
 
 		if (!scores.taste || !scores.atmosphere || !scores.service) {
-			errBox.textContent = "ให้คะแนนทั้ง 3 หัวข้อก่อนนะ";
+			errBox.textContent = t("review.rateAllThree");
 			errBox.classList.add("show");
 			return;
 		}
 
-		var author = meSession ? meSession.name : (document.getElementById("reviewAuthor").value.trim() || "นักชิมไม่ระบุตัวตน");
+		var author = meSession ? meSession.name : (document.getElementById("reviewAuthor").value.trim() || t("common.anonymousFoodie"));
 
 		addReview(revร้าน.id, {
 			taste: scores.taste,

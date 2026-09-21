@@ -20,7 +20,7 @@ function buildPersonCard(person) {
 			'<div class="chbody">' +
 				'<a href="public-profile.html?u=' + encodeURIComponent(person.linkId || person.id) + '" class="chnm" style="text-decoration:none;color:inherit;display:block;">' + escapeHtml(person.name) + '</a>' +
 				'<div class="chlv">' + person.sub + '</div>' +
-				'<button class="followbtn" data-uid="' + person.id + '">+ Follow</button>' +
+				'<button class="followbtn" data-uid="' + person.id + '">+ ' + t("common.follow") + '</button>' +
 			'</div>' +
 		'</div>';
 	return col;
@@ -40,7 +40,7 @@ function renderCreators() {
 	var list;
 	if (currentPeopleFilter === 'following') {
 		var realPeople = getUsers().map(function(u) {
-			return { id: u.id, name: u.name, color: 'linear-gradient(135deg, var(--dark), #7d6fb0)', sub: '🧑‍🎓 Member' };
+			return { id: u.id, name: u.name, color: 'linear-gradient(135deg, var(--dark), #7d6fb0)', sub: '🧑‍🎓 ' + t("common.member") };
 		});
 		var followedPages = getPages().map(function(p) {
 			return { id: p.id, linkId: 'page-' + p.id, name: p.name, color: 'var(--cream2)', avatarImg: p.avatar, sub: '🏪 ' + catEmoji(p.cat) + ' ' + catLabel(p.cat) };
@@ -70,12 +70,12 @@ function renderCreators() {
 		var uid = btn.getAttribute('data-uid');
 		if (isUserFollowed(uid)) {
 			btn.classList.add('following');
-			btn.textContent = '✓ Following';
+			btn.textContent = '✓ ' + t("common.following");
 		}
 		btn.addEventListener('click', function() {
 			var nowFollowing = toggleFollowUser(uid);
 			this.classList.toggle('following', nowFollowing);
-			this.textContent = nowFollowing ? '✓ Following' : '+ Follow';
+			this.textContent = nowFollowing ? ('✓ ' + t("common.following")) : ('+ ' + t("common.follow"));
 			if (currentPeopleFilter === 'following' && !nowFollowing) {
 				renderCreators();
 			}

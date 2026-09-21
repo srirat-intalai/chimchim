@@ -138,6 +138,31 @@ var CHIMCHIM_DICT = {
 		"profile.foodDna": "Your Food DNA",
 		"profile.noDnaDesc": "You haven't taken the Food DNA quiz yet. Take the short quiz so ChimChim can recommend food that truly fits you.",
 		"profile.takeTest": "Take the Food DNA Quiz",
+		"onboarding.stepOf": "Step {n} of 5",
+		"onboarding.step1Title": "Build your eating profile",
+		"onboarding.step1Hint": "What kind of food do you like? (pick as many as you want)",
+		"onboarding.step2Title": "Cuisines you love",
+		"onboarding.step2Hint": "Pick as many as you like — the more you pick, the wider ChimChim can recommend",
+		"onboarding.step3Title": "Flavors you love",
+		"onboarding.step3Hint": "Pick as many as you like",
+		"onboarding.step4Title": "Budget & distance",
+		"onboarding.budgetHint": "Your usual budget per meal",
+		"onboarding.distanceHint": "How far you're willing to travel to eat",
+		"onboarding.budget1": "฿0 – ฿80",
+		"onboarding.budget2": "฿80 – ฿150",
+		"onboarding.budget3": "฿150 and above",
+		"onboarding.distance1": "Nearby (within 500m)",
+		"onboarding.distance2": "Medium (500m – 2km)",
+		"onboarding.distance3": "I'll go anywhere (2km+)",
+		"onboarding.next": "Next",
+		"onboarding.doneTitle": "All done! 🎉",
+		"onboarding.doneDesc": "ChimChim is starting to get to know you, and will keep recommending better matches over time.",
+		"onboarding.startExploring": "Start exploring!",
+		"dna.category": "Favorite categories",
+		"dna.cuisine": "Favorite cuisines",
+		"dna.flavor": "Favorite flavors",
+		"dna.budget": "Usual budget",
+		"dna.distance": "Distance willing to travel",
 		"profile.retakeTest": "Retake the Quiz",
 		"profile.dnaCardHintHas": "Tap to see your full Food DNA breakdown",
 		"profile.dnaCardHintNone": "You haven't taken the quiz yet — tap to start",
@@ -195,7 +220,98 @@ var CHIMCHIM_DICT = {
 		"restaurant.follow": "Follow",
 		"restaurant.following": "Following",
 		"restaurant.hours": "Opening Hours",
-		"restaurant.promotions": "Promotions & Offers"
+		"restaurant.promotions": "Promotions & Offers",
+		"restaurant.near": "Near ",
+		"restaurant.followedToast": "You're now following this shop 🎉",
+		"restaurant.unfollowedToast": "Unfollowed this shop",
+		"restaurant.linkCopiedToast": "Link copied! (demo mode)",
+		"restaurant.noReviewsYet": "No reviews yet — be the first to review this shop!",
+		"restaurant.avgScoreSuffix": "/5 avg score",
+		"restaurant.noReviewText": "(No additional comments)",
+		"restaurant.defaultDesc": "Recommended by the ChimChim team, with a Match % calculated from your real Food DNA.",
+		"restaurant.postedBy": "This shop was posted to the community by {vendor} 🏪",
+		"roulette.miniGameLabel": "A ChimChim mini-game",
+		"roulette.heading1": "Menu",
+		"roulette.heading2": "Roulette",
+		"roulette.desc": "Can't decide what to eat? Spin the wheel and let ChimChim pick a great dish for you",
+		"roulette.modeLike": "Eat What I Like",
+		"roulette.modeOpposite": "Try My Opposite",
+		"roulette.modeMix": "Mix It Up",
+		"roulette.modeDescLike": "Spin for a higher chance of landing on dishes/shops that best match your Food DNA 🎯",
+		"roulette.modeDescOpposite": "Feeling adventurous? This mode leans toward the opposite of what you usually like 🙃",
+		"roulette.modeDescMix": "A mix of what you like and don't — fun, unpredictable results 🎲",
+		"roulette.spinBtn": "Spin!",
+		"roulette.initialTag": "🎲 Ready to spin?",
+		"roulette.initialTitle": "Tap spin to get started",
+		"roulette.initialDesc": "ChimChim will pick one dish for you from a pool of 60+ menu items — great for those \"what should I eat\" days",
+		"roulette.spinAgain": "Spin Again",
+		"roulette.viewRecommended": "View Recommended",
+		"roulette.similarShops": "🍽️ Similar Shops",
+		"roulette.resultDescLike": "ChimChim picked this because it really matches your Food DNA — you won't be disappointed 🦖",
+		"roulette.resultDescOpposite": "Try something you might not normally pick — you could find a new favorite! 🙃",
+		"roulette.resultDescMix": "Randomly picked with no fixed formula — a mix of favorites and new finds, good luck! 🎲",
+		"roulette.noRealShopYet": "No real shops in this category yet — give it another spin to see a category with real shops 🦖",
+		"common.shopNotFound": "This shop wasn't found — it may have been removed.",
+		"common.backToHome": "Back to Home",
+		"common.profileNotFound": "This profile wasn't found",
+		"common.anonymousFoodie": "Anonymous foodie",
+		"common.chimchimFoodie": "ChimChim Foodie",
+		"common.follow": "Follow",
+		"common.following": "Following",
+		"common.member": "Member",
+		"common.photoCount": "{n} photos",
+		"publicprofile.buShopLevel": "🏪 Shop near Bangkok University",
+		"publicprofile.pageLevel": "🏪 Restaurant Page",
+		"publicprofile.mapBtn": "Map",
+		"publicprofile.reviewsSuffix": " reviews",
+		"publicprofile.foodExplorerLevel": "🦖 Food Explorer Lv.",
+		"publicprofile.chimchimUser": "ChimChim User",
+		"publicprofile.defaultBio": "A ChimChim member sharing dishes and favorite shops through posts below",
+		"publicprofile.recentPosts": "Recent Posts",
+		"publicprofile.noPosts": "No posts yet",
+		"community.commentPlaceholder": "Add a comment...",
+		"community.noCommentsYet": "No comments yet — be the first to comment!",
+		"auth.fillAllFields": "Please fill in all fields, and use a password with at least 4 characters",
+		"auth.emailExists": "This email already has an account — try logging in instead",
+		"auth.invalidCredentials": "Incorrect email or password",
+		"auth.welcomeBack": "Welcome back, {name}! 🦖",
+		"home.recNoResultsAll": "No shops matching 70%+ yet — try taking the Food DNA quiz for more accurate results",
+		"home.shopPostedToast": "Your shop was posted to the community! 🎉",
+		"home.reviewThanksToast": "Thanks for your review! 🎉",
+		"shop.pageFillRequired": "Fill in the page name and pick a photo first",
+		"shop.pageSavedToast": "Saved page “{name}”! 🎉",
+		"shop.fillRequired": "Fill in the shop name, featured dish, photo, and prices first",
+		"shop.priceOrderError": "The low price must be less than or equal to the high price",
+		"shop.postedToast": "Posted “{name}” to the community! 🎉",
+		"profile.logoutToast": "Logged out — see you again soon! 👋",
+		"profile.memberRole": "🧑‍🎓 ChimChim Member",
+		"common.removePhoto": "Remove photo",
+		"profile.selectPhotoAndCaption": "Pick at least 1 photo and add a caption first",
+		"profile.postedAsToast": "Posted as “{name}”! 🎉",
+		"profile.postedToast": "Posted! 🎉",
+		"common.deletePost": "Delete post",
+		"welcome.skip": "Explore the app — no sign up needed →",
+		"following.tapToView": "Tap a photo to view their profile and posts",
+		"profile.captionPlaceholder": "Say something about this meal...",
+		"profile.noPostsYet": "No posts yet — try adding your first one!",
+		"restaurant.pilotNote": "This shop is in the ChimChim system, serving students in our pilot area. If you visit and recognize it from ChimChim, feel free to tell the staff you came from the app 🦖",
+		"shop.pageNamePlaceholder": "e.g. Aunt Noi's Chicken Rice",
+		"shop.bioPlaceholder": "Briefly describe what makes your shop special",
+		"shop.shopNamePlaceholder": "e.g. Aunt Noi's Chicken Rice Shop",
+		"shop.dishPlaceholder": "e.g. Fried Chicken Rice",
+		"shop.hoursPlaceholder": "e.g. 10:00 AM – 8:00 PM",
+		"shop.promoPlaceholder": "e.g. 10% off when ordering through the app",
+		"common.restaurantIcon": "Restaurant",
+		"review.pageTitle": "Write a Review",
+		"review.yourName": "Your name",
+		"review.namePlaceholder": "Name shown on your review",
+		"review.taste": "Taste",
+		"review.atmosphere": "Atmosphere",
+		"review.service": "Service",
+		"review.tellExperience": "Tell us about your experience",
+		"review.textPlaceholder": "How was the food? Anything you'd like to share...",
+		"review.submit": "Submit Review",
+		"review.rateAllThree": "Please rate all 3 categories first"
 	},
 	th: {
 		"nav.trending": "เทรนด์",
@@ -206,10 +322,10 @@ var CHIMCHIM_DICT = {
 		"ai.greetingSub": "คุยกับ ChimChim ได้เลย ถามอะไรก็ได้ ไม่ใช่แค่เรื่องกิน",
 		"ai.inputPlaceholder": "พิมพ์อะไรก็ได้ เช่น อยากกินเผ็ด ๆ งบไม่เกิน 150 บาท",
 		"ai.startBubble": "อยากกินอะไรวันนี้ บอก ChimChim ได้เลย หรือจะคุยเรื่องอื่นก็ได้นะ 🦖",
-		"ai.genericFallback1": "ฮ่า ๆ เอาจริงดิ! ว่าแต่วันนี้อยากกินอะไรดีอ่ะ 😋",
-		"ai.genericFallback2": "เออว่ะ จริงด้วย! ระหว่างนี้บอก ChimChim หน่อยสิ ตอนนี้หิวรึยัง อยากกินแนวไหน 🦖",
-		"ai.genericFallback3": "เห็นด้วยเลย! เดี๋ยวค่อยคุยเรื่องนั้นต่อ ตอนนี้ขอถามหน่อย มื้อนี้อยากกินอะไรอยู่ 🍜",
-		"ai.genericFallback4": "โอ้ เข้าใจละ! ว่าแต่...หิวยัง บอก ChimChim มาสิว่าอยากกินอะไร 😄",
+		"ai.genericFallback1": "ฮี่ ๆ จริงด้วยนะ! 😋 ว่าแต่วันนี้ชิมชิมอยากรู้จัง อยากกินอะไรดีอ่ะ",
+		"ai.genericFallback2": "จริงด้วยเลยจ้า! 🦖 ว่าแต่ตอนนี้หิวรึยังน้า บอกชิมชิมหน่อยว่าอยากกินแนวไหน",
+		"ai.genericFallback3": "เห็นด้วยเลยจ้า! 🍜 เดี๋ยวค่อยคุยกันต่อนะ ตอนนี้ขอถามหน่อยว่ามื้อนี้อยากกินอะไรอยู่",
+		"ai.genericFallback4": "โอ้โห เข้าใจเลยจ้า! 😄 ว่าแต่...หิวยังน้า บอกชิมชิมมาสิว่าอยากกินอะไร",
 		"auth.login": "เข้าสู่ระบบ",
 		"auth.register": "สมัครสมาชิก",
 		"auth.email": "อีเมล",
@@ -290,6 +406,31 @@ var CHIMCHIM_DICT = {
 		"profile.foodDna": "Food DNA ของคุณ",
 		"profile.noDnaDesc": "ยังไม่ได้ทำแบบทดสอบ Food DNA ทำแบบทดสอบสั้น ๆ เพื่อให้ ChimChim แนะนำร้านได้ตรงใจคุณมากขึ้น",
 		"profile.takeTest": "ทำแบบทดสอบ Food DNA",
+		"onboarding.stepOf": "ขั้นตอนที่ {n} จาก 5",
+		"onboarding.step1Title": "สร้างโปรไฟล์การกินของคุณ",
+		"onboarding.step1Hint": "คุณชอบกินอาหารประเภทไหนบ้าง? (เลือกได้หลายอย่าง)",
+		"onboarding.step2Title": "ชาติอาหารที่คุณชอบ",
+		"onboarding.step2Hint": "เลือกได้หลายอย่าง ยิ่งเลือกเยอะ ChimChim ยิ่งแนะนำได้กว้างขึ้น",
+		"onboarding.step3Title": "รสชาติที่คุณชอบ",
+		"onboarding.step3Hint": "เลือกได้หลายอย่าง",
+		"onboarding.step4Title": "งบประมาณและระยะทาง",
+		"onboarding.budgetHint": "งบประมาณต่อมื้อที่คุณใช้บ่อย",
+		"onboarding.distanceHint": "ระยะทางที่คุณยอมเดินทางไปกิน",
+		"onboarding.budget1": "฿0 – ฿80",
+		"onboarding.budget2": "฿80 – ฿150",
+		"onboarding.budget3": "฿150 ขึ้นไป",
+		"onboarding.distance1": "ใกล้ ๆ (ไม่เกิน 500 ม.)",
+		"onboarding.distance2": "ปานกลาง (500 ม. – 2 กม.)",
+		"onboarding.distance3": "ไกลแค่ไหนก็ไป (2 กม.+)",
+		"onboarding.next": "ถัดไป",
+		"onboarding.doneTitle": "เสร็จแล้ว! 🎉",
+		"onboarding.doneDesc": "ChimChim เริ่มรู้จักคุณแล้ว และจะแนะนำร้านให้ตรงใจคุณมากขึ้นเรื่อย ๆ",
+		"onboarding.startExploring": "เริ่มสำรวจเลย!",
+		"dna.category": "หมวดที่ชอบ",
+		"dna.cuisine": "ชอบชาติอาหาร",
+		"dna.flavor": "ชอบรส",
+		"dna.budget": "งบเฉลี่ยที่ใช้บ่อย",
+		"dna.distance": "ระยะที่ยอมไป",
 		"profile.retakeTest": "ทำแบบทดสอบใหม่อีกครั้ง",
 		"profile.dnaCardHintHas": "แตะเพื่อดูรายละเอียด Food DNA ของคุณทั้งหมด",
 		"profile.dnaCardHintNone": "ยังไม่ได้ทำแบบทดสอบ — แตะเพื่อเริ่มทำ",
@@ -347,7 +488,98 @@ var CHIMCHIM_DICT = {
 		"restaurant.follow": "Follow ร้าน",
 		"restaurant.following": "Following",
 		"restaurant.hours": "เวลาเปิด-ปิด",
-		"restaurant.promotions": "โปรโมชั่น & ข้อเสนอพิเศษ"
+		"restaurant.promotions": "โปรโมชั่น & ข้อเสนอพิเศษ",
+		"restaurant.near": "ใกล้",
+		"restaurant.followedToast": "Follow ร้านนี้แล้ว 🎉",
+		"restaurant.unfollowedToast": "เลิก Follow ร้านนี้แล้ว",
+		"restaurant.linkCopiedToast": "คัดลอกลิงก์ร้านนี้แล้ว! (โหมดสาธิต)",
+		"restaurant.noReviewsYet": "ยังไม่มีรีวิว เป็นคนแรกที่รีวิวร้านนี้สิ!",
+		"restaurant.avgScoreSuffix": "/5 คะแนนเฉลี่ย",
+		"restaurant.noReviewText": "(ไม่ได้เขียนความเห็นเพิ่มเติม)",
+		"restaurant.defaultDesc": "ร้านแนะนำจากทีม ChimChim พร้อมข้อมูล Match % ที่คำนวณจาก Food DNA ของคุณจริง ๆ",
+		"restaurant.postedBy": "ร้านนี้โพสต์เข้าชุมชนโดย {vendor} 🏪",
+		"roulette.miniGameLabel": "มินิเกมของ ChimChim",
+		"roulette.heading1": "วงล้อ",
+		"roulette.heading2": "สุ่มเมนู",
+		"roulette.desc": "ตัดสินใจไม่ได้ว่าจะกินอะไรใช่ไหม? หมุนวงล้อแล้วให้ ChimChim สุ่มเมนูเด็ดให้เลย",
+		"roulette.modeLike": "กินตามใจชอบ",
+		"roulette.modeOpposite": "ลองสิ่งตรงข้าม",
+		"roulette.modeMix": "สุ่มมั่ว ๆ",
+		"roulette.modeDescLike": "หมุนแล้วมีโอกาสเจอเมนู/ร้านที่ตรงกับ Food DNA ของคุณมากที่สุด 🎯",
+		"roulette.modeDescOpposite": "อยากลองอะไรใหม่ไหม? โหมดนี้จะสุ่มเมนูที่ตรงข้ามกับที่คุณชอบเป็นพิเศษ 🙃",
+		"roulette.modeDescMix": "ผสมกันไปทั้งเมนูที่ชอบและไม่ชอบ ได้ผลลัพธ์สนุก ๆ คาดเดาไม่ได้ 🎲",
+		"roulette.spinBtn": "หมุน!",
+		"roulette.initialTag": "🎲 พร้อมสุ่มหรือยัง?",
+		"roulette.initialTitle": "กดหมุนวงล้อได้เลย",
+		"roulette.initialDesc": "ChimChim จะช่วยเลือกเมนูให้ 1 อย่างจากฐานข้อมูลกว่า 60 เมนู เผื่อวันไหนคิดไม่ออกว่าจะกินอะไรดี",
+		"roulette.spinAgain": "หมุนอีกครั้ง",
+		"roulette.viewRecommended": "ดูร้านแนะนำ",
+		"roulette.similarShops": "🍽️ ร้านที่คล้ายกัน",
+		"roulette.resultDescLike": "ChimChim เลือกเมนูนี้ให้เพราะตรงกับ Food DNA ของคุณมาก ๆ ลองเลยไม่ผิดหวังแน่ 🦖",
+		"roulette.resultDescOpposite": "ลองกินสิ่งที่ปกติคุณอาจไม่เลือกดูสักครั้ง เผื่อจะเจอเมนูโปรดใหม่! 🙃",
+		"roulette.resultDescMix": "สุ่มมาแบบไม่มีสูตรตายตัว ผสมทั้งของที่ชอบและของใหม่ ลุ้นกันไปเลย 🎲",
+		"roulette.noRealShopYet": "ยังไม่มีร้านหมวดนี้ในระบบตอนนี้ ลองหมุนใหม่ดูร้านหมวดอื่นที่มีอยู่จริงได้เลย 🦖",
+		"common.shopNotFound": "ไม่พบร้านนี้ในระบบ อาจถูกลบไปแล้ว",
+		"common.backToHome": "กลับหน้าแรก",
+		"common.profileNotFound": "ไม่พบโปรไฟล์นี้",
+		"common.anonymousFoodie": "นักชิมไม่ระบุตัวตน",
+		"common.chimchimFoodie": "นักชิม ChimChim",
+		"common.follow": "Follow",
+		"common.following": "Following",
+		"common.member": "สมาชิก",
+		"common.photoCount": "{n} รูป",
+		"publicprofile.buShopLevel": "🏪 ร้านอาหารใกล้ ม.กรุงเทพ",
+		"publicprofile.pageLevel": "🏪 เพจร้านอาหาร",
+		"publicprofile.mapBtn": "แผนที่",
+		"publicprofile.reviewsSuffix": " รีวิว",
+		"publicprofile.foodExplorerLevel": "🦖 Food Explorer Lv.",
+		"publicprofile.chimchimUser": "ผู้ใช้ ChimChim",
+		"publicprofile.defaultBio": "สมาชิก ChimChim แชร์เมนูและร้านโปรดผ่านโพสต์ด้านล่าง",
+		"publicprofile.recentPosts": "โพสต์ล่าสุด",
+		"publicprofile.noPosts": "ยังไม่มีโพสต์",
+		"community.commentPlaceholder": "แสดงความคิดเห็น...",
+		"community.noCommentsYet": "ยังไม่มีความคิดเห็น เป็นคนแรกที่คอมเมนต์สิ!",
+		"auth.fillAllFields": "กรอกข้อมูลให้ครบ และรหัสผ่านอย่างน้อย 4 ตัวอักษร",
+		"auth.emailExists": "อีเมลนี้มีบัญชีอยู่แล้ว ลองเข้าสู่ระบบแทนนะ",
+		"auth.invalidCredentials": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+		"auth.welcomeBack": "ยินดีต้อนรับกลับมา {name}! 🦖",
+		"home.recNoResultsAll": "ยังไม่มีร้านที่ Match 70% ขึ้นไปตอนนี้ ลองทำแบบทดสอบ Food DNA เพื่อผลลัพธ์ที่แม่นขึ้น",
+		"home.shopPostedToast": "ร้านของคุณโพสต์เข้าชุมชนเรียบร้อยแล้ว! 🎉",
+		"home.reviewThanksToast": "ขอบคุณสำหรับรีวิว! 🎉",
+		"shop.pageFillRequired": "กรอกชื่อเพจและเลือกรูปก่อนนะ",
+		"shop.pageSavedToast": "บันทึกเพจ “{name}” เรียบร้อยแล้ว! 🎉",
+		"shop.fillRequired": "กรอกชื่อร้าน เมนูเด่น รูป และราคาให้ครบก่อนนะ",
+		"shop.priceOrderError": "ราคาต่ำต้องน้อยกว่าหรือเท่ากับราคาสูง",
+		"shop.postedToast": "โพสต์ร้าน “{name}” เข้าชุมชนเรียบร้อยแล้ว! 🎉",
+		"profile.logoutToast": "ออกจากระบบแล้ว แล้วเจอกันใหม่นะ 👋",
+		"profile.memberRole": "🧑‍🎓 สมาชิก ChimChim",
+		"common.removePhoto": "ลบรูป",
+		"profile.selectPhotoAndCaption": "เลือกรูปอย่างน้อย 1 รูปและใส่แคปชั่นก่อนนะ",
+		"profile.postedAsToast": "โพสต์ในนาม “{name}” เรียบร้อยแล้ว! 🎉",
+		"profile.postedToast": "โพสต์เรียบร้อยแล้ว! 🎉",
+		"common.deletePost": "ลบโพสต์",
+		"welcome.skip": "ดูแอปเลย ไม่ต้องสมัครก่อนก็ได้ →",
+		"following.tapToView": "กดรูปเพื่อดูโปรไฟล์และดูโพสต์ของแต่ละคนได้เลย",
+		"profile.captionPlaceholder": "เล่าอะไรสั้น ๆ เกี่ยวกับมื้อนี้...",
+		"profile.noPostsYet": "ยังไม่มีโพสต์ ลองเพิ่มโพสต์แรกของคุณดูสิ!",
+		"restaurant.pilotNote": "ร้านนี้อยู่ในระบบ ChimChim พร้อมให้บริการนักศึกษาในพื้นที่นำร่อง หากไปถึงแล้วจำได้ว่าเจอร้านนี้จาก ChimChim บอกพนักงานได้เลยว่ามาจากแอป 🦖",
+		"shop.pageNamePlaceholder": "เช่น ป้าหน่อย ข้าวมันไก่",
+		"shop.bioPlaceholder": "บอกจุดเด่นร้านคุณสั้น ๆ",
+		"shop.shopNamePlaceholder": "เช่น ร้านป้าหน่อย ข้าวมันไก่",
+		"shop.dishPlaceholder": "เช่น ข้าวมันไก่ทอด",
+		"shop.hoursPlaceholder": "เช่น 10:00 – 20:00 น.",
+		"shop.promoPlaceholder": "เช่น ลด 10% เมื่อสั่งผ่านแอป",
+		"common.restaurantIcon": "ร้านอาหาร",
+		"review.pageTitle": "เขียนรีวิว",
+		"review.yourName": "ชื่อของคุณ",
+		"review.namePlaceholder": "ชื่อที่จะแสดงในรีวิว",
+		"review.taste": "รสชาติ",
+		"review.atmosphere": "บรรยากาศร้าน",
+		"review.service": "การบริการ",
+		"review.tellExperience": "เล่าประสบการณ์ของคุณ",
+		"review.textPlaceholder": "อาหารเป็นยังไงบ้าง อยากบอกอะไรคนอื่นไหม...",
+		"review.submit": "ส่งรีวิว",
+		"review.rateAllThree": "ให้คะแนนทั้ง 3 หัวข้อก่อนนะ"
 	}
 };
 
@@ -367,7 +599,11 @@ var CHIMCHIM_CAT_LABEL = {
 		"ปิ้งย่าง": "Grilled/BBQ", "อาหารญี่ปุ่น": "Japanese", "อาหารจีน": "Chinese", "อาหารเกาหลี": "Korean", "เครื่องดื่ม": "Drinks",
 		"สเต็ก": "Steak", "เบอร์เกอร์": "Burger", "เมนูเส้น": "Noodle Dishes", "ก๋วยเตี๋ยว": "Noodle Soup", "อาหารอินเดีย": "Indian",
 		"อาหารเวียดนาม": "Vietnamese", "พิซซ่า": "Pizza", "อาหารใต้": "Southern Thai", "อีสาน": "Isaan", "เหนือ": "Northern Thai", "กลาง": "Central Thai",
-		"อาหารป่า": "Wild/Jungle Food", "ข้าวแกง": "Rice & Curry"
+		"อาหารป่า": "Wild/Jungle Food", "ข้าวแกง": "Rice & Curry",
+		"อื่น ๆ": "Other", "ไทย": "Thai", "เกาหลี": "Korean", "จีน": "Chinese", "ฝรั่ง": "Western",
+		"หวาน": "Sweet", "เค็ม": "Salty", "เปรี้ยว": "Sour", "กลมกล่อม": "Balanced",
+		"ฟาสต์ฟู้ด": "Fast Food", "อิตาเลียน": "Italian", "มื้อเช้า": "Breakfast", "ของว่าง": "Snacks",
+		"ซุป/แกง": "Soup/Curry", "ส้มตำ/ยำ": "Papaya Salad/Yum"
 	},
 	th: {
 		"ข้าว": "ข้าว", "เส้น": "เส้น", "ซุป": "ซุป", "Fast Food": "Fast Food", "ญี่ปุ่น": "ญี่ปุ่น", "ของหวาน": "ของหวาน", "เผ็ด": "เผ็ด",
@@ -376,13 +612,42 @@ var CHIMCHIM_CAT_LABEL = {
 		"ปิ้งย่าง": "ปิ้งย่าง", "อาหารญี่ปุ่น": "อาหารญี่ปุ่น", "อาหารจีน": "อาหารจีน", "อาหารเกาหลี": "อาหารเกาหลี", "เครื่องดื่ม": "เครื่องดื่ม",
 		"สเต็ก": "สเต็ก", "เบอร์เกอร์": "เบอร์เกอร์", "เมนูเส้น": "เมนูเส้น", "ก๋วยเตี๋ยว": "ก๋วยเตี๋ยว", "อาหารอินเดีย": "อาหารอินเดีย",
 		"อาหารเวียดนาม": "อาหารเวียดนาม", "พิซซ่า": "พิซซ่า", "อาหารใต้": "อาหารใต้", "อีสาน": "อีสาน", "เหนือ": "เหนือ", "กลาง": "กลาง",
-		"อาหารป่า": "อาหารป่า", "ข้าวแกง": "ข้าวแกง"
+		"อาหารป่า": "อาหารป่า", "ข้าวแกง": "ข้าวแกง",
+		"อื่น ๆ": "อื่น ๆ", "ไทย": "ไทย", "เกาหลี": "เกาหลี", "จีน": "จีน", "ฝรั่ง": "ฝรั่ง",
+		"หวาน": "หวาน", "เค็ม": "เค็ม", "เปรี้ยว": "เปรี้ยว", "กลมกล่อม": "กลมกล่อม",
+		"ฟาสต์ฟู้ด": "ฟาสต์ฟู้ด", "อิตาเลียน": "อิตาเลียน", "มื้อเช้า": "มื้อเช้า", "ของว่าง": "ของว่าง",
+		"ซุป/แกง": "ซุป/แกง", "ส้มตำ/ยำ": "ส้มตำ/ยำ"
 	}
 };
 function catLabel(cat) {
 	var lang = getLang();
 	var map = CHIMCHIM_CAT_LABEL[lang] || CHIMCHIM_CAT_LABEL.en;
 	return map[cat] || cat;
+}
+
+// ป้ายชื่อกลุ่มหมวดหมู่ใหญ่ (7 กลุ่ม) ใช้กับแถบหมวดหมู่หน้าเทรนด์
+var CHIMCHIM_CAT_GROUP_LABEL = {
+	en: {
+		"อาหารตามสั่ง": "Made-to-order",
+		"เมนูเส้น": "Noodles",
+		"นานาชาติ": "International",
+		"ของหวาน": "Dessert",
+		"เครื่องดื่ม": "Drinks",
+		"สุขภาพ": "Health"
+	},
+	th: {
+		"อาหารตามสั่ง": "อาหารตามสั่ง",
+		"เมนูเส้น": "เมนูเส้น",
+		"นานาชาติ": "นานาชาติ",
+		"ของหวาน": "ของหวาน",
+		"เครื่องดื่ม": "เครื่องดื่ม",
+		"สุขภาพ": "สุขภาพ"
+	}
+};
+function catGroupLabel(groupKey) {
+	var lang = getLang();
+	var map = CHIMCHIM_CAT_GROUP_LABEL[lang] || CHIMCHIM_CAT_GROUP_LABEL.en;
+	return map[groupKey] || groupKey;
 }
 
 // ข้อความป้าย Match % — เขียนให้ตรงกับโหมดภาษาที่เลือกจริง ๆ (ไม่ใช้คำอังกฤษปนไทยตายตัว)
@@ -416,6 +681,23 @@ function applyI18n() {
 			span.textContent = catEmojiSafe(filter) + " " + catLabel(filter);
 		}
 	});
+	// ตัวเลือกแบบทดสอบ Food DNA (obopt) — data-val เป็นคำไทยตรงกับ CHIMCHIM_CAT_LABEL อยู่แล้ว
+	// (หมวดอาหาร/ชาติอาหาร/รสชาติ) เลยแปลผ่าน catLabel() ได้เลยโดยไม่ต้องมี data-i18n แยกทีละอัน
+	document.querySelectorAll(".obopt[data-val] .oblbl").forEach(function(el) {
+		var opt = el.closest(".obopt");
+		if (opt) el.textContent = catLabel(opt.getAttribute("data-val"));
+	});
+	// ช่องวงล้อสุ่มเมนู (roulette.html) — เหมือน obopt ด้านบน ใช้ data-val แปลผ่าน catLabel() ได้เลย
+	document.querySelectorAll(".wslice[data-val] .wslbl").forEach(function(el) {
+		var slice = el.closest(".wslice");
+		if (slice) el.textContent = catLabel(slice.getAttribute("data-val"));
+	});
+	// dropdown หมวดอาหารตอนโพสต์ร้าน/สร้างเพจ (settings.html) — value ของแต่ละ option เป็นคำไทยตรงกับ
+	// CHIMCHIM_CAT_LABEL อยู่แล้ว เลยแปลผ่าน catLabel() ได้เหมือนกัน โดยคง emoji เดิมไว้ข้างหน้า
+	document.querySelectorAll("#pageCat option[value], #shopCat option[value]").forEach(function(opt) {
+		if (!opt.value) return;
+		opt.textContent = catEmojiSafe(opt.value) + " " + catLabel(opt.value);
+	});
 	// รีเฟรชป้าย Match % ทุกอันในหน้าให้ตรงภาษาปัจจุบัน (กันข้อความค้างภาษาเดิมตอนสลับ)
 	document.querySelectorAll("[data-match-score]").forEach(function(el) {
 		var score = parseInt(el.getAttribute("data-match-score"), 10);
@@ -424,6 +706,7 @@ function applyI18n() {
 	// รีเฟรชการ์ดร้าน + Match Hero บนหน้าแรก (ถ้ามีอยู่บนหน้านั้น) ให้ตรงภาษาที่เพิ่งสลับ
 	if (typeof แสดงMatchในการ์ดทั้งหมด === "function") แสดงMatchในการ์ดทั้งหมด();
 	if (typeof renderMatchHero === "function") renderMatchHero();
+	if (typeof updateRouletteModeDesc === "function") updateRouletteModeDesc();
 }
 // เผื่อ catEmoji (ประกาศใน chimchim-core.js) ยังโหลดไม่ถึงตอนนี้
 function catEmojiSafe(cat) {

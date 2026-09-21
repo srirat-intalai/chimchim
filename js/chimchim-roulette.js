@@ -12,14 +12,10 @@ var wheelRotation = 0;
    ตามคะแนน Match ของหมวดนั้นกับ Food DNA ผู้ใช้
 ----------------------------------------------------- */
 var currentRouletteMode = "like";
-var rmodeDescText = {
-	like: "หมุนแล้วมีโอกาสเจอเมนู/ร้านที่ตรงกับ Food DNA ของคุณมากที่สุด 🎯",
-	opposite: "อยากลองอะไรใหม่ไหม? โหมดนี้จะสุ่มเมนูที่ตรงข้ามกับที่คุณชอบเป็นพิเศษ 🙃",
-	mix: "ผสมกันไปทั้งเมนูที่ชอบและไม่ชอบ ได้ผลลัพธ์สนุก ๆ คาดเดาไม่ได้ 🎲"
-};
+var rmodeDescKey = { like: "roulette.modeDescLike", opposite: "roulette.modeDescOpposite", mix: "roulette.modeDescMix" };
 function updateRouletteModeDesc() {
 	var el = document.getElementById("rmodeDesc");
-	if (el) el.textContent = rmodeDescText[currentRouletteMode];
+	if (el) el.textContent = t(rmodeDescKey[currentRouletteMode]);
 }
 document.querySelectorAll(".rmodebtn").forEach(function(btn) {
 	btn.addEventListener("click", function() {
@@ -91,11 +87,7 @@ function spinWheel() {
 	}, 4300);
 }
 
-var rresultDescByMode = {
-	like: "ChimChim เลือกเมนูนี้ให้เพราะตรงกับ Food DNA ของคุณมาก ๆ ลองเลยไม่ผิดหวังแน่ 🦖",
-	opposite: "ลองกินสิ่งที่ปกติคุณอาจไม่เลือกดูสักครั้ง เผื่อจะเจอเมนูโปรดใหม่! 🙃",
-	mix: "สุ่มมาแบบไม่มีสูตรตายตัว ผสมทั้งของที่ชอบและของใหม่ ลุ้นกันไปเลย 🎲"
-};
+var rresultDescKeyByMode = { like: "roulette.resultDescLike", opposite: "roulette.resultDescOpposite", mix: "roulette.resultDescMix" };
 function revealWheelResult(idx, baseScore) {
 	var cat = วงล้อหมวดอาหาร[idx];
 	var item = cat.pool[Math.floor(Math.random() * cat.pool.length)];
@@ -113,11 +105,11 @@ function revealWheelResult(idx, baseScore) {
 		imgEl.src = item.img;
 		imgEl.alt = item.name;
 	}
-	document.getElementById("wresultTag").textContent = cat.emoji + " " + cat.label + " • 🎯 " + matchScore + "% Match";
+	document.getElementById("wresultTag").textContent = cat.emoji + " " + catLabel(cat.label) + " • 🎯 " + matchScore + "% Match";
 	document.getElementById("wresultTitle").textContent = item.name;
 	document.getElementById("wresultDesc").textContent = มีร้านจริง
-		? (rresultDescByMode[currentRouletteMode] || rresultDescByMode.mix)
-		: "ยังไม่มีร้านหมวดนี้ในระบบตอนนี้ ลองหมุนใหม่ดูร้านหมวดอื่นที่มีอยู่จริงได้เลย 🦖";
+		? t(rresultDescKeyByMode[currentRouletteMode] || rresultDescKeyByMode.mix)
+		: t("roulette.noRealShopYet");
 	document.getElementById("wresultBtns").hidden = false;
 
 	renderSimilarShops(cat);
@@ -158,7 +150,7 @@ function openShopDetailPopup(ร้าน) {
 	document.getElementById("sdTitle").textContent = ร้าน.เมนู;
 	document.getElementById("sdRestaurant").innerHTML = '<i class="fas fa-store"></i> ' + escapeHtml(ร้าน.ร้าน);
 	document.getElementById("sdMatchPct").textContent = matchBadgeText(คะแนน);
-	document.getElementById("sdMeta").textContent = "฿" + ร้าน.ราคาต่ำ + "–" + ร้าน.ราคาสูง + " · " + distanceText(ร้าน.ระยะทาง) + " · ใกล้" + ร้าน.มหาลัย;
+	document.getElementById("sdMeta").textContent = "฿" + ร้าน.ราคาต่ำ + "–" + ร้าน.ราคาสูง + " · " + distanceText(ร้าน.ระยะทาง) + " · " + t("restaurant.near") + ร้าน.มหาลัย;
 	document.getElementById("sdDesc").textContent = สร้างเหตุผลmatch(ร้าน, foodDNA);
 	document.getElementById("sdFullLink").href = "restaurant.html?id=" + ร้าน.id;
 	shopDetailPop.classList.add("open");

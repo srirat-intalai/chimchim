@@ -428,19 +428,34 @@ function mergeCommunityShopsIntoรายการร้าน() {
    ฟีดอัปเดตใน Following ดูมีชีวิตชีวา ใช้สูตรคงที่จาก id ร้าน (ไม่ต้องเก็บ state)
    จะได้ผลลัพธ์เดิมทุกครั้งไม่ว่าจะรีเฟรชกี่รอบ ใช้ได้ทั้งร้านตัวอย่างและร้านที่ชุมชนโพสต์
    ===================================================================== */
-var เวลาเปิดตัวอย่าง = ["10:00 – 20:00 น.", "08:00 – 18:00 น.", "11:00 – 22:00 น.", "09:00 – 19:00 น.", "17:00 – 01:00 น."];
-var โปรโมชั่นตัวอย่าง = [
-	{ icon: "🎉", text: "ลด 10% เมื่อสั่งผ่านแอป ChimChim" },
-	{ icon: "🍜", text: "ซื้อ 1 แถม 1 ทุกวันจันทร์" },
-	{ icon: "🔥", text: "เมนูใหม่ประจำสัปดาห์นี้ ลองเลย!" },
-	{ icon: "🎁", text: "สะสมแต้มครบ 10 ครั้ง รับฟรี 1 เมนู" },
-	{ icon: "📢", text: "เปิดสาขาใหม่ใกล้มหาลัยของคุณแล้ว!" }
-];
+var เวลาเปิดตัวอย่าง = {
+	th: ["10:00 – 20:00 น.", "08:00 – 18:00 น.", "11:00 – 22:00 น.", "09:00 – 19:00 น.", "17:00 – 01:00 น."],
+	en: ["10:00 AM – 8:00 PM", "8:00 AM – 6:00 PM", "11:00 AM – 10:00 PM", "9:00 AM – 7:00 PM", "5:00 PM – 1:00 AM"]
+};
+var โปรโมชั่นตัวอย่าง = {
+	th: [
+		{ icon: "🎉", text: "ลด 10% เมื่อสั่งผ่านแอป ChimChim" },
+		{ icon: "🍜", text: "ซื้อ 1 แถม 1 ทุกวันจันทร์" },
+		{ icon: "🔥", text: "เมนูใหม่ประจำสัปดาห์นี้ ลองเลย!" },
+		{ icon: "🎁", text: "สะสมแต้มครบ 10 ครั้ง รับฟรี 1 เมนู" },
+		{ icon: "📢", text: "เปิดสาขาใหม่ใกล้มหาลัยของคุณแล้ว!" }
+	],
+	en: [
+		{ icon: "🎉", text: "10% off when you order through the ChimChim app" },
+		{ icon: "🍜", text: "Buy 1 get 1 free every Monday" },
+		{ icon: "🔥", text: "New menu item this week — try it!" },
+		{ icon: "🎁", text: "Collect 10 stamps, get 1 free item" },
+		{ icon: "📢", text: "New branch just opened near your university!" }
+	]
+};
 function getShopExtra(id) {
 	var h = Math.abs((id * 2654435761) % 2147483647);
+	var lang = getLang();
+	var เวลา = เวลาเปิดตัวอย่าง[lang] || เวลาเปิดตัวอย่าง.en;
+	var โปรโมชั่น = โปรโมชั่นตัวอย่าง[lang] || โปรโมชั่นตัวอย่าง.en;
 	return {
-		hours: เวลาเปิดตัวอย่าง[h % เวลาเปิดตัวอย่าง.length],
-		promo: โปรโมชั่นตัวอย่าง[Math.floor(h / 7) % โปรโมชั่นตัวอย่าง.length]
+		hours: เวลา[h % เวลา.length],
+		promo: โปรโมชั่น[Math.floor(h / 7) % โปรโมชั่น.length]
 	};
 }
 
@@ -537,7 +552,7 @@ function buildReviewItem(r) {
 			'<img src="' + ร้าน.รูป + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
 			'<div style="flex:1;min-width:0;">' +
 				'<div class="profshopnm">' + escapeHtml(ร้าน.ร้าน) + "</div>" +
-				'<div class="profshopmeta">🎯 ' + avgScore + "/5 คะแนนเฉลี่ย</div>" +
+				'<div class="profshopmeta">🎯 ' + avgScore + t("restaurant.avgScoreSuffix") + "</div>" +
 			"</div>" +
 		"</div>" +
 		(r.text ? '<p class="profreviewtxt">' + escapeHtml(r.text) + "</p>" : "");
@@ -816,7 +831,7 @@ function getFeedItems() {
 	var fromReal = getAllPosts().map(function(p) {
 		var page = p.pageId ? pages.filter(function(pg) { return pg.id === p.pageId; })[0] : null;
 		var user = users.filter(function(u) { return u.id === p.userId; })[0];
-		var posterName = page ? page.name : (user ? user.name : "นักชิม ChimChim");
+		var posterName = page ? page.name : (user ? user.name : t("common.chimchimFoodie"));
 		return {
 			id: p.id,
 			kind: page ? "page" : "user",

@@ -9,8 +9,8 @@ var ร้านปัจจุบัน = หาร้านจากId(shopId)
 if (!ร้านปัจจุบัน) {
 	document.querySelector(".rdbody").innerHTML =
 		'<div style="text-align:center;padding:60px 10px;">' +
-		'<p style="color:#999;font-size:.9rem;margin-bottom:16px;">ไม่พบร้านนี้ในระบบ อาจถูกลบไปแล้ว</p>' +
-		'<a href="home.html" class="btn-red"><i class="fas fa-house"></i><span>กลับหน้าแรก</span></a>' +
+		'<p style="color:#999;font-size:.9rem;margin-bottom:16px;">' + t("common.shopNotFound") + '</p>' +
+		'<a href="home.html" class="btn-red"><i class="fas fa-house"></i><span>' + t("common.backToHome") + '</span></a>' +
 		"</div>";
 } else {
 	var คะแนน = คำนวณMatch(ร้านปัจจุบัน, foodDNA);
@@ -24,13 +24,13 @@ if (!ร้านปัจจุบัน) {
 	document.getElementById("rdRestaurant").innerHTML = '<i class="fas fa-store"></i> ' + escapeHtml(ร้านปัจจุบัน.ร้าน);
 	document.getElementById("rdPrice").textContent = "฿" + ร้านปัจจุบัน.ราคาต่ำ + "–" + ร้านปัจจุบัน.ราคาสูง;
 	document.getElementById("rdDistance").textContent = distanceText(ร้านปัจจุบัน.ระยะทาง);
-	document.getElementById("rdUni").textContent = "ใกล้" + ร้านปัจจุบัน.มหาลัย;
+	document.getElementById("rdUni").textContent = t("restaurant.near") + ร้านปัจจุบัน.มหาลัย;
 	document.getElementById("rdMatchPct").setAttribute("data-match-score", คะแนน);
 	document.getElementById("rdMatchPct").textContent = matchBadgeText(คะแนน);
 	document.getElementById("rdMatchReason").textContent = เหตุผล;
 	document.getElementById("rdDesc").textContent = ร้านปัจจุบัน.community ?
-		(ร้านปัจจุบัน.คำโปรยกำหนดเอง || ("ร้านนี้โพสต์เข้าชุมชนโดย " + ร้านปัจจุบัน.vendorName + " 🏪")) :
-		"ร้านแนะนำจากทีม ChimChim พร้อมข้อมูล Match % ที่คำนวณจาก Food DNA ของคุณจริง ๆ";
+		(ร้านปัจจุบัน.คำโปรยกำหนดเอง || t("restaurant.postedBy").replace("{vendor}", ร้านปัจจุบัน.vendorName)) :
+		t("restaurant.defaultDesc");
 
 	var tagsHtml = "";
 	ร้านปัจจุบัน.แท็ก.forEach(function(tag) {
@@ -89,12 +89,12 @@ if (!ร้านปัจจุบัน) {
 	followBtn.addEventListener("click", function() {
 		var nowFollowing = buShopของร้านนี้ ? toggleFollowUser(followId) : toggleFollowShop(followId);
 		refreshFollowBtn();
-		showToast(nowFollowing ? "Follow ร้านนี้แล้ว 🎉" : "เลิก Follow ร้านนี้แล้ว");
+		showToast(nowFollowing ? t("restaurant.followedToast") : t("restaurant.unfollowedToast"));
 	});
 
 	/* --- ปุ่มแชร์ --- */
 	document.getElementById("rdShareBtn").addEventListener("click", function() {
-		showToast("คัดลอกลิงก์ร้านนี้แล้ว! (โหมดสาธิต)");
+		showToast(t("restaurant.linkCopiedToast"));
 	});
 
 	/* --- ปุ่มนำทาง — เปิด Google Maps ค้นหาตำแหน่งร้านจริงจากชื่อร้าน + มหาวิทยาลัยใกล้เคียง --- */
@@ -122,7 +122,7 @@ if (!ร้านปัจจุบัน) {
 	document.getElementById("rdReviewCount").textContent = reviews.length;
 	var listBox = document.getElementById("rdReviewList");
 	if (reviews.length === 0) {
-		listBox.innerHTML = '<p class="rdempty">ยังไม่มีรีวิว เป็นคนแรกที่รีวิวร้านนี้สิ!</p>';
+		listBox.innerHTML = '<p class="rdempty">' + t("restaurant.noReviewsYet") + '</p>';
 	} else {
 		var html = "";
 		reviews.forEach(function(r) {
@@ -132,8 +132,8 @@ if (!ร้านปัจจุบัน) {
 					'<div class="rdreviewavt">' + escapeHtml(r.author.charAt(0).toUpperCase()) + "</div>" +
 					"<div>" +
 						'<div class="rdreviewnm">' + escapeHtml(r.author) + "</div>" +
-						'<div class="rdreviewscore">🎯 ' + avgScore + "/5 คะแนนเฉลี่ย</div>" +
-						'<div class="rdreviewtxt">' + escapeHtml(r.text || "(ไม่ได้เขียนความเห็นเพิ่มเติม)") + "</div>" +
+						'<div class="rdreviewscore">🎯 ' + avgScore + t("restaurant.avgScoreSuffix") + "</div>" +
+						'<div class="rdreviewtxt">' + escapeHtml(r.text || t("restaurant.noReviewText")) + "</div>" +
 					"</div>" +
 				"</div>";
 		});

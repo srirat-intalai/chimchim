@@ -22,11 +22,11 @@ function renderTrendCatStrip() {
     // หมายเหตุ: data-i18n อยู่บน <span> ลูกโดยตรง (ไม่ใช่ .trendcatchip เอง) กัน applyI18n() ไปเขียนทับไอคอนหมวดด้วย
     strip.appendChild(allChip);
 
-    หมวดหมู่ทั้งหมด.forEach(function(cat) {
+    กลุ่มหมวดหมู่.forEach(function(กลุ่ม) {
         var chip = document.createElement('div');
-        chip.className = 'trendcatchip' + (currentTrendCat === cat ? ' active' : '');
-        chip.setAttribute('data-cat', cat);
-        chip.innerHTML = '<div class="trendcaticon">' + catEmoji(cat) + '</div><span>' + catLabel(cat) + '</span>';
+        chip.className = 'trendcatchip' + (currentTrendCat === กลุ่ม.key ? ' active' : '');
+        chip.setAttribute('data-cat', กลุ่ม.key);
+        chip.innerHTML = '<div class="trendcaticon">' + กลุ่ม.emoji + '</div><span>' + catGroupLabel(กลุ่ม.key) + '</span>';
         strip.appendChild(chip);
     });
 
@@ -46,6 +46,13 @@ function renderTrendCatStrip() {
     });
 }
 
+// currentTrendCat ตอนนี้เก็บ "กลุ่ม" (เช่น "นานาชาติ") ไม่ใช่หมวดย่อยเป๊ะ ๆ แล้ว
+// ใช้ตัวนี้เช็คแทนการเทียบ === ตรง ๆ ทุกจุดที่กรองร้าน/โพสต์ตาม currentTrendCat
+function ร้านอยู่ในหมวดที่เลือก(catOfItem, selected) {
+    if (!selected || selected === 'all') return true;
+    return หมวดย่อยในกลุ่ม(selected).indexOf(catOfItem) !== -1;
+}
+
 /* -----------------------------------------------------
    Match Hero — วงกลมเดียว แต่ภาพข้างในเลื่อนซ้ายขวาดูร้าน Match สูงสุดได้ทีละร้าน
    (Match% / ระยะทางจริง คำนวณจาก Food DNA ปัจจุบัน) ป้ายลอยอัปเดตตามภาพที่เลื่อนมาอยู่ตรงกลาง
@@ -63,7 +70,7 @@ function renderMatchHero() {
     var slidesEl = document.getElementById('mhSlides');
     if (!wrap || !slidesEl) return;
 
-    var mhPool = currentTrendCat === 'all' ? รายการร้าน : รายการร้าน.filter(function(r) { return r.หมวด === currentTrendCat; });
+    var mhPool = รายการร้าน.filter(function(r) { return ร้านอยู่ในหมวดที่เลือก(r.หมวด, currentTrendCat); });
     var mhDeduped = กรองรูปไม่ซ้ำ(
         mhPool
             .map(function(r) { return { r: r, m: คำนวณMatch(r, foodDNA) }; })
@@ -143,7 +150,7 @@ function renderRecommendedRow() {
     var row = document.getElementById('recommendedRow');
     if (!row) return;
     row.innerHTML = '';
-    var recPool = currentTrendCat === 'all' ? รายการร้าน : รายการร้าน.filter(function(r) { return r.หมวด === currentTrendCat; });
+    var recPool = รายการร้าน.filter(function(r) { return ร้านอยู่ในหมวดที่เลือก(r.หมวด, currentTrendCat); });
     var recDeduped = กรองรูปไม่ซ้ำ(
         recPool
             .map(function(r) { return { r: r, m: คำนวณMatch(r, foodDNA) }; })
@@ -160,7 +167,7 @@ function renderRecommendedRow() {
         if (emptyEl) {
             emptyEl.hidden = false;
             emptyEl.textContent = currentTrendCat === 'all'
-                ? 'ยังไม่มีร้านที่ Match 70% ขึ้นไปตอนนี้ ลองทำแบบทดสอบ Food DNA เพื่อผลลัพธ์ที่แม่นขึ้น'
+                ? t('home.recNoResultsAll')
                 : t('home.recNoResultsCat');
         }
     } else if (emptyEl) {
@@ -217,12 +224,12 @@ renderRecommendedRow();
         var people = [];
         นักรีวิวเด่น.forEach(function(คน) {
             if (คน.ชื่อ.toLowerCase().indexOf(q) !== -1) {
-                people.push({ id: คน.id, name: คน.ชื่อ, sub: "🦖 Food Explorer Lv." + คน.ระดับ, color: คน.สี });
+                people.push({ id: คน.id, name: คน.ชื่อ, sub: t("publicprofile.foodExplorerLevel") + คน.ระดับ, color: คน.สี });
             }
         });
         getUsers().forEach(function(u) {
             if (u.name && u.name.toLowerCase().indexOf(q) !== -1) {
-                people.push({ id: u.id, name: u.name, sub: "🧑‍🎓 Member", color: "linear-gradient(135deg, var(--dark), #7d6fb0)" });
+                people.push({ id: u.id, name: u.name, sub: "🧑‍🎓 " + t("common.member"), color: "linear-gradient(135deg, var(--dark), #7d6fb0)" });
             }
         });
         var peopleHtml = people.slice(0, 4).map(function(p) {
@@ -281,9 +288,9 @@ renderTrendCatStrip();
 window.addEventListener('load', function() {
     var params = new URLSearchParams(window.location.search);
     if (params.get('posted') === '1' && typeof showToast === 'function') {
-        showToast('ร้านของคุณโพสต์เข้าชุมชนเรียบร้อยแล้ว! 🎉');
+        showToast(t('home.shopPostedToast'));
     }
     if (params.get('reviewed') === '1' && typeof showToast === 'function') {
-        showToast('ขอบคุณสำหรับรีวิว! 🎉');
+        showToast(t('home.reviewThanksToast'));
     }
 });

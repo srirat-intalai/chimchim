@@ -826,6 +826,14 @@ section {
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+/* ใช้กับคำแรกของหัวข้อที่ต้องมี data-i18n เป็นของตัวเอง (เช่นสลับลำดับคำ TH/EN ได้) แต่ไม่อยากให้ไล่สีเหมือนคำเด่นหลัก */
+.stitle span.stitleplain {
+  color: inherit;
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: initial;
+}
 .sline {
   width: 58px;
   height: 4px;

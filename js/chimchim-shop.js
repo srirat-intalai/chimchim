@@ -75,12 +75,12 @@
 		var promo = document.getElementById("shopPromo").value.trim();
 
 		if (!name || !dish || !img || !priceLow || !priceHigh || !distance) {
-			errBox.textContent = "กรอกชื่อร้าน เมนูเด่น รูป และราคาให้ครบก่อนนะ";
+			errBox.textContent = t("shop.fillRequired");
 			errBox.classList.add("show");
 			return;
 		}
 		if (priceLow > priceHigh) {
-			errBox.textContent = "ราคาต่ำต้องน้อยกว่าหรือเท่ากับราคาสูง";
+			errBox.textContent = t("shop.priceOrderError");
 			errBox.classList.add("show");
 			return;
 		}
@@ -100,6 +100,6 @@
 		});
 		document.getElementById("shopSubmitBtn").innerHTML = '<i class="fas fa-floppy-disk"></i><span>' + t("shop.saveChanges") + "</span>";
 		refreshViewLink(shop);
-		if (typeof showToast === "function") showToast("โพสต์ร้าน “" + name + "” เข้าชุมชนเรียบร้อยแล้ว! 🎉");
+		if (typeof showToast === "function") showToast(t("shop.postedToast").replace("{name}", name));
 	});
 })();

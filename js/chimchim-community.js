@@ -96,7 +96,7 @@ if (authPop) {
 		var password = document.getElementById("registerPassword").value;
 
 		if (!name || !email || password.length < 4) {
-			errBox.textContent = "กรอกข้อมูลให้ครบ และรหัสผ่านอย่างน้อย 4 ตัวอักษร";
+			errBox.textContent = t("auth.fillAllFields");
 			errBox.classList.add("show");
 			return;
 		}
@@ -106,7 +106,7 @@ if (authPop) {
 			return u.email === email;
 		});
 		if (exists) {
-			errBox.textContent = "อีเมลนี้มีบัญชีอยู่แล้ว ลองเข้าสู่ระบบแทนนะ";
+			errBox.textContent = t("auth.emailExists");
 			errBox.classList.add("show");
 			return;
 		}
@@ -142,14 +142,14 @@ if (authPop) {
 		})[0];
 
 		if (!candidate) {
-			errBox.textContent = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+			errBox.textContent = t("auth.invalidCredentials");
 			errBox.classList.add("show");
 			return;
 		}
 
 		hashPassword(password, candidate.salt).then(function(passwordHash) {
 			if (passwordHash !== candidate.passwordHash) {
-				errBox.textContent = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+				errBox.textContent = t("auth.invalidCredentials");
 				errBox.classList.add("show");
 				return;
 			}
@@ -158,7 +158,7 @@ if (authPop) {
 			closeAuthPop();
 			refreshAuthUI();
 			form.reset();
-			showToast("ยินดีต้อนรับกลับมา " + candidate.name + "! 🦖");
+			showToast(t("auth.welcomeBack").replace("{name}", candidate.name));
 			// รีเฟรชหน้าปัจจุบันเพื่อให้ Food DNA ส่วนตัว + สถานะล็อกอินอัปเดตทุกจุด
 			setTimeout(function() {
 				window.location.reload();
@@ -199,7 +199,7 @@ document.addEventListener("keydown", function(e) {
 				"</div>" +
 				'<div class="pvcomments" id="pvComments"></div>' +
 				'<form class="pvcommentform" id="pvCommentForm">' +
-					'<input type="text" id="pvCommentInput" placeholder="แสดงความคิดเห็น..." autocomplete="off"/>' +
+					'<input type="text" id="pvCommentInput" placeholder="' + t("community.commentPlaceholder") + '" autocomplete="off"/>' +
 					'<button type="submit"><i class="fas fa-paper-plane"></i></button>' +
 				"</form>" +
 			"</div>" +
@@ -232,7 +232,7 @@ document.addEventListener("keydown", function(e) {
 		}
 		var comments = getComments(currentPostId);
 		if (comments.length === 0) {
-			list.innerHTML = '<p class="pvcommentsempty">ยังไม่มีความคิดเห็น เป็นคนแรกที่คอมเมนต์สิ!</p>';
+			list.innerHTML = '<p class="pvcommentsempty">' + t("community.noCommentsYet") + '</p>';
 			return;
 		}
 		list.innerHTML = comments.map(function(c) {
@@ -259,7 +259,7 @@ document.addEventListener("keydown", function(e) {
 		var text = input.value.trim();
 		if (!text) return;
 		var me = getSession();
-		addComment(currentPostId, me ? me.name : "นักชิมไม่ระบุตัวตน", text);
+		addComment(currentPostId, me ? me.name : t("common.anonymousFoodie"), text);
 		input.value = "";
 		renderPvComments();
 	});
@@ -332,7 +332,7 @@ function renderCommunityFeed(container, catFilter) {
 	var emptyMsg = document.getElementById("communityFeedEmpty");
 	var items = getFeedItems();
 	if (catFilter && catFilter !== "all") {
-		items = items.filter(function(item) { return item.cat === catFilter; });
+		items = items.filter(function(item) { return typeof ร้านอยู่ในหมวดที่เลือก === "function" && ร้านอยู่ในหมวดที่เลือก(item.cat, catFilter); });
 	}
 	container.innerHTML = "";
 	feedState.items = items;
@@ -374,7 +374,7 @@ function buildFeedItemEl(item) {
 			'<div class="feedhead">' +
 				avatarHtml +
 				'<div class="feednm">' +
-					'<div class="feedname">' + escapeHtml(item.posterName) + (item.kind === "mockup" ? ' <i class="fas fa-store feedstoreico" title="ร้านอาหาร"></i>' : "") + "</div>" +
+					'<div class="feedname">' + escapeHtml(item.posterName) + (item.kind === "mockup" ? ' <i class="fas fa-store feedstoreico" title="' + t("common.restaurantIcon") + '"></i>' : "") + "</div>" +
 					'<div class="feedtime">' + formatFeedTime(item.date) + "</div>" +
 				"</div>" +
 			"</div>" +

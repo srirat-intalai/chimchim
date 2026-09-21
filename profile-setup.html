@@ -15,7 +15,7 @@
       <div class="obwrap">
          <div class="obtopnav">
             <button class="obback" id="obBackBtn"><i class="fas fa-arrow-left"></i></button>
-            <span class="obstepnum" id="obStepLbl">Step 1 of 5</span>
+            <span class="obstepnum" id="obStepLbl"></span>
             <span style="width:38px;"></span>
          </div>
          <div class="obprogress">
@@ -28,76 +28,76 @@
 
          <!-- STEP 1: หมวดอาหารที่ชอบ -->
          <div class="obstep" id="obStep1">
-            <div class="obq">สร้างโปรไฟล์การกินของคุณ</div>
-            <p class="obhint">คุณชอบกินอาหารประเภทไหนบ้าง? (เลือกได้หลายอย่าง)</p>
+            <div class="obq" data-i18n="onboarding.step1Title">สร้างโปรไฟล์การกินของคุณ</div>
+            <p class="obhint" data-i18n="onboarding.step1Hint">คุณชอบกินอาหารประเภทไหนบ้าง? (เลือกได้หลายอย่าง)</p>
             <div class="obgrid" data-field="foodType" data-multi="true">
-               <div class="obopt" data-val="ข้าว"><span class="obemo">🍚</span>ข้าว</div>
-               <div class="obopt" data-val="เส้น"><span class="obemo">🍜</span>เส้น</div>
-               <div class="obopt" data-val="ซุป"><span class="obemo">🥣</span>ซุป</div>
-               <div class="obopt" data-val="Fast Food"><span class="obemo">🍔</span>Fast Food</div>
-               <div class="obopt" data-val="ญี่ปุ่น"><span class="obemo">🍣</span>ญี่ปุ่น</div>
-               <div class="obopt" data-val="ของหวาน"><span class="obemo">🍰</span>ของหวาน</div>
-               <div class="obopt" data-val="เผ็ด"><span class="obemo">🌶️</span>เผ็ด</div>
-               <div class="obopt" data-val="อื่น ๆ"><span class="obemo">✨</span>อื่น ๆ</div>
+               <div class="obopt" data-val="ข้าว"><span class="obemo">🍚</span><span class="oblbl">ข้าว</span></div>
+               <div class="obopt" data-val="เส้น"><span class="obemo">🍜</span><span class="oblbl">เส้น</span></div>
+               <div class="obopt" data-val="ซุป"><span class="obemo">🥣</span><span class="oblbl">ซุป</span></div>
+               <div class="obopt" data-val="Fast Food"><span class="obemo">🍔</span><span class="oblbl">Fast Food</span></div>
+               <div class="obopt" data-val="ญี่ปุ่น"><span class="obemo">🍣</span><span class="oblbl">ญี่ปุ่น</span></div>
+               <div class="obopt" data-val="ของหวาน"><span class="obemo">🍰</span><span class="oblbl">ของหวาน</span></div>
+               <div class="obopt" data-val="เผ็ด"><span class="obemo">🌶️</span><span class="oblbl">เผ็ด</span></div>
+               <div class="obopt" data-val="อื่น ๆ"><span class="obemo">✨</span><span class="oblbl">อื่น ๆ</span></div>
             </div>
          </div>
 
          <!-- STEP 2: ชาติอาหารที่ชอบ -->
          <div class="obstep" id="obStep2" hidden>
-            <div class="obq">ชาติอาหารที่คุณชอบ</div>
-            <p class="obhint">เลือกได้หลายอย่าง ยิ่งเลือกเยอะ ChimChim ยิ่งแนะนำได้กว้างขึ้น</p>
+            <div class="obq" data-i18n="onboarding.step2Title">ชาติอาหารที่คุณชอบ</div>
+            <p class="obhint" data-i18n="onboarding.step2Hint">เลือกได้หลายอย่าง ยิ่งเลือกเยอะ ChimChim ยิ่งแนะนำได้กว้างขึ้น</p>
             <div class="obgrid" data-field="cuisine" data-multi="true">
-               <div class="obopt" data-val="ไทย"><span class="obemo">🇹🇭</span>ไทย</div>
-               <div class="obopt" data-val="ญี่ปุ่น"><span class="obemo">🇯🇵</span>ญี่ปุ่น</div>
-               <div class="obopt" data-val="เกาหลี"><span class="obemo">🇰🇷</span>เกาหลี</div>
-               <div class="obopt" data-val="จีน"><span class="obemo">🇨🇳</span>จีน</div>
-               <div class="obopt" data-val="ฝรั่ง"><span class="obemo">🍔</span>ฝรั่ง</div>
-               <div class="obopt" data-val="ของหวาน"><span class="obemo">🍰</span>ของหวาน</div>
+               <div class="obopt" data-val="ไทย"><span class="obemo">🇹🇭</span><span class="oblbl">ไทย</span></div>
+               <div class="obopt" data-val="ญี่ปุ่น"><span class="obemo">🇯🇵</span><span class="oblbl">ญี่ปุ่น</span></div>
+               <div class="obopt" data-val="เกาหลี"><span class="obemo">🇰🇷</span><span class="oblbl">เกาหลี</span></div>
+               <div class="obopt" data-val="จีน"><span class="obemo">🇨🇳</span><span class="oblbl">จีน</span></div>
+               <div class="obopt" data-val="ฝรั่ง"><span class="obemo">🍔</span><span class="oblbl">ฝรั่ง</span></div>
+               <div class="obopt" data-val="ของหวาน"><span class="obemo">🍰</span><span class="oblbl">ของหวาน</span></div>
             </div>
          </div>
 
          <!-- STEP 3: รสชาติที่ชอบ -->
          <div class="obstep" id="obStep3" hidden>
-            <div class="obq">รสชาติที่คุณชอบ</div>
-            <p class="obhint">เลือกได้หลายอย่าง</p>
+            <div class="obq" data-i18n="onboarding.step3Title">รสชาติที่คุณชอบ</div>
+            <p class="obhint" data-i18n="onboarding.step3Hint">เลือกได้หลายอย่าง</p>
             <div class="obgrid" data-field="flavor" data-multi="true">
-               <div class="obopt" data-val="เผ็ด"><span class="obemo">🌶️</span>เผ็ด</div>
-               <div class="obopt" data-val="หวาน"><span class="obemo">🍯</span>หวาน</div>
-               <div class="obopt" data-val="เค็ม"><span class="obemo">🧂</span>เค็ม</div>
-               <div class="obopt" data-val="เปรี้ยว"><span class="obemo">🍋</span>เปรี้ยว</div>
-               <div class="obopt" data-val="กลมกล่อม"><span class="obemo">😋</span>กลมกล่อม</div>
+               <div class="obopt" data-val="เผ็ด"><span class="obemo">🌶️</span><span class="oblbl">เผ็ด</span></div>
+               <div class="obopt" data-val="หวาน"><span class="obemo">🍯</span><span class="oblbl">หวาน</span></div>
+               <div class="obopt" data-val="เค็ม"><span class="obemo">🧂</span><span class="oblbl">เค็ม</span></div>
+               <div class="obopt" data-val="เปรี้ยว"><span class="obemo">🍋</span><span class="oblbl">เปรี้ยว</span></div>
+               <div class="obopt" data-val="กลมกล่อม"><span class="obemo">😋</span><span class="oblbl">กลมกล่อม</span></div>
             </div>
          </div>
 
          <!-- STEP 4: งบประมาณต่อมื้อ + ระยะทาง -->
          <div class="obstep" id="obStep4" hidden>
-            <div class="obq">งบประมาณและระยะทาง</div>
-            <p class="obhint">งบประมาณต่อมื้อที่คุณใช้บ่อย</p>
+            <div class="obq" data-i18n="onboarding.step4Title">งบประมาณและระยะทาง</div>
+            <p class="obhint" data-i18n="onboarding.budgetHint">งบประมาณต่อมื้อที่คุณใช้บ่อย</p>
             <div class="obrange" data-field="budget" data-multi="false">
-               <div class="obrangeopt" data-val="80">฿0 – ฿80<i class="fas fa-check" style="opacity:0;"></i></div>
-               <div class="obrangeopt" data-val="150">฿80 – ฿150<i class="fas fa-check" style="opacity:0;"></i></div>
-               <div class="obrangeopt" data-val="250">฿150 ขึ้นไป<i class="fas fa-check" style="opacity:0;"></i></div>
+               <div class="obrangeopt" data-val="80"><span data-i18n="onboarding.budget1">฿0 – ฿80</span><i class="fas fa-check" style="opacity:0;"></i></div>
+               <div class="obrangeopt" data-val="150"><span data-i18n="onboarding.budget2">฿80 – ฿150</span><i class="fas fa-check" style="opacity:0;"></i></div>
+               <div class="obrangeopt" data-val="250"><span data-i18n="onboarding.budget3">฿150 ขึ้นไป</span><i class="fas fa-check" style="opacity:0;"></i></div>
             </div>
-            <p class="obhint" style="margin-top:18px;">ระยะทางที่คุณยอมเดินทางไปกิน</p>
+            <p class="obhint" style="margin-top:18px;" data-i18n="onboarding.distanceHint">ระยะทางที่คุณยอมเดินทางไปกิน</p>
             <div class="obrange" data-field="distance" data-multi="false">
-               <div class="obrangeopt" data-val="500">ใกล้ ๆ (ไม่เกิน 500 ม.)<i class="fas fa-check" style="opacity:0;"></i></div>
-               <div class="obrangeopt" data-val="2000">ปานกลาง (500 ม. – 2 กม.)<i class="fas fa-check" style="opacity:0;"></i></div>
-               <div class="obrangeopt" data-val="5000">ไกลแค่ไหนก็ไป (2 กม.+)<i class="fas fa-check" style="opacity:0;"></i></div>
+               <div class="obrangeopt" data-val="500"><span data-i18n="onboarding.distance1">ใกล้ ๆ (ไม่เกิน 500 ม.)</span><i class="fas fa-check" style="opacity:0;"></i></div>
+               <div class="obrangeopt" data-val="2000"><span data-i18n="onboarding.distance2">ปานกลาง (500 ม. – 2 กม.)</span><i class="fas fa-check" style="opacity:0;"></i></div>
+               <div class="obrangeopt" data-val="5000"><span data-i18n="onboarding.distance3">ไกลแค่ไหนก็ไป (2 กม.+)</span><i class="fas fa-check" style="opacity:0;"></i></div>
             </div>
          </div>
 
-         <button class="btn-red obnextbtn" id="obNextBtn" disabled>ถัดไป</button>
+         <button class="btn-red obnextbtn" id="obNextBtn" disabled data-i18n="onboarding.next">ถัดไป</button>
 
          <!-- STEP 5 / DONE: สรุป Food DNA -->
          <div class="obdone" id="obDone" hidden>
             <img src="img/Dino/5.png" alt="Dino ฉลอง"/>
-            <h2>เสร็จแล้ว! 🎉</h2>
-            <p>ChimChim เริ่มรู้จักคุณแล้ว และจะแนะนำร้านให้ตรงใจคุณมากขึ้นเรื่อย ๆ</p>
+            <h2 data-i18n="onboarding.doneTitle">เสร็จแล้ว! 🎉</h2>
+            <p data-i18n="onboarding.doneDesc">ChimChim เริ่มรู้จักคุณแล้ว และจะแนะนำร้านให้ตรงใจคุณมากขึ้นเรื่อย ๆ</p>
             <div class="obdna">
-               <div class="obdnatit">Food DNA ของคุณ</div>
+               <div class="obdnatit" data-i18n="profile.foodDna">Food DNA ของคุณ</div>
                <div id="obDnaBody"></div>
             </div>
-            <a href="home.html" class="btn-red obnextbtn"><i class="fas fa-compass"></i><span>เริ่มสำรวจเลย!</span></a>
+            <a href="home.html" class="btn-red obnextbtn"><i class="fas fa-compass"></i><span data-i18n="onboarding.startExploring">เริ่มสำรวจเลย!</span></a>
          </div>
       </div>
 

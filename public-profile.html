@@ -14,7 +14,7 @@
    <body class="appshell">
       <div class="obtopnav" style="max-width:520px;margin:0 auto;padding:20px 20px 0;">
          <button class="obback" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
-         <span class="obstepnum">โปรไฟล์</span>
+         <span class="obstepnum" data-i18n="nav.profile">โปรไฟล์</span>
          <span style="width:38px;"></span>
       </div>
 
@@ -30,12 +30,12 @@
 
          <p class="sdesc mb-3" id="ppBio" style="font-size:.85rem;"></p>
 
-         <button class="btn-red profbtn" id="ppFollowBtn"><i class="fas fa-user-plus"></i><span>Follow</span></button>
+         <button class="btn-red profbtn" id="ppFollowBtn"><i class="fas fa-user-plus"></i><span data-i18n="common.follow">Follow</span></button>
 
          <div class="profcard">
-            <div class="profcardtit"><i class="fas fa-image me-1"></i>โพสต์ล่าสุด</div>
+            <div class="profcardtit"><i class="fas fa-image me-1"></i><span data-i18n="publicprofile.recentPosts">โพสต์ล่าสุด</span></div>
             <div class="ppgrid" id="ppPostGrid"></div>
-            <p id="ppEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:20px 0;" hidden>ยังไม่มีโพสต์</p>
+            <p id="ppEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:20px 0;" hidden data-i18n="publicprofile.noPosts">ยังไม่มีโพสต์</p>
          </div>
       </div>
 

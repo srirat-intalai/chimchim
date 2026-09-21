@@ -23,7 +23,7 @@ function ppRenderPosts(posts, posterName, posterColor) {
 		el.className = "ppost";
 		el.innerHTML =
 			'<img src="' + images[0] + '" alt=""/>' +
-			(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + images.length + ' รูป"></i>' : "") +
+			(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
 			'<div class="ppostcap">' + escapeHtml(p.caption || "") + "</div>";
 		el.addEventListener("click", function() {
 			openPostView({ id: p.id || (ppUid + "-post" + idx), images: images, caption: p.caption, posterName: posterName, posterColor: posterColor });
@@ -36,7 +36,7 @@ if (ppIsBuShop) {
 	var buId = ppUid.slice("bu-".length);
 	var buShop = หาเพจร้านBUจากId(buId);
 	if (!buShop) {
-		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">ไม่พบโปรไฟล์นี้</p>';
+		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">' + t("common.profileNotFound") + '</p>';
 	} else {
 		document.title = buShop.name + " - ChimChim";
 		var ppAvatarBu = document.getElementById("ppAvatar");
@@ -44,13 +44,13 @@ if (ppIsBuShop) {
 		ppAvatarBu.style.background = "var(--cream2) center/cover no-repeat url('" + buShop.avatar + "')";
 		document.getElementById("ppName").textContent = buShop.name;
 		document.getElementById("ppSub").textContent = catEmoji(buShop.cat) + " " + catLabel(buShop.cat);
-		document.getElementById("ppLevel").textContent = "🏪 ร้านอาหารใกล้ ม.กรุงเทพ";
+		document.getElementById("ppLevel").textContent = t("publicprofile.buShopLevel");
 		document.getElementById("ppBio").textContent = buShop.bio || "";
 
 		var followBtnBu = document.getElementById("ppFollowBtn");
 		function refreshFollowBu() {
 			var followed = isUserFollowed(ppUid);
-			followBtnBu.innerHTML = followed ? '<i class="fas fa-check"></i><span>Following</span>' : '<i class="fas fa-user-plus"></i><span>Follow</span>';
+			followBtnBu.innerHTML = followed ? '<i class="fas fa-check"></i><span>' + t("common.following") + '</span>' : '<i class="fas fa-user-plus"></i><span>' + t("common.follow") + '</span>';
 		}
 		refreshFollowBu();
 		followBtnBu.addEventListener("click", function() {
@@ -65,7 +65,7 @@ if (ppIsBuShop) {
 		mapBtn.rel = "noopener";
 		mapBtn.className = "rdghost";
 		mapBtn.style.cssText = "width:100%;margin-top:8px;";
-		mapBtn.innerHTML = '<i class="fas fa-location-dot me-1"></i><span>แผนที่</span>';
+		mapBtn.innerHTML = '<i class="fas fa-location-dot me-1"></i><span>' + t("publicprofile.mapBtn") + '</span>';
 		followBtnBu.insertAdjacentElement("afterend", mapBtn);
 
 		ppRenderPosts(buShop.posts, buShop.name, "linear-gradient(135deg, var(--primary), var(--secondary))");
@@ -74,7 +74,7 @@ if (ppIsBuShop) {
 	var pageId = ppUid.slice("page-".length);
 	var page = getPageById(pageId);
 	if (!page) {
-		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">ไม่พบโปรไฟล์นี้</p>';
+		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">' + t("common.profileNotFound") + '</p>';
 	} else {
 		document.title = page.name + " - ChimChim";
 		var ppAvatarEl = document.getElementById("ppAvatar");
@@ -82,7 +82,7 @@ if (ppIsBuShop) {
 		ppAvatarEl.style.background = "var(--cream2) center/cover no-repeat url('" + page.avatar + "')";
 		document.getElementById("ppName").textContent = page.name;
 		document.getElementById("ppSub").textContent = catEmoji(page.cat) + " " + catLabel(page.cat);
-		document.getElementById("ppLevel").textContent = "🏪 เพจร้านอาหาร";
+		document.getElementById("ppLevel").textContent = t("publicprofile.pageLevel");
 		document.getElementById("ppBio").textContent = page.bio || "";
 
 		var followBtnPage = document.getElementById("ppFollowBtn");
@@ -93,7 +93,7 @@ if (ppIsBuShop) {
 			(function() {
 				function refreshFollowPage() {
 					var followed = isUserFollowed(page.id);
-					followBtnPage.innerHTML = followed ? '<i class="fas fa-check"></i><span>Following</span>' : '<i class="fas fa-user-plus"></i><span>Follow</span>';
+					followBtnPage.innerHTML = followed ? '<i class="fas fa-check"></i><span>' + t("common.following") + '</span>' : '<i class="fas fa-user-plus"></i><span>' + t("common.follow") + '</span>';
 				}
 				refreshFollowPage();
 				followBtnPage.addEventListener("click", function() {
@@ -108,20 +108,20 @@ if (ppIsBuShop) {
 } else if (ppIsSeed) {
 	var creator = หานักรีวิวจากId(ppUid);
 	if (!creator) {
-		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">ไม่พบโปรไฟล์นี้</p>';
+		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">' + t("common.profileNotFound") + '</p>';
 	} else {
 		document.title = creator.ชื่อ + " - ChimChim";
 		document.getElementById("ppAvatar").style.background = creator.สี;
 		document.getElementById("ppAvatar").textContent = creator.ชื่อ.charAt(0).toUpperCase();
 		document.getElementById("ppName").textContent = creator.ชื่อ;
-		document.getElementById("ppSub").textContent = creator.รีวิว + " รีวิว";
-		document.getElementById("ppLevel").textContent = "🦖 Food Explorer Lv." + creator.ระดับ;
+		document.getElementById("ppSub").textContent = creator.รีวิว + t("publicprofile.reviewsSuffix");
+		document.getElementById("ppLevel").textContent = t("publicprofile.foodExplorerLevel") + creator.ระดับ;
 		document.getElementById("ppBio").textContent = creator.bio;
 
 		var followBtn = document.getElementById("ppFollowBtn");
 		function refreshFollow() {
 			var followed = isUserFollowed(ppUid);
-			followBtn.innerHTML = followed ? '<i class="fas fa-check"></i><span>Following</span>' : '<i class="fas fa-user-plus"></i><span>Follow</span>';
+			followBtn.innerHTML = followed ? '<i class="fas fa-check"></i><span>' + t("common.following") + '</span>' : '<i class="fas fa-user-plus"></i><span>' + t("common.follow") + '</span>';
 		}
 		refreshFollow();
 		followBtn.addEventListener("click", function() {
@@ -135,14 +135,14 @@ if (ppIsBuShop) {
 	var users = getUsers();
 	var user = users.filter(function(u) { return u.id === ppUid; })[0];
 	if (!user) {
-		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">ไม่พบโปรไฟล์นี้</p>';
+		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">' + t("common.profileNotFound") + '</p>';
 	} else {
 		document.title = user.name + " - ChimChim";
 		document.getElementById("ppAvatar").textContent = user.name.charAt(0).toUpperCase();
 		document.getElementById("ppName").textContent = user.name;
-		document.getElementById("ppSub").textContent = "ผู้ใช้ ChimChim";
-		document.getElementById("ppLevel").textContent = "🧑‍🎓 นักชิม ChimChim";
-		document.getElementById("ppBio").textContent = "สมาชิก ChimChim แชร์เมนูและร้านโปรดผ่านโพสต์ด้านล่าง";
+		document.getElementById("ppSub").textContent = t("publicprofile.chimchimUser");
+		document.getElementById("ppLevel").textContent = "🧑‍🎓 " + t("common.chimchimFoodie");
+		document.getElementById("ppBio").textContent = t("publicprofile.defaultBio");
 
 		var followBtn2 = document.getElementById("ppFollowBtn");
 		if (ppSession && ppSession.id === user.id) {
@@ -151,7 +151,7 @@ if (ppIsBuShop) {
 			(function() {
 				function refreshFollow2() {
 					var followed = isUserFollowed(user.id);
-					followBtn2.innerHTML = followed ? '<i class="fas fa-check"></i><span>Following</span>' : '<i class="fas fa-user-plus"></i><span>Follow</span>';
+					followBtn2.innerHTML = followed ? '<i class="fas fa-check"></i><span>' + t("common.following") + '</span>' : '<i class="fas fa-user-plus"></i><span>' + t("common.follow") + '</span>';
 				}
 				refreshFollow2();
 				followBtn2.addEventListener("click", function() {

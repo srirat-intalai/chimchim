@@ -69,7 +69,7 @@
 		var bio = document.getElementById("pageBio").value.trim();
 
 		if (!name || !avatar) {
-			errBox.textContent = "กรอกชื่อเพจและเลือกรูปก่อนนะ";
+			errBox.textContent = t("shop.pageFillRequired");
 			errBox.classList.add("show");
 			return;
 		}
@@ -78,7 +78,7 @@
 		document.getElementById("pageSubmitBtn").innerHTML = '<i class="fas fa-floppy-disk"></i><span>' + t("shop.saveChanges") + "</span>";
 		refreshPreview(page);
 		refreshPersonaUI(page);
-		if (typeof showToast === "function") showToast("บันทึกเพจ “" + name + "” เรียบร้อยแล้ว! 🎉");
+		if (typeof showToast === "function") showToast(t("shop.pageSavedToast").replace("{name}", name));
 	});
 
 	document.querySelectorAll("#personaToggle .settopt").forEach(function(btn) {

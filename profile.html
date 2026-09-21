@@ -94,11 +94,11 @@
                <input type="file" id="postImgFile" accept="image/*" multiple hidden/>
                <div class="postimglist" id="postImgList"></div>
                <label class="flbl" data-i18n="profile.captionLbl">แคปชั่น</label>
-               <input class="fctrl" type="text" id="postCaption" placeholder="เล่าอะไรสั้น ๆ เกี่ยวกับมื้อนี้..." required/>
+               <input class="fctrl" type="text" id="postCaption" placeholder="เล่าอะไรสั้น ๆ เกี่ยวกับมื้อนี้..." data-i18n-ph="profile.captionPlaceholder" required/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-paper-plane"></i><span data-i18n="profile.postBtn">โพสต์</span></button>
             </form>
             <div class="ppgrid" id="myPostGrid"></div>
-            <p id="myPostEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:10px 0;" hidden>ยังไม่มีโพสต์ ลองเพิ่มโพสต์แรกของคุณดูสิ!</p>
+            <p id="myPostEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:10px 0;" hidden data-i18n="profile.noPostsYet">ยังไม่มีโพสต์ ลองเพิ่มโพสต์แรกของคุณดูสิ!</p>
          </div>
 
          <a href="settings.html" class="rdghost" style="width:100%;margin-bottom:10px;"><i class="fas fa-gear me-1"></i><span data-i18n="profile.settings">ตั้งค่า</span></a>

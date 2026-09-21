@@ -66,7 +66,7 @@
             <form id="pageForm" class="apform">
                <div class="aperr" id="pageErr"></div>
                <label class="flbl" data-i18n="settings.pageName">Page name</label>
-               <input class="fctrl" type="text" id="pageName" placeholder="เช่น ป้าหน่อย ข้าวมันไก่" required/>
+               <input class="fctrl" type="text" id="pageName" placeholder="เช่น ป้าหน่อย ข้าวมันไก่" data-i18n-ph="shop.pageNamePlaceholder" required/>
                <label class="flbl" data-i18n="shop.category">Food category</label>
                <select class="fctrl" id="pageCat" required>
                   <optgroup label="🍽️ ทั่วไป">
@@ -122,7 +122,7 @@
                <input type="file" id="pageAvatarFile" accept="image/*" hidden/>
                <input type="hidden" id="pageAvatar" required/>
                <label class="flbl" data-i18n="shop.shortDesc">Short bio</label>
-               <textarea class="fctrl" id="pageBio" rows="2" placeholder="บอกจุดเด่นร้านคุณสั้น ๆ"></textarea>
+               <textarea class="fctrl" id="pageBio" rows="2" placeholder="บอกจุดเด่นร้านคุณสั้น ๆ" data-i18n-ph="shop.bioPlaceholder"></textarea>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2" id="pageSubmitBtn"><i class="fas fa-floppy-disk"></i><span data-i18n="settings.pageSave">Save Page</span></button>
             </form>
             <a href="#" id="pageViewLink" class="rdghost" style="width:100%;margin-top:10px;" hidden data-i18n="settings.pageView">View my page</a>
@@ -144,9 +144,9 @@
             <form id="shopForm" class="apform">
                <div class="aperr" id="shopErr"></div>
                <label class="flbl" data-i18n="shop.shopName">Shop name</label>
-               <input class="fctrl" type="text" id="shopName" placeholder="เช่น ร้านป้าหน่อย ข้าวมันไก่" required/>
+               <input class="fctrl" type="text" id="shopName" placeholder="เช่น ร้านป้าหน่อย ข้าวมันไก่" data-i18n-ph="shop.shopNamePlaceholder" required/>
                <label class="flbl" data-i18n="shop.featuredDish">Featured dish</label>
-               <input class="fctrl" type="text" id="shopDish" placeholder="เช่น ข้าวมันไก่ทอด" required/>
+               <input class="fctrl" type="text" id="shopDish" placeholder="เช่น ข้าวมันไก่ทอด" data-i18n-ph="shop.dishPlaceholder" required/>
                <label class="flbl" data-i18n="shop.category">Food category</label>
                <select class="fctrl" id="shopCat" required>
                   <optgroup label="🍽️ ทั่วไป">
@@ -210,11 +210,11 @@
                <label class="flbl" data-i18n="shop.nearUni">Near which university</label>
                <select class="fctrl" id="shopUni" required></select>
                <label class="flbl" data-i18n="shop.shortDesc">Short pitch</label>
-               <textarea class="fctrl" id="shopDesc" rows="2" placeholder="บอกจุดเด่นร้านคุณสั้น ๆ"></textarea>
+               <textarea class="fctrl" id="shopDesc" rows="2" placeholder="บอกจุดเด่นร้านคุณสั้น ๆ" data-i18n-ph="shop.bioPlaceholder"></textarea>
                <label class="flbl" data-i18n="shop.hours">Opening hours</label>
-               <input class="fctrl" type="text" id="shopHours" placeholder="เช่น 10:00 – 20:00 น."/>
+               <input class="fctrl" type="text" id="shopHours" placeholder="เช่น 10:00 – 20:00 น." data-i18n-ph="shop.hoursPlaceholder"/>
                <label class="flbl" data-i18n="shop.promo">Special promotion (optional)</label>
-               <input class="fctrl" type="text" id="shopPromo" placeholder="เช่น ลด 10% เมื่อสั่งผ่านแอป"/>
+               <input class="fctrl" type="text" id="shopPromo" placeholder="เช่น ลด 10% เมื่อสั่งผ่านแอป" data-i18n-ph="shop.promoPlaceholder"/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2" id="shopSubmitBtn"><i class="fas fa-floppy-disk"></i><span data-i18n="shop.submit">Post to Community</span></button>
             </form>
             <a href="#" id="shopViewLink" class="rdghost" style="width:100%;margin-top:10px;" hidden data-i18n="shop.viewMyShop">View my shop</a>

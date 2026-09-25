@@ -593,7 +593,8 @@ img {
 #aboutPop,
 #postViewModal,
 #shopDetailPop,
-#recommendPop {
+#recommendPop,
+#reportPopModal {
   display: none;
   position: fixed;
   inset: 0;
@@ -604,12 +605,17 @@ img {
   justify-content: center;
   padding: 18px;
 }
+/* รายงานเนื้อหาต้องเปิดซ้อนทับ popup อื่นได้เสมอ (เช่น เปิดจากใน postViewModal) */
+#reportPopModal {
+  z-index: 100000;
+}
 #authPop.open,
 #profDetailPop.open,
 #aboutPop.open,
 #postViewModal.open,
 #shopDetailPop.open,
-#recommendPop.open {
+#recommendPop.open,
+#reportPopModal.open {
   display: flex;
   animation: fadeov 0.25s ease;
 }
@@ -4889,6 +4895,11 @@ body.appshell {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+.analyticstotal {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--darkbg);
+}
 .obdnarow {
   margin-bottom: 14px;
 }
@@ -4933,7 +4944,8 @@ body.appshell {
 }
 .rdheroback,
 .rdherosave,
-.rdheroshare {
+.rdheroshare,
+.rdheroreport {
   position: absolute;
   top: 16px;
   width: 38px;
@@ -4953,6 +4965,9 @@ body.appshell {
   left: 16px;
 }
 .rdherosave {
+  right: 108px;
+}
+.rdheroreport {
   right: 62px;
 }
 .rdheroshare {
@@ -5672,6 +5687,26 @@ body.appshell {
 .pvlikebtn.liked,
 .pvlikebtn.liked i {
   color: var(--primary);
+}
+.pvreportbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  color: #bbb;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-left: 14px;
+}
+.pvreportbtn:hover {
+  color: #d33;
+}
+.reportreasonlist {
+  display: flex;
+  flex-direction: column;
 }
 .pvclose {
   position: absolute;

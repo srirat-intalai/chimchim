@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="author" content="CHIMCHIM">
+      <meta name="description" content="ChimChim - Usage stats for this device">
+      <title>Usage Stats - ChimChim</title>
+      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+      <link rel="stylesheet" href="css/all.min.css"/>
+      <link rel="stylesheet" href="css/style.css" />
+   </head>
+   <body class="appshell" style="padding-bottom:30px;">
+      <div class="obtopnav" style="max-width:520px;margin:0 auto;padding:20px 20px 0;">
+         <button class="obback" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
+         <span class="obstepnum" data-i18n="analytics.title">Usage Stats</span>
+         <span style="width:38px;"></span>
+      </div>
+
+      <div class="container" style="max-width:520px;margin:0 auto;padding-top:20px;">
+         <div class="profcard">
+            <p class="rowsub" style="margin-top:0;" data-i18n="analytics.deviceNote">This shows activity recorded on this device/browser only — not all ChimChim users. Real cross-device analytics needs the Supabase backend (not connected yet).</p>
+         </div>
+
+         <div class="profcard">
+            <div class="profcardtit"><i class="fas fa-chart-simple me-1"></i><span data-i18n="analytics.totalEvents">Total events logged</span></div>
+            <div class="analyticstotal" id="analyticsTotal">0</div>
+         </div>
+
+         <div class="profcard" id="analyticsListCard">
+            <div id="analyticsList"></div>
+            <p id="analyticsEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:20px 0;" hidden data-i18n="analytics.noData">No activity recorded yet — go use the app a bit, then come back here</p>
+         </div>
+
+         <button type="button" class="rdghost" style="width:100%;" id="analyticsClearBtn"><i class="fas fa-trash-can me-1"></i><span data-i18n="analytics.clearData">Clear this device's stats</span></button>
+      </div>
+
+      <div id="appToast"></div>
+
+      <script src="js/chimchim-i18n.js"></script>
+      <script src="js/chimchim-data.js"></script>
+      <script src="js/chimchim-core.js"></script>
+      <script src="js/chimchim-community.js"></script>
+      <script>
+         var EVENT_LABEL_KEYS = {
+            app_open: "analytics.eventAppOpen",
+            dna_quiz_completed: "analytics.eventDnaQuizCompleted",
+            ai_chat_message_sent: "analytics.eventAiChatMessageSent",
+            shop_liked: "analytics.eventShopLiked",
+            shop_followed: "analytics.eventShopFollowed",
+            shop_posted: "analytics.eventShopPosted",
+            post_created: "analytics.eventPostCreated",
+            review_submitted: "analytics.eventReviewSubmitted",
+            content_reported: "analytics.eventContentReported"
+         };
+
+         function renderAnalytics() {
+            var counts = getEventCounts();
+            var keys = Object.keys(counts);
+            var total = keys.reduce(function(sum, k) { return sum + counts[k]; }, 0);
+            document.getElementById("analyticsTotal").textContent = total;
+
+            var listEl = document.getElementById("analyticsList");
+            var emptyEl = document.getElementById("analyticsEmpty");
+            listEl.innerHTML = "";
+
+            if (!keys.length) {
+               emptyEl.hidden = false;
+               return;
+            }
+            emptyEl.hidden = true;
+
+            var maxCount = Math.max.apply(null, keys.map(function(k) { return counts[k]; }));
+            keys.sort(function(a, b) { return counts[b] - counts[a]; }).forEach(function(k) {
+               var label = EVENT_LABEL_KEYS[k] ? t(EVENT_LABEL_KEYS[k]) : k;
+               var pct = Math.round((counts[k] / maxCount) * 100);
+               var row = document.createElement("div");
+               row.className = "obdnarow";
+               row.innerHTML =
+                  '<div class="obdnalbl"><span>' + escapeHtml(label) + '</span><span>' + counts[k] + '</span></div>' +
+                  '<div class="obdnabar"><span style="width:' + pct + '%;"></span></div>';
+               listEl.appendChild(row);
+            });
+         }
+         renderAnalytics();
+
+         document.getElementById("analyticsClearBtn").addEventListener("click", function() {
+            localStorage.removeItem(CHIMCHIM_EVENTS_KEY);
+            renderAnalytics();
+            showToast(t("analytics.clearedToast"));
+         });
+      </script>
+   </body>
+</html>

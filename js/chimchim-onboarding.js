@@ -104,6 +104,7 @@ function obFinish() {
 	};
 
 	updateMe({ foodDNA: newDNA });
+	if (typeof logEvent === "function") logEvent("dna_quiz_completed", {});
 	applyPersonalFoodDNA();
 
 	// ซ่อนขั้นตอนกรอกข้อมูล โชว์หน้าสรุปผล

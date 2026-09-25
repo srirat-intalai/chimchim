@@ -370,6 +370,7 @@ function createOrUpdateMyShop(data) {
 			promo: data.promo
 		};
 		shops.push(existing);
+		logEvent("shop_posted", { shopId: existing.numId });
 	}
 	saveShops(shops);
 	return existing;
@@ -418,6 +419,9 @@ function mergeCommunityShopsIntoรายการร้าน() {
 		if (!shops[i].numId) {
 			shops[i].numId = 9000000 + i;
 		}
+		// ร้านที่ถูกรายงานถึงเกณฑ์ ไม่โชว์ในหน้าแนะนำ/ค้นหา/AI Finder อีกต่อไป (เจ้าของยังจัดการผ่าน getMyShop() ได้ปกติ
+		// เพราะอ่านจาก getShops() ตรง ๆ ไม่ผ่านตัวกรองนี้)
+		if (isContentHidden("shop", shops[i].numId)) continue;
 		รายการร้าน.push(shopToร้าน(shops[i]));
 	}
 	return shops;
@@ -480,6 +484,7 @@ function addReview(shopId, review) {
 	if (!all[shopId]) all[shopId] = [];
 	all[shopId].unshift(review);
 	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
+	logEvent("review_submitted", { shopId: shopId });
 }
 // นับจำนวนรีวิวทั้งหมดที่ผู้ใช้คนนี้เคยเขียนไว้ (ใช้คำนวณ XP) — รีวิวต้องมี userId ติดไว้ตอนบันทึกถึงจะนับได้
 function countReviewsByUser(userId) {
@@ -577,6 +582,7 @@ function toggleFollowShop(shopId) {
 	var idx = list.indexOf(shopId);
 	if (idx === -1) {
 		list.push(shopId);
+		logEvent("shop_followed", { shopId: shopId });
 	} else {
 		list.splice(idx, 1);
 	}
@@ -605,7 +611,12 @@ function isShopLiked(shopId) {
 function toggleLikeShop(shopId) {
 	var list = getLikedShops();
 	var idx = list.indexOf(shopId);
-	if (idx === -1) list.push(shopId); else list.splice(idx, 1);
+	if (idx === -1) {
+		list.push(shopId);
+		logEvent("shop_liked", { shopId: shopId });
+	} else {
+		list.splice(idx, 1);
+	}
 	localStorage.setItem(CHIMCHIM_LIKES_KEY, JSON.stringify(list));
 	return idx === -1;
 }
@@ -801,6 +812,7 @@ function addPost(userId, images, caption, pageId) {
 	var posts = getAllPosts();
 	posts.unshift({ id: "post" + Date.now(), userId: userId, pageId: pageId || null, images: imgList, img: imgList[0], caption: caption, date: new Date().toISOString() });
 	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+	logEvent("post_created", { pageId: pageId || null });
 }
 // คืนอาร์เรย์รูปของโพสต์เสมอ ไม่ว่าโพสต์นั้นจะเป็นโพสต์เก่า (มีแค่ img เดียว) หรือใหม่ (มี images หลายรูป)
 function getPostImages(p) {
@@ -867,6 +879,8 @@ function getFeedItems() {
 			});
 		});
 	});
+	// ซ่อนโพสต์จริงที่ถูกรายงานถึงเกณฑ์ (เพจ/ผู้ใช้ตั้งต้นของ ChimChim อย่างร้าน BU ไม่ต้องเช็ค รายงานไม่ได้อยู่แล้ว)
+	fromReal = fromReal.filter(function(item) { return !isContentHidden("post", item.id); });
 	return fromReal.concat(fromBuShops).sort(function(a, b) {
 		return new Date(b.date) - new Date(a.date);
 	});
@@ -895,6 +909,148 @@ function addComment(postId, author, text) {
 	all[postId].push({ id: "cmt" + Date.now(), author: author, text: text, date: new Date().toISOString() });
 	localStorage.setItem(CHIMCHIM_COMMENTS_KEY, JSON.stringify(all));
 }
+
+/* =====================================================================
+   Analytics แบบเบา ๆ — เก็บ event การใช้งานไว้ใน localStorage ของเบราว์เซอร์นี้เท่านั้น
+   (ไม่ใช่ analytics ข้ามผู้ใช้จริง ต้องรอย้ายไป Supabase ก่อนถึงจะรวมข้อมูลข้ามเครื่องได้ —
+   ดู analytics_events ใน supabase/schema.sql ที่ออกแบบ field ให้ตรงกับตรงนี้ไว้แล้ว)
+   เก็บแค่ N รายการล่าสุดกันโตไม่รู้จบ ดูสรุปได้ที่หน้า analytics.html
+   ===================================================================== */
+var CHIMCHIM_EVENTS_KEY = "chimchim_events";
+var MAX_STORED_EVENTS = 500;
+function getEvents() {
+	try {
+		return JSON.parse(localStorage.getItem(CHIMCHIM_EVENTS_KEY)) || [];
+	} catch (e) {
+		return [];
+	}
+}
+function logEvent(eventType, metadata) {
+	var events = getEvents();
+	var session = getSession();
+	events.push({
+		eventType: eventType,
+		userId: session ? session.id : null,
+		metadata: metadata || {},
+		date: new Date().toISOString()
+	});
+	if (events.length > MAX_STORED_EVENTS) {
+		events = events.slice(-MAX_STORED_EVENTS);
+	}
+	localStorage.setItem(CHIMCHIM_EVENTS_KEY, JSON.stringify(events));
+}
+function getEventCounts() {
+	var counts = {};
+	getEvents().forEach(function(e) {
+		counts[e.eventType] = (counts[e.eventType] || 0) + 1;
+	});
+	return counts;
+}
+// เรียกครั้งเดียวตอนโหลดไฟล์นี้ (ซึ่งโหลดทุกหน้าของแอป) เลยนับเป็น "เปิดแอป/เปิดหน้า" ได้ครบทุกหน้าอัตโนมัติ
+logEvent("app_open", { page: (typeof location !== "undefined" ? location.pathname.split("/").pop() : "") });
+
+/* =====================================================================
+   ระบบรายงานเนื้อหา (Moderation) — รายงานได้เฉพาะโพสต์/ร้านที่ "ผู้ใช้" เพิ่มเข้ามาเอง
+   (ไม่ใช่ร้าน/โพสต์ตัวอย่างของทีม ChimChim) ถึงเกณฑ์ 3 รายงานขึ้นไปต่อชิ้น ซ่อนออกจากฟีด/ผลแนะนำอัตโนมัติ
+   ทำแบบเดียวกับ schema ที่เตรียมไว้ใน supabase/schema.sql (moderation_reports + is_hidden)
+   เพื่อให้ย้ายไป Supabase ทีหลังไม่ต้องออกแบบใหม่ ===================================================================== */
+var CHIMCHIM_REPORTS_KEY = "chimchim_reports";
+var REPORT_HIDE_THRESHOLD = 3;
+function getReports() {
+	try {
+		return JSON.parse(localStorage.getItem(CHIMCHIM_REPORTS_KEY)) || [];
+	} catch (e) {
+		return [];
+	}
+}
+function saveReports(list) {
+	localStorage.setItem(CHIMCHIM_REPORTS_KEY, JSON.stringify(list));
+}
+function reportContent(targetType, targetId, reason) {
+	var session = getSession();
+	var reports = getReports();
+	reports.push({
+		targetType: targetType,
+		targetId: String(targetId),
+		reporterId: session ? session.id : null,
+		reason: reason,
+		date: new Date().toISOString()
+	});
+	saveReports(reports);
+	if (typeof logEvent === "function") logEvent("content_reported", { targetType: targetType, reason: reason });
+}
+function getReportCount(targetType, targetId) {
+	var id = String(targetId);
+	return getReports().filter(function(r) { return r.targetType === targetType && r.targetId === id; }).length;
+}
+function isContentHidden(targetType, targetId) {
+	return getReportCount(targetType, targetId) >= REPORT_HIDE_THRESHOLD;
+}
+function hasUserReported(targetType, targetId) {
+	var session = getSession();
+	if (!session) return false;
+	var id = String(targetId);
+	return getReports().some(function(r) { return r.targetType === targetType && r.targetId === id && r.reporterId === session.id; });
+}
+
+/* --- ป็อปอัพเลือกเหตุผลรายงาน ใช้ร่วมกันได้ทุกหน้า (สร้าง DOM เองเหมือน postViewModal) ---
+   เรียกใช้ผ่าน window.openReportPopup(targetType, targetId, onReported) --- */
+(function setupReportPopup() {
+	var modal = document.createElement("div");
+	modal.id = "reportPopModal";
+	var reasons = [
+		["spam", "report.reasonSpam"],
+		["inappropriate", "report.reasonInappropriate"],
+		["fake", "report.reasonFake"],
+		["other", "report.reasonOther"]
+	];
+	modal.innerHTML =
+		'<div class="apbox" style="max-width:340px;padding:26px 24px 22px;">' +
+			'<button class="apclose" id="reportPopClose"><i class="fas fa-times"></i></button>' +
+			'<h4 class="sptitle2">' + t("report.title") + '</h4>' +
+			'<p class="rowsub" style="margin:2px 0 14px;">' + t("report.hint") + '</p>' +
+			'<div class="reportreasonlist">' +
+				reasons.map(function(r) {
+					return '<button type="button" class="rdghost" style="width:100%;margin-bottom:8px;" data-reason="' + r[0] + '">' + t(r[1]) + '</button>';
+				}).join("") +
+			'</div>' +
+		'</div>';
+	document.body.appendChild(modal);
+
+	var currentTarget = null;
+	var currentCallback = null;
+
+	function closeReportPopup() {
+		modal.classList.remove("open");
+		document.body.style.overflow = "";
+	}
+	document.getElementById("reportPopClose").addEventListener("click", closeReportPopup);
+	modal.addEventListener("click", function(e) {
+		if (e.target === modal) closeReportPopup();
+	});
+	modal.querySelectorAll("[data-reason]").forEach(function(btn) {
+		btn.addEventListener("click", function() {
+			if (!currentTarget) return;
+			reportContent(currentTarget.type, currentTarget.id, this.getAttribute("data-reason"));
+			closeReportPopup();
+			if (typeof showToast === "function") showToast(t("report.thanks"));
+			if (currentCallback) currentCallback();
+			currentTarget = null;
+			currentCallback = null;
+		});
+	});
+
+	window.openReportPopup = function(targetType, targetId, onReported) {
+		if (hasUserReported(targetType, targetId)) {
+			if (typeof showToast === "function") showToast(t("report.alreadyReported"));
+			return;
+		}
+		currentTarget = { type: targetType, id: targetId };
+		currentCallback = onReported;
+		modal.classList.add("open");
+		document.body.style.overflow = "hidden";
+	};
+})();
 
 /* =====================================================================
    เพจร้านอาหาร (เหมือนเพจ Facebook) — ผู้ใช้คนไหนก็สร้างได้จากหน้า Settings

@@ -41,6 +41,7 @@ var logoutBtnEl = document.getElementById("logoutBtn");
 if (logoutBtnEl) {
 	logoutBtnEl.addEventListener("click", function() {
 		clearSession();
+		if (typeof sbSignOut === "function") sbSignOut();
 		showToast(t("profile.logoutToast"));
 		setTimeout(function() {
 			window.location.reload();

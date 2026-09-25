@@ -189,7 +189,7 @@ create function public.handle_new_user()
 returns trigger as $$
 begin
   insert into public.profiles (id, name, avatar_text)
-  values (new.id, coalesce(new.raw_user_meta_data->>'name', 'นักชิมชิมชิม'), upper(left(coalesce(new.raw_user_meta_data->>'name', 'C'), 1)));
+  values (new.id, coalesce(new.raw_user_meta_data->>'name', 'นักชิม ChimChim'), upper(left(coalesce(new.raw_user_meta_data->>'name', 'C'), 1)));
   return new;
 end;
 $$ language plpgsql security definer;
@@ -197,3 +197,73 @@ $$ language plpgsql security definer;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- =====================================================================
+-- Phase 2 — Moderation (รายงานเนื้อหา) + Analytics (เก็บสถิติการใช้งาน)
+-- เพิ่มทีหลัง Phase 1 แต่รันไฟล์นี้ทั้งไฟล์ได้เลยรอบเดียว ไม่ต้องแยกรัน
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- 9. moderation_reports — รายงานโพสต์/ร้านที่ไม่เหมาะสม (ผู้ใช้กดรายงานเอง)
+--    ถึงเกณฑ์ (3 รายงานขึ้นไปต่อชิ้น) ระบบจะซ่อนเนื้อหานั้นออกจากฟีด/การค้นหาอัตโนมัติ
+--    ยังไม่มีระบบแอดมินรีวิว เอาไว้ต่อยอดทีหลัง — ตอนนี้ปิดไว้ไม่ให้ใครอ่านรายงานคนอื่นได้เลย
+-- ---------------------------------------------------------------------
+create table public.moderation_reports (
+  id bigint generated always as identity primary key,
+  target_type text not null check (target_type in ('post', 'shop')),
+  target_id bigint not null,
+  reporter_id uuid references public.profiles(id) on delete set null,
+  reason text not null check (reason in ('spam', 'inappropriate', 'fake', 'other')),
+  note text default '',
+  created_at timestamptz not null default now()
+);
+
+alter table public.posts add column is_hidden boolean not null default false;
+alter table public.shops add column is_hidden boolean not null default false;
+
+-- ถึงเกณฑ์ 3 รายงานต่อชิ้นเมื่อไหร่ ซ่อนอัตโนมัติทันที (เกณฑ์นี้ปรับได้ทีหลังถ้าจำเป็น)
+create function public.check_report_threshold()
+returns trigger as $$
+declare
+  report_count int;
+begin
+  select count(*) into report_count from public.moderation_reports
+    where target_type = new.target_type and target_id = new.target_id;
+  if report_count >= 3 then
+    if new.target_type = 'post' then
+      update public.posts set is_hidden = true where id = new.target_id;
+    elsif new.target_type = 'shop' then
+      update public.shops set is_hidden = true where id = new.target_id;
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger on_report_created
+  after insert on public.moderation_reports
+  for each row execute function public.check_report_threshold();
+
+alter table public.moderation_reports enable row level security;
+-- รายงานได้เฉพาะคนที่ล็อกอิน ห้ามอ่านรายงานของคนอื่น (ไม่มี select policy = ปิดอ่านทุกคนโดย default)
+create policy "reports_insert_authenticated" on public.moderation_reports for insert with check (auth.uid() is not null);
+
+-- posts/shops: select เดิม (select_all) ยังใช้ได้ปกติ แต่ต้องแก้ query ฝั่งแอปให้กรอง is_hidden = false ออกเอง
+-- (ไม่ผูก is_hidden ไว้ใน RLS policy ตรง ๆ เพราะเจ้าของเนื้อหาควรยังเห็นโพสต์/ร้านของตัวเองได้แม้โดนซ่อน)
+
+-- ---------------------------------------------------------------------
+-- 10. analytics_events — เก็บ event การใช้งานแบบเบา ๆ ไว้ดูภาพรวม (ไม่ใช่ analytics ระดับ production)
+--     ตัวอย่าง event_type: app_open, dna_quiz_completed, ai_chat_message_sent,
+--     shop_viewed, shop_liked, shop_followed, post_created, review_submitted, shop_posted
+-- ---------------------------------------------------------------------
+create table public.analytics_events (
+  id bigint generated always as identity primary key,
+  user_id uuid references public.profiles(id) on delete set null,  -- null = ผู้ใช้ยังไม่ล็อกอิน
+  event_type text not null,
+  metadata jsonb default '{}',
+  created_at timestamptz not null default now()
+);
+
+alter table public.analytics_events enable row level security;
+-- เขียนได้ทุกคน (รวมคนไม่ล็อกอิน) แต่อ่านไม่ได้เลยผ่าน anon key — ดึงสรุปได้เฉพาะฝั่ง dashboard ที่ใช้ service role key เท่านั้น
+create policy "events_insert_all" on public.analytics_events for insert with check (true);

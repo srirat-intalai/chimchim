@@ -84,7 +84,8 @@ if (authPop) {
 		});
 	});
 
-	/* --- สมัครสมาชิก --- */
+	/* --- สมัครสมาชิก — ผ่าน Supabase Auth จริง (ดู js/chimchim-supabase-client.js) ---
+	   รหัสผ่านตรวจสอบ/เก็บฝั่งเซิร์ฟเวอร์ทั้งหมด ไม่แตะ localStorage เรื่องรหัสผ่านอีกต่อไป --- */
 	document.getElementById("registerForm").addEventListener("submit", function(e) {
 		e.preventDefault();
 		var form = this;
@@ -101,32 +102,35 @@ if (authPop) {
 			return;
 		}
 
-		var users = getUsers();
-		var exists = users.some(function(u) {
-			return u.email === email;
-		});
-		if (exists) {
-			errBox.textContent = t("auth.emailExists");
-			errBox.classList.add("show");
-			return;
-		}
-
-		var salt = generateSalt();
-		hashPassword(password, salt).then(function(passwordHash) {
-			var newUser = { id: "u" + Date.now(), name: name, email: email, salt: salt, passwordHash: passwordHash };
-			users.push(newUser);
-			saveUsers(users);
-			setSession(newUser);
+		sbSignUp(name, email, password).then(function(res) {
+			if (!res.ok) {
+				if (res.errorCode === "user_already_exists" || res.errorCode === 422) {
+					errBox.textContent = t("auth.emailAlreadyRegistered");
+				} else if (res.errorCode === "over_email_send_rate_limit" || res.errorCode === 429) {
+					// เจอเคสนี้ตอนสมัครซ้ำด้วยอีเมลที่เคยสมัครไว้แล้วแต่ยังไม่ยืนยัน — Supabase พยายามส่งอีเมลยืนยันซ้ำแล้วโดนลิมิต
+					errBox.textContent = t("auth.emailRateLimited");
+				} else {
+					errBox.textContent = res.error || t("auth.genericError");
+				}
+				errBox.classList.add("show");
+				return;
+			}
+			if (res.needsEmailConfirm) {
+				errBox.classList.remove("show");
+				closeAuthPop();
+				form.reset();
+				showToast(t("auth.checkEmailToConfirm").replace("{email}", email));
+				return;
+			}
 			closeAuthPop();
 			refreshAuthUI();
 			form.reset();
-
 			// ทุกบัญชีเป็นแบบเดียวกันหมด -> พาไปทำแบบสอบถาม Food DNA ต่อเสมอ
 			window.location.href = "profile-setup.html";
 		});
 	});
 
-	/* --- เข้าสู่ระบบ --- */
+	/* --- เข้าสู่ระบบ — ผ่าน Supabase Auth จริงเช่นกัน --- */
 	document.getElementById("loginForm").addEventListener("submit", function(e) {
 		e.preventDefault();
 		var form = this;
@@ -136,29 +140,17 @@ if (authPop) {
 		var email = document.getElementById("loginEmail").value.trim().toLowerCase();
 		var password = document.getElementById("loginPassword").value;
 
-		var users = getUsers();
-		var candidate = users.filter(function(u) {
-			return u.email === email;
-		})[0];
-
-		if (!candidate) {
-			errBox.textContent = t("auth.invalidCredentials");
-			errBox.classList.add("show");
-			return;
-		}
-
-		hashPassword(password, candidate.salt).then(function(passwordHash) {
-			if (passwordHash !== candidate.passwordHash) {
+		sbSignIn(email, password).then(function(res) {
+			if (!res.ok) {
 				errBox.textContent = t("auth.invalidCredentials");
 				errBox.classList.add("show");
 				return;
 			}
-
-			setSession(candidate);
+			var me = getMe();
 			closeAuthPop();
 			refreshAuthUI();
 			form.reset();
-			showToast(t("auth.welcomeBack").replace("{name}", candidate.name));
+			showToast(t("auth.welcomeBack").replace("{name}", me ? me.name : email));
 			// รีเฟรชหน้าปัจจุบันเพื่อให้ Food DNA ส่วนตัว + สถานะล็อกอินอัปเดตทุกจุด
 			setTimeout(function() {
 				window.location.reload();
@@ -196,6 +188,7 @@ document.addEventListener("keydown", function(e) {
 				'<div class="pvcap" id="pvCap"></div>' +
 				'<div class="pvactions">' +
 					'<button class="pvlikebtn" id="pvLikeBtn" type="button"><i class="far fa-heart"></i><span id="pvLikeCount"></span></button>' +
+					'<button class="pvreportbtn" id="pvReportBtn" type="button" hidden><i class="fas fa-flag"></i><span>' + t("report.button") + '</span></button>' +
 				"</div>" +
 				'<div class="pvcomments" id="pvComments"></div>' +
 				'<form class="pvcommentform" id="pvCommentForm">' +
@@ -222,6 +215,18 @@ document.addEventListener("keydown", function(e) {
 		if (!currentPostId) return;
 		togglePostLike(currentPostId);
 		refreshPvLike();
+	});
+
+	// รายงานได้เฉพาะโพสต์จริงที่ผู้ใช้สร้างเอง (id ขึ้นต้นด้วย "post") ไม่ใช่โพสต์ตัวอย่างของร้าน BU/นักรีวิวเด่น
+	document.getElementById("pvReportBtn").addEventListener("click", function() {
+		if (!currentPostId) return;
+		var postId = currentPostId;
+		openReportPopup("post", postId, function() {
+			if (postId === currentPostId) closePostView();
+			if (typeof renderCommunityFeed === "function" && feedState.container) {
+				renderCommunityFeed(feedState.container, typeof currentTrendCat !== "undefined" ? currentTrendCat : "all");
+			}
+		});
 	});
 
 	function renderPvComments() {
@@ -297,6 +302,7 @@ document.addEventListener("keydown", function(e) {
 		}
 		document.getElementById("pvName").textContent = post.posterName || "";
 		currentPostId = post.id || null;
+		document.getElementById("pvReportBtn").hidden = !(currentPostId && /^post/.test(currentPostId));
 		renderPvComments();
 		refreshPvLike();
 		modal.classList.add("open");

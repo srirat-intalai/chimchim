@@ -45,6 +45,10 @@
             <button type="button" class="rdghost" style="width:100%;" id="requestLocationBtn"><i class="fas fa-crosshairs me-1"></i><span data-i18n="settings.useMyLocation">Use My Current Location</span></button>
          </div>
 
+         <div class="profcard">
+            <a href="analytics.html" class="rdghost" style="width:100%;"><i class="fas fa-chart-simple me-1"></i><span data-i18n="analytics.settingsLink">Usage Stats (this device)</span></a>
+         </div>
+
          <!-- ============================================================
             เพจร้านอาหาร (เหมือนเพจ Facebook) — ใครก็สร้างได้จากตรงนี้ ไม่ต้องสมัครบัญชีร้านค้าแยก
             ============================================================ -->
@@ -69,29 +73,29 @@
                <input class="fctrl" type="text" id="pageName" placeholder="เช่น ป้าหน่อย ข้าวมันไก่" data-i18n-ph="shop.pageNamePlaceholder" required/>
                <label class="flbl" data-i18n="shop.category">Food category</label>
                <select class="fctrl" id="pageCat" required>
-                  <optgroup label="🍽️ ทั่วไป">
+                  <optgroup label="🍽️ ทั่วไป" data-group-key="optgroup.everyday">
                      <option value="อาหารตามสั่ง">🍳 อาหารตามสั่ง</option>
                      <option value="ข้าวแกง">🍛 ข้าวแกง</option>
                      <option value="ของทอด">🍤 ของทอด</option>
                      <option value="ปิ้งย่าง">🍖 ปิ้งย่าง</option>
                   </optgroup>
-                  <optgroup label="🌶️ รสจัดจ้าน">
+                  <optgroup label="🌶️ รสจัดจ้าน" data-group-key="optgroup.spicy">
                      <option value="ส้มตำ">🥭 ส้มตำ</option>
                      <option value="ยำ">🌶️ ยำ</option>
                      <option value="หม่าล่า">🍲 หม่าล่า</option>
                   </optgroup>
-                  <optgroup label="🗺️ ตามภาค">
+                  <optgroup label="🗺️ ตามภาค" data-group-key="optgroup.regional">
                      <option value="อีสาน">🍢 อีสาน</option>
                      <option value="เหนือ">🍛 เหนือ</option>
                      <option value="กลาง">🍚 กลาง</option>
                      <option value="อาหารใต้">🌶️ อาหารใต้</option>
                      <option value="อาหารป่า">🦌 อาหารป่า</option>
                   </optgroup>
-                  <optgroup label="🍜 เส้น/ก๋วยเตี๋ยว">
+                  <optgroup label="🍜 เส้น/ก๋วยเตี๋ยว" data-group-key="optgroup.noodles">
                      <option value="เมนูเส้น">🍜 เมนูเส้น</option>
                      <option value="ก๋วยเตี๋ยว">🍲 ก๋วยเตี๋ยว</option>
                   </optgroup>
-                  <optgroup label="🌏 นานาชาติ">
+                  <optgroup label="🌏 นานาชาติ" data-group-key="optgroup.international">
                      <option value="อาหารญี่ปุ่น">🍣 อาหารญี่ปุ่น</option>
                      <option value="อาหารจีน">🥟 อาหารจีน</option>
                      <option value="อาหารเกาหลี">🍚 อาหารเกาหลี</option>
@@ -102,12 +106,12 @@
                      <option value="สเต็ก">🥩 สเต็ก</option>
                      <option value="Fast Food">🍔 Fast Food</option>
                   </optgroup>
-                  <optgroup label="🍰 ของหวาน/เครื่องดื่ม">
+                  <optgroup label="🍰 ของหวาน/เครื่องดื่ม" data-group-key="optgroup.dessertsDrinks">
                      <option value="ของหวาน/เบเกอรี่">🍰 ของหวาน/เบเกอรี่</option>
                      <option value="ผลไม้">🍉 ผลไม้</option>
                      <option value="เครื่องดื่ม">🥤 เครื่องดื่ม</option>
                   </optgroup>
-                  <optgroup label="🥗 เฉพาะทาง">
+                  <optgroup label="🥗 เฉพาะทาง" data-group-key="optgroup.dietary">
                      <option value="อาหารเจ">🥬 อาหารเจ</option>
                      <option value="อาหารฮาลาล">🕌 อาหารฮาลาล</option>
                      <option value="มังสวิรัติ">🥗 มังสวิรัติ</option>
@@ -149,29 +153,29 @@
                <input class="fctrl" type="text" id="shopDish" placeholder="เช่น ข้าวมันไก่ทอด" data-i18n-ph="shop.dishPlaceholder" required/>
                <label class="flbl" data-i18n="shop.category">Food category</label>
                <select class="fctrl" id="shopCat" required>
-                  <optgroup label="🍽️ ทั่วไป">
+                  <optgroup label="🍽️ ทั่วไป" data-group-key="optgroup.everyday">
                      <option value="อาหารตามสั่ง">🍳 อาหารตามสั่ง</option>
                      <option value="ข้าวแกง">🍛 ข้าวแกง</option>
                      <option value="ของทอด">🍤 ของทอด</option>
                      <option value="ปิ้งย่าง">🍖 ปิ้งย่าง</option>
                   </optgroup>
-                  <optgroup label="🌶️ รสจัดจ้าน">
+                  <optgroup label="🌶️ รสจัดจ้าน" data-group-key="optgroup.spicy">
                      <option value="ส้มตำ">🥭 ส้มตำ</option>
                      <option value="ยำ">🌶️ ยำ</option>
                      <option value="หม่าล่า">🍲 หม่าล่า</option>
                   </optgroup>
-                  <optgroup label="🗺️ ตามภาค">
+                  <optgroup label="🗺️ ตามภาค" data-group-key="optgroup.regional">
                      <option value="อีสาน">🍢 อีสาน</option>
                      <option value="เหนือ">🍛 เหนือ</option>
                      <option value="กลาง">🍚 กลาง</option>
                      <option value="อาหารใต้">🌶️ อาหารใต้</option>
                      <option value="อาหารป่า">🦌 อาหารป่า</option>
                   </optgroup>
-                  <optgroup label="🍜 เส้น/ก๋วยเตี๋ยว">
+                  <optgroup label="🍜 เส้น/ก๋วยเตี๋ยว" data-group-key="optgroup.noodles">
                      <option value="เมนูเส้น">🍜 เมนูเส้น</option>
                      <option value="ก๋วยเตี๋ยว">🍲 ก๋วยเตี๋ยว</option>
                   </optgroup>
-                  <optgroup label="🌏 นานาชาติ">
+                  <optgroup label="🌏 นานาชาติ" data-group-key="optgroup.international">
                      <option value="อาหารญี่ปุ่น">🍣 อาหารญี่ปุ่น</option>
                      <option value="อาหารจีน">🥟 อาหารจีน</option>
                      <option value="อาหารเกาหลี">🍚 อาหารเกาหลี</option>
@@ -182,12 +186,12 @@
                      <option value="สเต็ก">🥩 สเต็ก</option>
                      <option value="Fast Food">🍔 Fast Food</option>
                   </optgroup>
-                  <optgroup label="🍰 ของหวาน/เครื่องดื่ม">
+                  <optgroup label="🍰 ของหวาน/เครื่องดื่ม" data-group-key="optgroup.dessertsDrinks">
                      <option value="ของหวาน/เบเกอรี่">🍰 ของหวาน/เบเกอรี่</option>
                      <option value="ผลไม้">🍉 ผลไม้</option>
                      <option value="เครื่องดื่ม">🥤 เครื่องดื่ม</option>
                   </optgroup>
-                  <optgroup label="🥗 เฉพาะทาง">
+                  <optgroup label="🥗 เฉพาะทาง" data-group-key="optgroup.dietary">
                      <option value="อาหารเจ">🥬 อาหารเจ</option>
                      <option value="อาหารฮาลาล">🕌 อาหารฮาลาล</option>
                      <option value="มังสวิรัติ">🥗 มังสวิรัติ</option>

@@ -97,6 +97,17 @@ if (!ร้านปัจจุบัน) {
 		showToast(t("restaurant.linkCopiedToast"));
 	});
 
+	/* --- ปุ่มรายงาน — เฉพาะร้านที่ชุมชนโพสต์เอง (ร้านตั้งต้นของทีม ChimChim รายงานไม่ได้) --- */
+	var rdReportBtn = document.getElementById("rdReportBtn");
+	if (ร้านปัจจุบัน.community) {
+		rdReportBtn.hidden = false;
+		rdReportBtn.addEventListener("click", function() {
+			openReportPopup("shop", ร้านปัจจุบัน.id, function() {
+				window.location.href = "home.html";
+			});
+		});
+	}
+
 	/* --- ปุ่มนำทาง — เปิด Google Maps ค้นหาตำแหน่งร้านจริงจากชื่อร้าน + มหาวิทยาลัยใกล้เคียง --- */
 	document.getElementById("rdNavBtn").addEventListener("click", function() {
 		var q = ร้านปัจจุบัน.ร้าน + (ร้านปัจจุบัน.มหาลัย ? " ใกล้ " + ร้านปัจจุบัน.มหาลัย : "");

@@ -246,6 +246,7 @@ function ขอคำตอบจากชิมชิม(text, ผลลัพ�
 function ส่งข้อความ(text) {
 	text = text.trim();
 	if (!text) return;
+	if (typeof logEvent === "function") logEvent("ai_chat_message_sent", {});
 	addUserBubble(text);
 	aiChatInput.value = "";
 	renderQuickSuggestions();

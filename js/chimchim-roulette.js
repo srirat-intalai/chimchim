@@ -212,3 +212,6 @@ if (recommendPop) {
 
 spinBtn.addEventListener("click", spinWheel);
 document.getElementById("wagainBtn").addEventListener("click", spinWheel);
+
+// ดึงร้านที่คนอื่นโพสต์ไว้ใน Supabase จริงมาผสานกับ รายการร้าน เงียบ ๆ พอสปินจริงจะได้เห็นร้านครบทุกเครื่อง
+if (typeof syncShopsWithSupabase === "function") syncShopsWithSupabase();

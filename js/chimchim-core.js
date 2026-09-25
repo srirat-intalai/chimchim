@@ -492,6 +492,74 @@ function mergeCommunityShopsIntoรายการร้าน() {
 	return shops;
 }
 
+/* --- ผสานร้านที่ดึงมาจาก Supabase จริง (ทุกคนเห็นเหมือนกัน ไม่ใช่แค่เบราว์เซอร์นี้) เข้ากับ รายการร้าน
+   remote ชนะเสมอถ้ามี id ซ้ำกับของเดิม (ข้อมูลจาก Supabase ถือเป็นข้อมูลล่าสุด) เรียกจากหน้าที่โชว์รายชื่อร้าน
+   หลัง initial render เดิมเสร็จแล้ว (ดู syncShopsWithSupabase ใน chimchim-supabase-client.js) --- */
+function mergeRemoteShopsIntoรายการร้าน(remoteShops) {
+	remoteShops.forEach(function(remote) {
+		if (isContentHidden("shop", remote.numId)) return;
+		var mapped = shopToร้าน(remote);
+		var idx = รายการร้าน.findIndex(function(r) { return r.id === remote.numId; });
+		if (idx !== -1) {
+			รายการร้าน[idx] = mapped;
+		} else {
+			รายการร้าน.push(mapped);
+		}
+	});
+}
+
+/* --- ร้านของฉันเพิ่งถูก sync ขึ้น Supabase ครั้งแรก แล้วได้ id ใหม่จากเซิร์ฟเวอร์มา (id เดิมที่เบราว์เซอร์
+   สุ่มไว้เองใช้ต่อไม่ได้แล้ว) ย้าย id เดิมทุกจุดที่เคยอ้างอิงไว้ (รีวิว/ไลก์/follow/โพสต์/persona) ให้ตรงกับ id ใหม่
+   กันข้อมูลเดิมหลุดหาย เหมือนกับตอนย้ายบัญชีเก่าไปบัญชี Supabase (migrateOrphanedLocalData) --- */
+function reconcileShopNumId(oldNumId, newNumId) {
+	if (oldNumId === newNumId) return;
+
+	try {
+		var allReviews = JSON.parse(localStorage.getItem(CHIMCHIM_REVIEWS_KEY)) || {};
+		if (allReviews[oldNumId]) {
+			allReviews[newNumId] = (allReviews[newNumId] || []).concat(allReviews[oldNumId]);
+			delete allReviews[oldNumId];
+			localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(allReviews));
+		}
+	} catch (e) {
+		// ข้อมูลรีวิวเสีย/parse ไม่ได้ ข้ามไปเลย ไม่ให้การย้ายส่วนอื่นล้มไปด้วย
+	}
+
+	var likes = getLikedShops();
+	var likeIdx = likes.indexOf(oldNumId);
+	if (likeIdx !== -1) {
+		likes[likeIdx] = newNumId;
+		localStorage.setItem(CHIMCHIM_LIKES_KEY, JSON.stringify(likes));
+	}
+
+	var follows = getFollowedShops();
+	var followIdx = follows.indexOf(oldNumId);
+	if (followIdx !== -1) {
+		follows[followIdx] = newNumId;
+		localStorage.setItem(CHIMCHIM_FOLLOWS_KEY, JSON.stringify(follows));
+	}
+
+	var posts = getAllPosts();
+	var postsChanged = false;
+	posts.forEach(function(p) {
+		if (p.pageId === oldNumId) {
+			p.pageId = newNumId;
+			postsChanged = true;
+		}
+	});
+	if (postsChanged) localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+
+	if (getActivePersona() === String(oldNumId)) {
+		setActivePersona(String(newNumId));
+	}
+
+	var shops = getShops();
+	shops.forEach(function(s) {
+		if (s.numId === oldNumId) s.numId = newNumId;
+	});
+	saveShops(shops);
+}
+
 /* =====================================================================
    ข้อมูลเสริมของร้าน (เวลาเปิด-ปิด + โปรโมชั่น) — เพื่อให้หน้าโปรไฟล์ร้านและ
    ฟีดอัปเดตใน Following ดูมีชีวิตชีวา ใช้สูตรคงที่จาก id ร้าน (ไม่ต้องเก็บ state)

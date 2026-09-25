@@ -66,3 +66,107 @@ function sbSignOut() {
 	if (!sbClient) return Promise.resolve();
 	return sbClient.auth.signOut();
 }
+
+/* =====================================================================
+   ร้านของฉัน (shops) — เฟส 2: sync จริงกับ Supabase ไม่ใช่แค่ localStorage แล้ว
+   แนวทาง "progressive enhancement": โหลดหน้าแรกยังอ่านจาก localStorage เหมือนเดิมทันที (ไม่ค้างรอเน็ต)
+   แล้วค่อยดึงร้านจริงจาก Supabase มาผสาน/อัปเดตทับเงียบ ๆ อีกที ผ่าน mergeRemoteShopsIntoรายการร้าน()
+   เขียน (สร้าง/แก้ไขร้าน) จะเซฟ localStorage เหมือนเดิมก่อน (ใช้งานต่อได้ทันทีแม้เน็ตช้า/หลุด)
+   แล้วค่อยส่งขึ้น Supabase จริงตามหลัง — ถ้า Supabase ให้ id ใหม่มา (สร้างครั้งแรก) จะย้าย
+   id เดิมทุกจุด (รีวิว/ไลก์/follow/โพสต์) ให้ตรงกับ id ใหม่อัตโนมัติ เหมือนกับตอน merge auth
+   ===================================================================== */
+function sbShopRowToLocal(row) {
+	return {
+		numId: row.id,
+		vendorId: row.vendor_id,
+		vendorName: (row.profiles && row.profiles.name) || "",
+		name: row.shop_name,
+		dish: row.menu_name,
+		cat: row.category,
+		img: row.image_url,
+		priceLow: row.price_low,
+		priceHigh: row.price_high,
+		distance: row.distance_m,
+		uni: row.university,
+		desc: row.description,
+		hours: row.hours,
+		promo: row.promo
+	};
+}
+function sbShopToRow(shop, vendorId) {
+	return {
+		vendor_id: vendorId,
+		shop_name: shop.name,
+		menu_name: shop.dish,
+		category: shop.cat,
+		image_url: shop.img,
+		price_low: shop.priceLow,
+		price_high: shop.priceHigh,
+		distance_m: shop.distance,
+		university: shop.uni,
+		description: shop.desc || "",
+		hours: shop.hours || "",
+		promo: shop.promo || ""
+	};
+}
+// ดึงร้านที่ผู้ใช้ทุกคนโพสต์เข้าชุมชนจาก Supabase จริง (ไม่ใช่แค่ในเบราว์เซอร์นี้) — คืน Promise<Array>
+// ล้มเหลว/ยังไม่ได้เชื่อมต่อ ก็แค่คืน [] เงียบ ๆ ไม่ทำให้หน้าเว็บพังเพราะจุดนี้เป็นแค่ส่วนเสริม
+function sbFetchCommunityShops() {
+	if (!sbClient) return Promise.resolve([]);
+	return sbClient.from("shops").select("*, profiles!vendor_id(name)").eq("is_hidden", false).not("vendor_id", "is", null)
+		.then(function(res) {
+			if (res.error) {
+				console.error("[chimchim] sbFetchCommunityShops error:", res.error.message);
+				return [];
+			}
+			return res.data.map(sbShopRowToLocal);
+		}).catch(function() { return []; });
+}
+// จุดเรียกหลัก — เรียกจากแต่ละหน้าที่โชว์รายชื่อร้าน (home.html, ai-finder.html, roulette.html, restaurant.html)
+// หลัง initial render เดิมเสร็จแล้ว: (1) sync ร้านของฉันขึ้น Supabase ถ้ายังไม่เคย sync มาก่อน
+// (2) ดึงร้านของทุกคนจาก Supabase มาผสานกับ รายการร้าน แล้วเรียก onUpdated() ให้หน้านั้น re-render
+// ทำแบบ "เสริมเงียบ ๆ" ไม่บล็อกการโหลดหน้าแรก และล้มเหลวได้โดยไม่ทำหน้าเว็บพัง (แค่ไม่มีข้อมูลข้ามเครื่อง)
+function syncShopsWithSupabase(onUpdated) {
+	if (!sbClient) return;
+	var me = getMe();
+	var pushMyShop = Promise.resolve();
+
+	if (me) {
+		var myShop = getMyShop();
+		if (myShop) {
+			pushMyShop = sbSaveMyShop(myShop).then(function(saved) {
+				if (saved && saved.numId !== myShop.numId) {
+					reconcileShopNumId(myShop.numId, saved.numId);
+				}
+			});
+		}
+	}
+
+	pushMyShop.then(function() {
+		return sbFetchCommunityShops();
+	}).then(function(remoteShops) {
+		if (!remoteShops.length) return;
+		mergeRemoteShopsIntoรายการร้าน(remoteShops);
+		if (typeof onUpdated === "function") onUpdated();
+	});
+}
+
+// บันทึกร้านของฉันขึ้น Supabase จริง (insert ถ้ายังไม่เคยมี, update ถ้ามีแล้ว) — คืน Promise<localShop|null>
+function sbSaveMyShop(shop) {
+	var me = getMe();
+	if (!me || !sbClient) return Promise.resolve(null);
+	return sbClient.from("shops").select("id").eq("vendor_id", me.id).then(function(existingRes) {
+		var existingId = existingRes.data && existingRes.data[0] && existingRes.data[0].id;
+		var row = sbShopToRow(shop, me.id);
+		var query = existingId
+			? sbClient.from("shops").update(row).eq("id", existingId)
+			: sbClient.from("shops").insert(row);
+		return query.select("*, profiles!vendor_id(name)").single();
+	}).then(function(res) {
+		if (res.error) {
+			console.error("[chimchim] sbSaveMyShop error:", res.error.message);
+			return null;
+		}
+		return sbShopRowToLocal(res.data);
+	}).catch(function() { return null; });
+}

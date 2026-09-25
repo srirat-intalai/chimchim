@@ -12,6 +12,14 @@ if (!ร้านปัจจุบัน) {
 		'<p style="color:#999;font-size:.9rem;margin-bottom:16px;">' + t("common.shopNotFound") + '</p>' +
 		'<a href="home.html" class="btn-red"><i class="fas fa-house"></i><span>' + t("common.backToHome") + '</span></a>' +
 		"</div>";
+	// ร้านนี้อาจโพสต์จากเครื่องอื่น ยังไม่เคย sync มาที่เครื่องนี้ — ลอง sync แล้วโหลดหน้าใหม่ครั้งเดียวถ้าเจอ
+	var retryFlag = "chimchim_shop_sync_retry_" + shopId;
+	if (typeof syncShopsWithSupabase === "function" && !sessionStorage.getItem(retryFlag)) {
+		sessionStorage.setItem(retryFlag, "1");
+		syncShopsWithSupabase(function() {
+			if (หาร้านจากId(shopId)) location.reload();
+		});
+	}
 } else {
 	var คะแนน = คำนวณMatch(ร้านปัจจุบัน, foodDNA);
 	var เหตุผล = สร้างเหตุผลmatch(ร้านปัจจุบัน, foodDNA);

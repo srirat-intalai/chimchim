@@ -314,6 +314,15 @@ renderRecommendedRow();
 
 renderTrendCatStrip();
 
+/* ดึงร้านที่คนอื่นโพสต์ไว้ใน Supabase จริง (ข้ามเครื่อง) มาผสานกับ รายการร้าน หลัง render หน้าแรกเสร็จแล้ว
+   แล้ว re-render ส่วนที่ขึ้นกับ รายการร้าน อีกครั้งเงียบ ๆ (ไม่บล็อกโหลดหน้าแรก) */
+if (typeof syncShopsWithSupabase === "function") {
+    syncShopsWithSupabase(function() {
+        renderRecommendedRow();
+        renderTrendCatStrip();
+    });
+}
+
 /* หมายเหตุ: ฟีดชุมชน (#communityFeed) render โดย renderCommunityFeed() ใน chimchim-community.js
    เพราะไฟล์นั้นโหลดทีหลังสุด (หลัง chimchim-home.js) และมีฟังก์ชัน openPostView/like ที่ฟีดต้องใช้ร่วมกัน
    (อ่าน currentTrendCat ที่ประกาศไว้ด้านบนไฟล์นี้ไปกรองด้วยตอนโหลดหน้าครั้งแรก)

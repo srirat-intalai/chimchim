@@ -281,3 +281,6 @@ aiChatForm.addEventListener("submit", function(e) {
 ----------------------------------------------------- */
 addBotBubble(t("ai.startBubble"));
 renderQuickSuggestions();
+
+// ดึงร้านที่คนอื่นโพสต์ไว้ใน Supabase จริงมาผสานกับ รายการร้าน เงียบ ๆ กันชิมชิมแนะนำร้านไม่ครบ
+if (typeof syncShopsWithSupabase === "function") syncShopsWithSupabase();

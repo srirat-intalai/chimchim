@@ -83,6 +83,10 @@ function renderCreators() {
 	});
 }
 renderCreators();
+// ดึงติดตามจริงจาก Supabase มาผสาน (เผื่อกดติดตามไว้จากเครื่องอื่น) แล้ว re-render ให้ปุ่ม/สถานะตรงของจริง
+if (typeof syncLikesAndFollowsWithSupabase === "function") {
+	syncLikesAndFollowsWithSupabase(renderCreators);
+}
 
 var peopleFilterAllBtn = document.getElementById('peopleFilterAll');
 var peopleFilterFollowingBtn = document.getElementById('peopleFilterFollowing');

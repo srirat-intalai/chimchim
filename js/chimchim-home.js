@@ -323,6 +323,20 @@ if (typeof syncShopsWithSupabase === "function") {
     });
 }
 
+/* ดึงโพสต์ของทุกคนจาก Supabase จริงมาผสานกับฟีดชุมชน + ดึงไลก์/ติดตามของตัวเองมาผสาน (accurate ข้ามเครื่อง)
+   แล้ว re-render ฟีด (renderCommunityFeed มาจาก chimchim-community.js ที่โหลดทีหลังไฟล์นี้เสมอ) */
+if (typeof syncPostsWithSupabase === "function") {
+    syncPostsWithSupabase(function() {
+        var feedContainer = document.getElementById('communityFeed');
+        if (feedContainer && typeof renderCommunityFeed === "function") {
+            renderCommunityFeed(feedContainer, currentTrendCat);
+        }
+    });
+}
+if (typeof syncLikesAndFollowsWithSupabase === "function") {
+    syncLikesAndFollowsWithSupabase();
+}
+
 /* หมายเหตุ: ฟีดชุมชน (#communityFeed) render โดย renderCommunityFeed() ใน chimchim-community.js
    เพราะไฟล์นั้นโหลดทีหลังสุด (หลัง chimchim-home.js) และมีฟังก์ชัน openPostView/like ที่ฟีดต้องใช้ร่วมกัน
    (อ่าน currentTrendCat ที่ประกาศไว้ด้านบนไฟล์นี้ไปกรองด้วยตอนโหลดหน้าครั้งแรก)

@@ -99,6 +99,9 @@ if (!ร้านปัจจุบัน) {
 		refreshFollowBtn();
 		showToast(nowFollowing ? t("restaurant.followedToast") : t("restaurant.unfollowedToast"));
 	});
+	if (typeof syncLikesAndFollowsWithSupabase === "function") {
+		syncLikesAndFollowsWithSupabase(refreshFollowBtn);
+	}
 
 	/* --- ปุ่มแชร์ --- */
 	document.getElementById("rdShareBtn").addEventListener("click", function() {
@@ -138,49 +141,66 @@ if (!ร้านปัจจุบัน) {
 	});
 
 	/* --- รายการรีวิว --- */
-	var reviews = getReviews(ร้านปัจจุบัน.id);
-	document.getElementById("rdReviewCount").textContent = reviews.length;
-	var listBox = document.getElementById("rdReviewList");
-	if (reviews.length === 0) {
-		listBox.innerHTML = '<p class="rdempty">' + t("restaurant.noReviewsYet") + '</p>';
-	} else {
-		var html = "";
-		reviews.forEach(function(r) {
-			var avgScore = Math.round((r.taste + r.atmosphere + r.service) / 3 * 10) / 10;
-			html +=
-				'<div class="rdreviewrow">' +
-					'<div class="rdreviewavt">' + escapeHtml(r.author.charAt(0).toUpperCase()) + "</div>" +
-					"<div>" +
-						'<div class="rdreviewnm">' + escapeHtml(r.author) + "</div>" +
-						'<div class="rdreviewscore">🎯 ' + avgScore + t("restaurant.avgScoreSuffix") + "</div>" +
-						'<div class="rdreviewtxt">' + escapeHtml(r.text || t("restaurant.noReviewText")) + "</div>" +
-					"</div>" +
-				"</div>";
-		});
-		listBox.innerHTML = html;
+	function renderReviews() {
+		var reviews = getReviews(ร้านปัจจุบัน.id);
+		document.getElementById("rdReviewCount").textContent = reviews.length;
+		var listBox = document.getElementById("rdReviewList");
+		if (reviews.length === 0) {
+			listBox.innerHTML = '<p class="rdempty">' + t("restaurant.noReviewsYet") + '</p>';
+		} else {
+			var html = "";
+			reviews.forEach(function(r) {
+				var avgScore = Math.round((r.taste + r.atmosphere + r.service) / 3 * 10) / 10;
+				html +=
+					'<div class="rdreviewrow">' +
+						'<div class="rdreviewavt">' + escapeHtml(r.author.charAt(0).toUpperCase()) + "</div>" +
+						"<div>" +
+							'<div class="rdreviewnm">' + escapeHtml(r.author) + "</div>" +
+							'<div class="rdreviewscore">🎯 ' + avgScore + t("restaurant.avgScoreSuffix") + "</div>" +
+							'<div class="rdreviewtxt">' + escapeHtml(r.text || t("restaurant.noReviewText")) + "</div>" +
+						"</div>" +
+					"</div>";
+			});
+			listBox.innerHTML = html;
+		}
+	}
+	renderReviews();
+	// ดึงรีวิวจริงของทุกคนจาก Supabase มาผสาน (ไม่ใช่แค่รีวิวที่เขียนจากเครื่องนี้) แล้ว re-render
+	if (typeof syncReviewsWithSupabase === "function") {
+		syncReviewsWithSupabase(ร้านปัจจุบัน.id, renderReviews);
+	}
+	// นับไลก์ร้านจริงจาก Supabase สำหรับปุ่มถูกใจบน hero (ปุ่มนี้ไม่ได้ผ่าน initLikeUI เหมือนการ์ดร้านทั่วไป)
+	if (typeof queueShopLikeCountFetch === "function") {
+		queueShopLikeCountFetch(ร้านปัจจุบัน.id, likeCountEl);
 	}
 
 	/* --- แท็บโพสต์ — โชว์เฉพาะร้านที่ผู้ใช้โพสต์เข้าชุมชนเอง (มี vendorId) ร้านทีม ChimChim ไม่มีโพสต์ให้โชว์ --- */
-	if (ร้านปัจจุบัน.community && ร้านปัจจุบัน.vendorId) {
+	function renderShopPosts() {
+		if (!(ร้านปัจจุบัน.community && ร้านปัจจุบัน.vendorId)) return;
 		var shopPosts = getPostsByPage(ร้านปัจจุบัน.id);
-		if (shopPosts.length) {
-			document.getElementById("rdPostsTab").hidden = false;
-			var postGrid = document.getElementById("rdPostGrid");
-			var postEmpty = document.getElementById("rdPostEmpty");
-			postEmpty.hidden = true;
-			shopPosts.forEach(function(p) {
-				var images = getPostImages(p);
-				var el = document.createElement("div");
-				el.className = "ppost";
-				el.innerHTML =
-					'<img src="' + images[0] + '" alt=""/>' +
-					(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
-					'<div class="ppostcap">' + escapeHtml(p.caption) + '</div>';
-				el.addEventListener("click", function() {
-					openPostView({ id: p.id, images: images, caption: p.caption, posterName: ร้านปัจจุบัน.ร้าน, posterColor: "var(--cream2)" });
-				});
-				postGrid.appendChild(el);
+		if (!shopPosts.length) return;
+		document.getElementById("rdPostsTab").hidden = false;
+		var postGrid = document.getElementById("rdPostGrid");
+		var postEmpty = document.getElementById("rdPostEmpty");
+		postGrid.innerHTML = "";
+		postEmpty.hidden = true;
+		shopPosts.forEach(function(p) {
+			var images = getPostImages(p);
+			var el = document.createElement("div");
+			el.className = "ppost";
+			el.innerHTML =
+				'<img src="' + images[0] + '" alt=""/>' +
+				(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
+				'<div class="ppostcap">' + escapeHtml(p.caption) + '</div>';
+			el.addEventListener("click", function() {
+				openPostView({ id: p.id, images: images, caption: p.caption, posterName: ร้านปัจจุบัน.ร้าน, posterColor: "var(--cream2)" });
 			});
-		}
+			postGrid.appendChild(el);
+		});
+	}
+	renderShopPosts();
+	// ดึงโพสต์ของทุกคนจาก Supabase มาผสาน เผื่อร้านนี้มีโพสต์ที่ทำจากเครื่องอื่นที่ยังไม่เคยเห็นในเครื่องนี้
+	if (typeof syncPostsWithSupabase === "function") {
+		syncPostsWithSupabase(renderShopPosts);
 	}
 }

@@ -267,3 +267,18 @@ create table public.analytics_events (
 alter table public.analytics_events enable row level security;
 -- เขียนได้ทุกคน (รวมคนไม่ล็อกอิน) แต่อ่านไม่ได้เลยผ่าน anon key — ดึงสรุปได้เฉพาะฝั่ง dashboard ที่ใช้ service role key เท่านั้น
 create policy "events_insert_all" on public.analytics_events for insert with check (true);
+
+-- =====================================================================
+-- Phase 3 — sync ข้อมูลผู้ใช้จริงทุกอย่างข้ามอุปกรณ์ (โปรไฟล์/โพสต์/รีวิว/ไลก์/ติดตาม)
+-- รันต่อจาก Phase 1+2 ได้เลย (รันไฟล์นี้ทั้งไฟล์ซ้ำได้ปลอดภัย ยกเว้นส่วนนี้ที่เป็น ALTER ต้องรันครั้งเดียว)
+-- =====================================================================
+
+-- profiles: เพิ่ม bio + รูปโปรไฟล์จริง (เดิมมีแค่ avatar_text ตัวอักษรเดียว)
+alter table public.profiles add column bio text;
+alter table public.profiles add column avatar_url text;
+
+-- posts.page_id เดิมอ้างอิงตาราง "pages" (ระบบเพจแยกต่างหากที่เลิกใช้แล้ว) — ตอนนี้ "เพจร้าน" กับ "ร้านของฉัน"
+-- รวมเป็นเอนทิตีเดียวกันแล้วฝั่งแอป (ดู migratePageIntoShop ใน chimchim-core.js) เลยต้องย้ายให้ page_id
+-- อ้างอิง "shops" แทน ไม่งั้นโพสต์ในนามร้านจะ insert ขึ้น Supabase ไม่ได้เพราะ id ไม่ตรงตารางที่ผูกไว้เดิม
+alter table public.posts drop constraint posts_page_id_fkey;
+alter table public.posts add constraint posts_shop_id_fkey foreign key (page_id) references public.shops(id) on delete cascade;

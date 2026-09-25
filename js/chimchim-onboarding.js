@@ -104,6 +104,7 @@ function obFinish() {
 	};
 
 	updateMe({ foodDNA: newDNA });
+	if (typeof sbSaveMyProfile === "function") sbSaveMyProfile({ foodDNA: newDNA });
 	if (typeof logEvent === "function") logEvent("dna_quiz_completed", {});
 	applyPersonalFoodDNA();
 

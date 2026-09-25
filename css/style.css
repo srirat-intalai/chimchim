@@ -5505,6 +5505,13 @@ body.appshell {
 .ignamewrap .profemail {
   margin-top: 4px;
 }
+.profbio {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: var(--darkbg);
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
 .igbtnrow {
   display: flex;
   gap: 8px;

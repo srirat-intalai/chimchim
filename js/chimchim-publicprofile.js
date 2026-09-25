@@ -134,20 +134,25 @@ if (ppIsBuShop) {
 } else {
 	var users = getUsers();
 	var user = users.filter(function(u) { return u.id === ppUid; })[0];
-	if (!user) {
-		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">' + t("common.profileNotFound") + '</p>';
-	} else {
+	function renderRealUserProfile(user) {
 		document.title = user.name + " - ChimChim";
-		document.getElementById("ppAvatar").textContent = user.name.charAt(0).toUpperCase();
+		var ppAvatarReal = document.getElementById("ppAvatar");
+		if (user.avatar) {
+			ppAvatarReal.style.background = "var(--cream2) center/cover no-repeat url('" + user.avatar + "')";
+			ppAvatarReal.textContent = "";
+		} else {
+			ppAvatarReal.textContent = user.name.charAt(0).toUpperCase();
+		}
 		document.getElementById("ppName").textContent = user.name;
 		document.getElementById("ppSub").textContent = t("publicprofile.chimchimUser");
 		document.getElementById("ppLevel").textContent = "🧑‍🎓 " + t("common.chimchimFoodie");
-		document.getElementById("ppBio").textContent = t("publicprofile.defaultBio");
+		document.getElementById("ppBio").textContent = user.bio || t("publicprofile.defaultBio");
 
 		var followBtn2 = document.getElementById("ppFollowBtn");
 		if (ppSession && ppSession.id === user.id) {
 			followBtn2.hidden = true;
 		} else {
+			followBtn2.hidden = false;
 			(function() {
 				function refreshFollow2() {
 					var followed = isUserFollowed(user.id);
@@ -158,9 +163,26 @@ if (ppIsBuShop) {
 					toggleFollowUser(user.id);
 					refreshFollow2();
 				});
+				if (typeof syncLikesAndFollowsWithSupabase === "function") syncLikesAndFollowsWithSupabase(refreshFollow2);
 			})();
 		}
 
 		ppRenderPosts(getPostsByUser(user.id), user.name, "linear-gradient(135deg, var(--dark), #7d6fb0)");
+	}
+	if (user) {
+		renderRealUserProfile(user);
+	} else if (sbClient) {
+		// ยังไม่เคยเห็นผู้ใช้นี้ในเครื่องนี้เลย (เช่น เปิดลิงก์โปรไฟล์คนอื่นข้ามอุปกรณ์ครั้งแรก) — ลองถาม Supabase จริงแทน
+		sbClient.from("profiles").select("id, name, bio, avatar_url").eq("id", ppUid).single().then(function(res) {
+			if (res.error || !res.data) {
+				document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">' + t("common.profileNotFound") + '</p>';
+				return;
+			}
+			renderRealUserProfile({ id: res.data.id, name: res.data.name, bio: res.data.bio, avatar: res.data.avatar_url });
+		}).catch(function() {
+			document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">' + t("common.profileNotFound") + '</p>';
+		});
+	} else {
+		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">' + t("common.profileNotFound") + '</p>';
 	}
 }

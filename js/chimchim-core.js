@@ -618,6 +618,31 @@ function addReview(shopId, review) {
 	all[shopId].unshift(review);
 	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
 	logEvent("review_submitted", { shopId: shopId });
+	if (typeof sbSubmitReview === "function") sbSubmitReview(shopId, review);
+}
+// ผสานรีวิวจริงจาก Supabase (ของทุกคน ไม่ใช่แค่เครื่องนี้) เข้ากับรีวิวในเครื่องนี้ — กันซ้ำด้วย
+// คีย์ ผู้เขียน+เวลา+ข้อความ เดียวกัน (รีวิวจริงแทบเป็นไปไม่ได้ที่จะชนกันพอดีทั้ง 3 อย่าง)
+function ขีดรีวิว(r) { return (r.author || "") + "|" + (r.date || "") + "|" + (r.text || ""); }
+function mergeRemoteReviewsIntoLocal(shopId, remoteReviews) {
+	var all;
+	try {
+		all = JSON.parse(localStorage.getItem(CHIMCHIM_REVIEWS_KEY)) || {};
+	} catch (e) {
+		all = {};
+	}
+	var local = all[shopId] || [];
+	var existingKeys = {};
+	local.forEach(function(r) { existingKeys[ขีดรีวิว(r)] = true; });
+	remoteReviews.forEach(function(r) {
+		var k = ขีดรีวิว(r);
+		if (!existingKeys[k]) {
+			local.push(r);
+			existingKeys[k] = true;
+		}
+	});
+	local.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+	all[shopId] = local;
+	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
 }
 // นับจำนวนรีวิวทั้งหมดที่ผู้ใช้คนนี้เคยเขียนไว้ (ใช้คำนวณ XP) — รีวิวต้องมี userId ติดไว้ตอนบันทึกถึงจะนับได้
 function countReviewsByUser(userId) {
@@ -700,6 +725,21 @@ function buildReviewItem(r) {
 	return item;
 }
 
+// เติม id ที่มีจริงบน Supabase (remoteIds) เข้าไปใน set ที่เก็บไว้ในเครื่องนี้ (localStorage key เดียว = array of id)
+// ใช้ตอนล็อกอิน/เข้าแอป เพื่อดึงไลก์/ติดตามที่เคยทำไว้จากเครื่องอื่นกลับมา โดยไม่ทำของเดิมในเครื่องนี้หาย (union)
+function mergeLocalIdSet(key, remoteIds) {
+	var local;
+	try {
+		local = JSON.parse(localStorage.getItem(key)) || [];
+	} catch (e) {
+		local = [];
+	}
+	remoteIds.forEach(function(id) {
+		if (local.indexOf(id) === -1) local.push(id);
+	});
+	localStorage.setItem(key, JSON.stringify(local));
+}
+
 /* =====================================================================
    Follow ร้าน (บันทึกไว้ในเบราว์เซอร์)
    ===================================================================== */
@@ -713,14 +753,16 @@ function getFollowedShops() {
 function toggleFollowShop(shopId) {
 	var list = getFollowedShops();
 	var idx = list.indexOf(shopId);
-	if (idx === -1) {
+	var nowFollowing = idx === -1;
+	if (nowFollowing) {
 		list.push(shopId);
 		logEvent("shop_followed", { shopId: shopId });
 	} else {
 		list.splice(idx, 1);
 	}
 	localStorage.setItem(CHIMCHIM_FOLLOWS_KEY, JSON.stringify(list));
-	return idx === -1;
+	if (typeof sbSetFollow === "function") sbSetFollow("shop", shopId, nowFollowing);
+	return nowFollowing;
 }
 function isShopFollowed(shopId) {
 	return getFollowedShops().indexOf(shopId) !== -1;
@@ -744,26 +786,55 @@ function isShopLiked(shopId) {
 function toggleLikeShop(shopId) {
 	var list = getLikedShops();
 	var idx = list.indexOf(shopId);
-	if (idx === -1) {
+	var nowLiked = idx === -1;
+	if (nowLiked) {
 		list.push(shopId);
 		logEvent("shop_liked", { shopId: shopId });
 	} else {
 		list.splice(idx, 1);
 	}
 	localStorage.setItem(CHIMCHIM_LIKES_KEY, JSON.stringify(list));
-	return idx === -1;
+	// ปรับเลขไลก์จริงที่ cache ไว้ทันที (optimistic) กันต้องรอ fetch ใหม่ทุกครั้งที่กด
+	CHIMCHIM_REAL_SHOP_LIKE_COUNTS[shopId] = Math.max(0, getLikeCount(shopId) + (nowLiked ? 1 : -1));
+	if (typeof sbSetShopLike === "function") sbSetShopLike(shopId, nowLiked);
+	return nowLiked;
 }
-// ยอดไลก์เริ่มต้นของร้าน คำนวณแบบ deterministic จาก id (ทุกคนเห็นตัวเลขฐานเดียวกัน ไม่ต้องเก็บ state ส่วนกลาง)
-function seedLikeCount(shopId) {
-	var h = Math.abs((shopId * 40503) % 9973);
-	return 20 + (h % 280);
-}
+// ยอดไลก์จริงจาก Supabase (นับแถวจริงในตาราง likes_shops ไม่ใช่เลขสุ่มมั่ว ๆ อีกต่อไป)
+// เริ่มที่ 0 จนกว่าจะดึงของจริงมาได้ (ดู queueShopLikeCountFetch ด้านล่าง — ผูกอัตโนมัติจาก initLikeUI ทุกจุด)
+var CHIMCHIM_REAL_SHOP_LIKE_COUNTS = {};
 function getLikeCount(shopId) {
-	return seedLikeCount(shopId) + (isShopLiked(shopId) ? 1 : 0);
+	return CHIMCHIM_REAL_SHOP_LIKE_COUNTS.hasOwnProperty(shopId) ? CHIMCHIM_REAL_SHOP_LIKE_COUNTS[shopId] : 0;
 }
 function formatLikeCount(n) {
 	if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
 	return String(n);
+}
+// รวมคำขอนับไลก์จริงของหลายร้านที่โชว์บนหน้าเดียวกันให้เป็นคำขอ Supabase เดียว (debounce ด้วย setTimeout สั้น ๆ)
+// กันยิง query แยกทีละการ์ด ๆ ตอนหน้ามีการ์ดร้านเป็นสิบ ๆ ใบพร้อมกัน (แถวแนะนำ/ฟีด/ค้นหา/วงล้อ ฯลฯ)
+var __pendingShopLikeIds = [];
+var __pendingShopLikeEls = {};
+var __shopLikeFlushScheduled = false;
+function queueShopLikeCountFetch(shopId, countEl) {
+	if (!__pendingShopLikeEls[shopId]) __pendingShopLikeEls[shopId] = [];
+	__pendingShopLikeEls[shopId].push(countEl);
+	if (__pendingShopLikeIds.indexOf(shopId) === -1) __pendingShopLikeIds.push(shopId);
+	if (__shopLikeFlushScheduled) return;
+	__shopLikeFlushScheduled = true;
+	setTimeout(function() {
+		var ids = __pendingShopLikeIds.slice();
+		var elsMap = __pendingShopLikeEls;
+		__pendingShopLikeIds = [];
+		__pendingShopLikeEls = {};
+		__shopLikeFlushScheduled = false;
+		if (typeof sbFetchShopLikeCounts !== "function") return;
+		sbFetchShopLikeCounts(ids).then(function(counts) {
+			ids.forEach(function(id) {
+				var count = counts[id] || 0;
+				CHIMCHIM_REAL_SHOP_LIKE_COUNTS[id] = count;
+				(elsMap[id] || []).forEach(function(el) { el.textContent = formatLikeCount(count); });
+			});
+		});
+	}, 40);
 }
 // ผูกปุ่มถูกใจ + ตัวเลขยอดไลก์ให้การ์ดร้าน (ใช้ได้ทุกหน้าที่มี .mhrt อยู่ในการ์ด)
 function initLikeUI(card) {
@@ -791,6 +862,7 @@ function initLikeUI(card) {
 		refresh();
 	});
 	refresh();
+	queueShopLikeCountFetch(id, countEl);
 }
 
 /* =====================================================================
@@ -810,18 +882,72 @@ function isPostLiked(postId) {
 function togglePostLike(postId) {
 	var list = getLikedPosts();
 	var idx = list.indexOf(postId);
-	if (idx === -1) list.push(postId); else list.splice(idx, 1);
+	var nowLiked = idx === -1;
+	if (nowLiked) list.push(postId); else list.splice(idx, 1);
 	localStorage.setItem(CHIMCHIM_POST_LIKES_KEY, JSON.stringify(list));
-	return idx === -1;
+	CHIMCHIM_REAL_POST_LIKE_COUNTS[postId] = Math.max(0, getPostLikeCount(postId) + (nowLiked ? 1 : -1));
+	if (typeof sbSetPostLike === "function") sbSetPostLike(postId, nowLiked);
+	return nowLiked;
 }
-// ยอดไลก์เริ่มต้นของโพสต์ คำนวณแบบ deterministic จาก id (string) เหมือนร้าน กันต้องเก็บ state กลาง
-function seedPostLikeCount(postId) {
-	var h = 0, i;
-	for (i = 0; i < postId.length; i++) h = (h * 31 + postId.charCodeAt(i)) >>> 0;
-	return 5 + (h % 120);
-}
+// ยอดไลก์จริงจาก Supabase (นับแถวจริงในตาราง likes_posts) เหมือนร้าน — ดู queueShopLikeCountFetch ด้านบน
+var CHIMCHIM_REAL_POST_LIKE_COUNTS = {};
 function getPostLikeCount(postId) {
-	return seedPostLikeCount(postId) + (isPostLiked(postId) ? 1 : 0);
+	return CHIMCHIM_REAL_POST_LIKE_COUNTS.hasOwnProperty(postId) ? CHIMCHIM_REAL_POST_LIKE_COUNTS[postId] : 0;
+}
+var __pendingPostLikeIds = [];
+var __pendingPostLikeEls = {};
+var __postLikeFlushScheduled = false;
+function queuePostLikeCountFetch(postId, countEl) {
+	if (!__pendingPostLikeEls[postId]) __pendingPostLikeEls[postId] = [];
+	__pendingPostLikeEls[postId].push(countEl);
+	if (__pendingPostLikeIds.indexOf(postId) === -1) __pendingPostLikeIds.push(postId);
+	if (__postLikeFlushScheduled) return;
+	__postLikeFlushScheduled = true;
+	setTimeout(function() {
+		var ids = __pendingPostLikeIds.slice();
+		var elsMap = __pendingPostLikeEls;
+		__pendingPostLikeIds = [];
+		__pendingPostLikeEls = {};
+		__postLikeFlushScheduled = false;
+		if (typeof sbFetchPostLikeCounts !== "function") return;
+		sbFetchPostLikeCounts(ids).then(function(counts) {
+			ids.forEach(function(id) {
+				var count = counts[id] || 0;
+				CHIMCHIM_REAL_POST_LIKE_COUNTS[id] = count;
+				(elsMap[id] || []).forEach(function(el) { el.textContent = formatLikeCount(count); });
+			});
+		});
+	}, 40);
+}
+// นับคอมเมนต์จริงจาก Supabase เหมือนกัน (แทน getComments(postId).length ที่เดิมนับแค่ในเครื่องนี้)
+var CHIMCHIM_REAL_COMMENT_COUNTS = {};
+function getCommentCount(postId) {
+	return CHIMCHIM_REAL_COMMENT_COUNTS.hasOwnProperty(postId) ? CHIMCHIM_REAL_COMMENT_COUNTS[postId] : getComments(postId).length;
+}
+var __pendingCommentCountIds = [];
+var __pendingCommentCountEls = {};
+var __commentCountFlushScheduled = false;
+function queueCommentCountFetch(postId, countEl) {
+	if (!__pendingCommentCountEls[postId]) __pendingCommentCountEls[postId] = [];
+	__pendingCommentCountEls[postId].push(countEl);
+	if (__pendingCommentCountIds.indexOf(postId) === -1) __pendingCommentCountIds.push(postId);
+	if (__commentCountFlushScheduled) return;
+	__commentCountFlushScheduled = true;
+	setTimeout(function() {
+		var ids = __pendingCommentCountIds.slice();
+		var elsMap = __pendingCommentCountEls;
+		__pendingCommentCountIds = [];
+		__pendingCommentCountEls = {};
+		__commentCountFlushScheduled = false;
+		if (typeof sbFetchCommentCounts !== "function") return;
+		sbFetchCommentCounts(ids).then(function(counts) {
+			ids.forEach(function(id) {
+				if (!counts.hasOwnProperty(id)) return;
+				CHIMCHIM_REAL_COMMENT_COUNTS[id] = counts[id];
+				(elsMap[id] || []).forEach(function(el) { el.textContent = counts[id]; });
+			});
+		});
+	}, 40);
 }
 
 // การ์ดร้านแบบย่อ (รูป + Match% + ชื่อร้าน/เมนู + ระยะทาง) ใช้ร่วมกันได้ทุกหน้าที่อยากโชว์ร้านแนะนำ
@@ -866,9 +992,11 @@ function getFollowedUsers() {
 function toggleFollowUser(userId) {
 	var list = getFollowedUsers();
 	var idx = list.indexOf(userId);
-	if (idx === -1) list.push(userId); else list.splice(idx, 1);
+	var nowFollowing = idx === -1;
+	if (nowFollowing) list.push(userId); else list.splice(idx, 1);
 	localStorage.setItem(CHIMCHIM_FOLLOWED_USERS_KEY, JSON.stringify(list));
-	return idx === -1;
+	if (typeof sbSetFollow === "function") sbSetFollow("profile", userId, nowFollowing);
+	return nowFollowing;
 }
 function isUserFollowed(userId) {
 	return getFollowedUsers().indexOf(userId) !== -1;
@@ -943,9 +1071,18 @@ function getPostsByPage(pageId) {
 function addPost(userId, images, caption, pageId) {
 	var imgList = Array.isArray(images) ? images.filter(Boolean) : [images];
 	var posts = getAllPosts();
-	posts.unshift({ id: "post" + Date.now(), userId: userId, pageId: pageId || null, images: imgList, img: imgList[0], caption: caption, date: new Date().toISOString() });
+	var localId = "post" + Date.now();
+	posts.unshift({ id: localId, userId: userId, pageId: pageId || null, images: imgList, img: imgList[0], caption: caption, date: new Date().toISOString() });
 	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
 	logEvent("post_created", { pageId: pageId || null });
+	// ผลักโพสต์ขึ้น Supabase จริงทันที ให้คนอื่นเห็นในฟีดข้ามเครื่องได้เลย ไม่ต้องรอ sync รอบถัดไป
+	// (ถ้า pageId เป็นร้านที่ยังไม่เคย sync id จริง ครั้งนี้อาจ push ไม่สำเร็จ — syncPostsWithSupabase()
+	// จะ retry ให้เองตอนเข้าแอปครั้งถัดไป เพราะโพสต์นี้ยังไม่มี remoteId)
+	if (typeof sbSavePost === "function") {
+		sbSavePost({ userId: userId, pageId: pageId || null, images: imgList, caption: caption }).then(function(saved) {
+			if (saved) reconcilePostId(localId, String(saved.id));
+		});
+	}
 }
 // คืนอาร์เรย์รูปของโพสต์เสมอ ไม่ว่าโพสต์นั้นจะเป็นโพสต์เก่า (มีแค่ img เดียว) หรือใหม่ (มี images หลายรูป)
 function getPostImages(p) {
@@ -953,7 +1090,9 @@ function getPostImages(p) {
 	return p.img ? [p.img] : [];
 }
 function deletePost(postId) {
-	var posts = getAllPosts().filter(function(p) { return p.id !== postId; });
+	var posts = getAllPosts();
+	var target = posts.filter(function(p) { return p.id === postId; })[0];
+	posts = posts.filter(function(p) { return p.id !== postId; });
 	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
 	// ลบโพสต์แล้วลบคอมเมนต์ที่ผูกกับโพสต์นั้นทิ้งไปด้วย กันคอมเมนต์ค้างเป็นขยะ
 	var allComments;
@@ -964,11 +1103,12 @@ function deletePost(postId) {
 	}
 	delete allComments[postId];
 	localStorage.setItem(CHIMCHIM_COMMENTS_KEY, JSON.stringify(allComments));
+	if (target && target.remoteId && typeof sbDeletePost === "function") sbDeletePost(target.remoteId);
 }
 // แก้ไขโพสต์เดิม (รูป/แคปชั่น) — แก้ได้เฉพาะเจ้าของโพสต์อยู่แล้วในทางปฏิบัติ เพราะเรียกจากหน้า "โพสต์ของฉัน" เท่านั้น
 function updatePost(postId, patch) {
 	var posts = getAllPosts();
-	var i;
+	var i, target = null;
 	for (i = 0; i < posts.length; i++) {
 		if (posts[i].id === postId) {
 			if (patch.images) {
@@ -976,10 +1116,57 @@ function updatePost(postId, patch) {
 				posts[i].img = patch.images[0];
 			}
 			if (typeof patch.caption === "string") posts[i].caption = patch.caption;
+			target = posts[i];
 			break;
 		}
 	}
 	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+	if (target && target.remoteId && typeof sbSavePost === "function") sbSavePost(target);
+}
+// ผสานโพสต์จริงของทุกคนจาก Supabase เข้ากับ localStorage เครื่องนี้ — แทนที่โพสต์เดิมถ้า id ตรงกัน (ข้อมูลใหม่กว่า)
+// หรือเพิ่มเป็นโพสต์ใหม่ถ้ายังไม่เคยเห็น (เห็นโพสต์ของคนอื่นข้ามเครื่องได้จริง ไม่ใช่แค่โพสต์ตัวอย่าง)
+function mergeRemotePostsIntoLocal(remotePosts) {
+	var posts = getAllPosts();
+	remotePosts.forEach(function(remote) {
+		if (isContentHidden("post", remote.id)) return;
+		var idx = -1, i;
+		for (i = 0; i < posts.length; i++) {
+			if (posts[i].id === remote.id) { idx = i; break; }
+		}
+		var withRemoteId = { id: remote.id, remoteId: remote.id, userId: remote.userId, pageId: remote.pageId, images: remote.images, img: remote.images[0], caption: remote.caption, date: remote.date };
+		if (idx !== -1) { posts[idx] = withRemoteId; } else { posts.push(withRemoteId); }
+	});
+	posts.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+}
+// ย้าย id ชั่วคราวที่สร้างในเครื่อง (ตอน addPost ก่อนรู้ id จริงจาก Supabase) ไปเป็น id จริงทุกจุดที่อ้างถึง
+// โพสต์นั้น (คอมเมนต์/ไลก์) เหมือนกับ reconcileShopNumId ตอน sync ร้าน
+function reconcilePostId(oldId, newId) {
+	if (oldId === newId) return;
+	var posts = getAllPosts();
+	posts.forEach(function(p) {
+		if (p.id === oldId) { p.id = newId; p.remoteId = newId; }
+	});
+	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+
+	var allComments;
+	try {
+		allComments = JSON.parse(localStorage.getItem(CHIMCHIM_COMMENTS_KEY)) || {};
+	} catch (e) {
+		allComments = {};
+	}
+	if (allComments[oldId]) {
+		allComments[newId] = allComments[oldId];
+		delete allComments[oldId];
+		localStorage.setItem(CHIMCHIM_COMMENTS_KEY, JSON.stringify(allComments));
+	}
+
+	var likedPosts = getLikedPosts();
+	var likeIdx = likedPosts.indexOf(oldId);
+	if (likeIdx !== -1) {
+		likedPosts[likeIdx] = newId;
+		localStorage.setItem(CHIMCHIM_POST_LIKES_KEY, JSON.stringify(likedPosts));
+	}
 }
 
 /* =====================================================================
@@ -988,22 +1175,23 @@ function updatePost(postId, patch) {
    ===================================================================== */
 function getFeedItems() {
 	var users = getUsers();
-	var pages = getPages();
+	var shops = getShops();
 	var fromReal = getAllPosts().map(function(p) {
-		var page = p.pageId ? pages.filter(function(pg) { return pg.id === p.pageId; })[0] : null;
+		// pageId ตอนนี้คือ numId ของ "ร้านของฉัน" (เพจ/ร้านรวมเป็นเอนทิตีเดียวแล้ว ดู migratePageIntoShop)
+		var shop = p.pageId ? shops.filter(function(s) { return s.numId === p.pageId; })[0] : null;
 		var user = users.filter(function(u) { return u.id === p.userId; })[0];
-		var posterName = page ? page.name : (user ? user.name : t("common.chimchimFoodie"));
+		var posterName = shop ? shop.name : (user ? user.name : t("common.chimchimFoodie"));
 		return {
 			id: p.id,
-			kind: page ? "page" : "user",
+			kind: shop ? "page" : "user",
 			images: getPostImages(p),
 			caption: p.caption || "",
 			date: p.date,
 			posterName: posterName,
-			posterAvatarUrl: page ? page.avatar : null,
-			posterColor: page ? "var(--cream2)" : "linear-gradient(135deg, var(--dark), #7d6fb0)",
-			posterLink: page ? ("public-profile.html?u=page-" + page.id) : ("public-profile.html?u=" + p.userId),
-			cat: page ? page.cat : null
+			posterAvatarUrl: shop ? shop.img : null,
+			posterColor: shop ? "var(--cream2)" : "linear-gradient(135deg, var(--dark), #7d6fb0)",
+			posterLink: shop ? ("restaurant.html?id=" + shop.numId) : ("public-profile.html?u=" + p.userId),
+			cat: shop ? shop.cat : null
 		};
 	});
 	var fromBuShops = [];
@@ -1056,6 +1244,20 @@ function addComment(postId, author, text) {
 	}
 	if (!all[postId]) all[postId] = [];
 	all[postId].push({ id: "cmt" + Date.now(), author: author, text: text, date: new Date().toISOString() });
+	localStorage.setItem(CHIMCHIM_COMMENTS_KEY, JSON.stringify(all));
+	// คอมเมนต์ได้จริงข้ามเครื่องเฉพาะโพสต์ที่ sync ขึ้น Supabase แล้ว (id เป็นตัวเลขจริง ไม่ใช่ "post"+timestamp ชั่วคราว)
+	if (typeof sbAddComment === "function") sbAddComment(postId, author, text);
+}
+// แทนที่คอมเมนต์ทั้งหมดของโพสต์นี้ด้วยของจริงจาก Supabase (เรียกหลัง sync — โพสต์ที่มี remoteId แล้วเท่านั้น
+// ที่คอมเมนต์ขึ้น Supabase ได้จริง ปลอดภัยที่จะแทนที่ทั้งชุดเพราะทุกคอมเมนต์ต้องผ่าน sbAddComment มาแล้วเสมอ)
+function replaceLocalComments(postId, comments) {
+	var all;
+	try {
+		all = JSON.parse(localStorage.getItem(CHIMCHIM_COMMENTS_KEY)) || {};
+	} catch (e) {
+		all = {};
+	}
+	all[postId] = comments;
 	localStorage.setItem(CHIMCHIM_COMMENTS_KEY, JSON.stringify(all));
 }
 

@@ -55,50 +55,89 @@ if (!session) {
 	document.getElementById("profContent").hidden = false;
 
 	var me = getMe() || session;
-	document.getElementById("profAvatar").textContent = session.name.charAt(0).toUpperCase();
-	document.getElementById("profName").textContent = session.name;
+	function refreshProfileHeader(u) {
+		var avatarEl = document.getElementById("profAvatar");
+		if (u.avatar) {
+			avatarEl.style.background = "var(--cream2) center/cover no-repeat url('" + u.avatar + "')";
+			avatarEl.textContent = "";
+		} else {
+			avatarEl.style.background = "";
+			avatarEl.textContent = u.name.charAt(0).toUpperCase();
+		}
+		document.getElementById("profName").textContent = u.name;
+		var bioEl = document.getElementById("profBio");
+		if (bioEl) {
+			if (u.bio) {
+				bioEl.textContent = u.bio;
+				bioEl.hidden = false;
+			} else {
+				bioEl.hidden = true;
+			}
+		}
+	}
+	refreshProfileHeader(me);
 	document.getElementById("profEmail").textContent = session.email;
 	document.getElementById("profRole").textContent = t("profile.memberRole");
 
 	/* --- Food DNA (ทุกบัญชี) — กดปุ่มเพื่อดูรายละเอียดเป็น popup --- */
 	var dnaCardBtn = document.getElementById("dnaCardBtn");
 	var dnaCardHint = document.getElementById("dnaCardHint");
-	if (me.foodDNA) {
-		dnaCardHint.textContent = t("profile.dnaCardHintHas");
-		var dna = me.foodDNA;
-		var maxBudget = 300;
-		var maxDist = 3000;
-		var rows = [];
-		if (dna.ชอบหมวด && dna.ชอบหมวด.length) {
-			rows.push({ label: t("dna.category"), value: dna.ชอบหมวด.map(catLabel).join(", "), pct: 100 });
+	function refreshDnaCard(u) {
+		dnaCardBtn.onclick = null;
+		if (u.foodDNA) {
+			dnaCardHint.textContent = t("profile.dnaCardHintHas");
+			var dna = u.foodDNA;
+			var maxBudget = 300;
+			var maxDist = 3000;
+			var rows = [];
+			if (dna.ชอบหมวด && dna.ชอบหมวด.length) {
+				rows.push({ label: t("dna.category"), value: dna.ชอบหมวด.map(catLabel).join(", "), pct: 100 });
+			}
+			rows.push({ label: t("dna.cuisine"), value: dna.ชอบชาติอาหาร.map(catLabel).join(", "), pct: 100 });
+			rows.push({ label: t("dna.flavor"), value: dna.ชอบรส.map(catLabel).join(", "), pct: 100 });
+			rows.push({ label: t("dna.budget"), value: "฿" + dna.งบเฉลี่ยที่ใช้บ่อย, pct: Math.min(100, Math.round((dna.งบเฉลี่ยที่ใช้บ่อย / maxBudget) * 100)) });
+			rows.push({ label: t("dna.distance"), value: distanceText(dna.ระยะที่ยอมไป), pct: Math.min(100, Math.round((dna.ระยะที่ยอมไป / maxDist) * 100)) });
+			var dnaHtml = "";
+			rows.forEach(function(r) {
+				dnaHtml +=
+					'<div class="obdnarow">' +
+						'<div class="obdnalbl"><span>' + r.label + '</span><span>' + escapeHtml(r.value) + '</span></div>' +
+						'<div class="obdnabar"><span style="width:' + r.pct + '%;"></span></div>' +
+					"</div>";
+			});
+			dnaHtml += '<a href="profile-setup.html" class="rdghost" style="width:100%;margin-top:12px;"><i class="fas fa-rotate me-1"></i><span>' + t("profile.retakeTest") + "</span></a>";
+			dnaCardBtn.onclick = function() {
+				openProfDetailPop('<i class="fas fa-dna me-2"></i>' + t("profile.foodDna"), dnaHtml);
+			};
+		} else {
+			dnaCardHint.textContent = t("profile.dnaCardHintNone");
+			var noDnaHtml =
+				'<p style="font-size:.82rem;color:#999;margin-bottom:14px;">' + t("profile.noDnaDesc") + "</p>" +
+				'<a href="profile-setup.html" class="btn-red profbtn"><i class="fas fa-flask"></i><span>' + t("profile.takeTest") + "</span></a>";
+			dnaCardBtn.onclick = function() {
+				openProfDetailPop('<i class="fas fa-dna me-2"></i>' + t("profile.foodDna"), noDnaHtml);
+			};
 		}
-		rows.push({ label: t("dna.cuisine"), value: dna.ชอบชาติอาหาร.map(catLabel).join(", "), pct: 100 });
-		rows.push({ label: t("dna.flavor"), value: dna.ชอบรส.map(catLabel).join(", "), pct: 100 });
-		rows.push({ label: t("dna.budget"), value: "฿" + dna.งบเฉลี่ยที่ใช้บ่อย, pct: Math.min(100, Math.round((dna.งบเฉลี่ยที่ใช้บ่อย / maxBudget) * 100)) });
-		rows.push({ label: t("dna.distance"), value: distanceText(dna.ระยะที่ยอมไป), pct: Math.min(100, Math.round((dna.ระยะที่ยอมไป / maxDist) * 100)) });
-		var dnaHtml = "";
-		rows.forEach(function(r) {
-			dnaHtml +=
-				'<div class="obdnarow">' +
-					'<div class="obdnalbl"><span>' + r.label + '</span><span>' + escapeHtml(r.value) + '</span></div>' +
-					'<div class="obdnabar"><span style="width:' + r.pct + '%;"></span></div>' +
-				"</div>";
-		});
-		dnaHtml += '<a href="profile-setup.html" class="rdghost" style="width:100%;margin-top:12px;"><i class="fas fa-rotate me-1"></i><span>' + t("profile.retakeTest") + "</span></a>";
-		dnaCardBtn.addEventListener("click", function() {
-			openProfDetailPop('<i class="fas fa-dna me-2"></i>' + t("profile.foodDna"), dnaHtml);
-		});
-	} else {
-		dnaCardHint.textContent = t("profile.dnaCardHintNone");
-		var noDnaHtml =
-			'<p style="font-size:.82rem;color:#999;margin-bottom:14px;">' + t("profile.noDnaDesc") + "</p>" +
-			'<a href="profile-setup.html" class="btn-red profbtn"><i class="fas fa-flask"></i><span>' + t("profile.takeTest") + "</span></a>";
-		dnaCardBtn.addEventListener("click", function() {
-			openProfDetailPop('<i class="fas fa-dna me-2"></i>' + t("profile.foodDna"), noDnaHtml);
-		});
 	}
+	refreshDnaCard(me);
 
 	document.getElementById("igStatFollowing").textContent = getFollowedUsers().length;
+
+	// ดึงโปรไฟล์ (ชื่อ/bio/รูป/Food DNA)/โพสต์/ไลก์/ติดตามจริงจาก Supabase มาผสาน เผื่อทำไว้จากเครื่องอื่น (progressive enhancement)
+	if (typeof syncMyProfileWithSupabase === "function") {
+		syncMyProfileWithSupabase(function() {
+			refreshProfileHeader(getMe());
+			refreshDnaCard(getMe());
+		});
+	}
+	if (typeof syncLikesAndFollowsWithSupabase === "function") {
+		syncLikesAndFollowsWithSupabase(function() {
+			document.getElementById("igStatFollowing").textContent = getFollowedUsers().length;
+		});
+	}
+	if (typeof syncPostsWithSupabase === "function") {
+		syncPostsWithSupabase(function() { renderMyPosts(); });
+	}
 
 	/* --- ปุ่มแชร์โปรไฟล์ (สไตล์ IG) — คัดลอกลิงก์โปรไฟล์สาธารณะไปคลิปบอร์ด --- */
 	var igShareBtn = document.getElementById("igShareBtn");

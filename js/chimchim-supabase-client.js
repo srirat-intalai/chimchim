@@ -170,3 +170,264 @@ function sbSaveMyShop(shop) {
 		return sbShopRowToLocal(res.data);
 	}).catch(function() { return null; });
 }
+
+/* =====================================================================
+   โปรไฟล์ (ชื่อ/bio/รูปโปรไฟล์/Food DNA) — sync จริงกับ Supabase ข้ามอุปกรณ์
+   ต้องรัน migration "Phase 3" ท้าย supabase/schema.sql ก่อน (เพิ่มคอลัมน์ bio/avatar_url ที่ profiles)
+   ไม่งั้น update จะ error เงียบ ๆ (ไม่ทำหน้าเว็บพัง แค่ bio/รูปยังไม่ข้ามเครื่อง จนกว่าจะรัน migration)
+   ===================================================================== */
+function sbSaveMyProfile(patch) {
+	var me = getMe();
+	if (!me || !sbClient) return Promise.resolve(null);
+	var row = {};
+	if (typeof patch.name === "string") row.name = patch.name;
+	if (typeof patch.bio === "string") row.bio = patch.bio;
+	if (typeof patch.avatar === "string") row.avatar_url = patch.avatar;
+	if (patch.foodDNA) row.food_dna = patch.foodDNA;
+	if (!Object.keys(row).length) return Promise.resolve(null);
+	// เปลี่ยนชื่อ ต้องอัปเดตทั้ง auth user_metadata (ใช้ตอน signup/สร้าง profile ใหม่) และตาราง profiles จริง
+	var authUpdate = row.name ? sbClient.auth.updateUser({ data: { name: row.name } }) : Promise.resolve();
+	return authUpdate.then(function() {
+		return sbClient.from("profiles").update(row).eq("id", me.id);
+	}).then(function(res) {
+		if (res.error) {
+			console.error("[chimchim] sbSaveMyProfile error:", res.error.message);
+			return null;
+		}
+		return true;
+	}).catch(function() { return null; });
+}
+// ดึงโปรไฟล์ (bio/รูป/Food DNA) จาก Supabase มาผสานกับเครื่องนี้ตอนล็อกอิน/เข้าแอป แล้ว re-render ผ่าน onUpdated
+function syncMyProfileWithSupabase(onUpdated) {
+	var me = getMe();
+	if (!me || !sbClient) return;
+	sbClient.from("profiles").select("name, bio, avatar_url, food_dna").eq("id", me.id).single().then(function(res) {
+		if (res.error || !res.data) return;
+		var patch = {};
+		if (res.data.name) patch.name = res.data.name;
+		if (res.data.bio) patch.bio = res.data.bio;
+		if (res.data.avatar_url) patch.avatar = res.data.avatar_url;
+		if (res.data.food_dna) patch.foodDNA = res.data.food_dna;
+		if (!Object.keys(patch).length) return;
+		updateMe(patch);
+		if (patch.name) setSession(getMe());
+		if (typeof onUpdated === "function") onUpdated();
+	}).catch(function() {});
+}
+
+/* =====================================================================
+   รีวิวร้าน — ผลักขึ้นทันทีตอนส่ง + ดึงของคนอื่นมาผสานตอนเปิดดูร้าน (ดู mergeRemoteReviewsIntoLocal ใน core.js)
+   ===================================================================== */
+function sbReviewRowToLocal(row) {
+	return { taste: row.taste, atmosphere: row.atmosphere, service: row.service, text: row.text || "", author: row.author_name, userId: row.user_id, date: row.created_at };
+}
+function sbSubmitReview(shopId, review) {
+	if (!sbClient) return Promise.resolve(null);
+	return sbClient.from("reviews").insert({
+		shop_id: shopId,
+		user_id: review.userId || null,
+		author_name: review.author,
+		taste: review.taste,
+		atmosphere: review.atmosphere,
+		service: review.service,
+		text: review.text || ""
+	}).select().single().then(function(res) {
+		if (res.error) {
+			console.error("[chimchim] sbSubmitReview error:", res.error.message);
+			return null;
+		}
+		return sbReviewRowToLocal(res.data);
+	}).catch(function() { return null; });
+}
+// จุดเรียกหลัก — เรียกตอนเปิดหน้าร้าน (restaurant.html) เพื่อดึงรีวิวจริงของทุกคนมาผสานกับในเครื่องนี้
+function syncReviewsWithSupabase(shopId, onUpdated) {
+	if (!sbClient) return;
+	sbClient.from("reviews").select("*").eq("shop_id", shopId).order("created_at", { ascending: false }).then(function(res) {
+		if (res.error || !res.data || !res.data.length) return;
+		mergeRemoteReviewsIntoLocal(shopId, res.data.map(sbReviewRowToLocal));
+		if (typeof onUpdated === "function") onUpdated();
+	}).catch(function() {});
+}
+
+/* =====================================================================
+   ไลก์ร้าน/โพสต์ + ติดตามร้าน/คน — ผลักทันทีตอนกด (insert/delete จริง ไม่ใช่ mockup)
+   แล้วดึงของตัวเองจาก Supabase มา union กับเครื่องนี้ตอนล็อกอิน/เข้าแอป กันหายตอนเปลี่ยนเครื่อง
+   พร้อม "ย้อนผลัก" ของที่มีอยู่แล้วแค่ในเครื่องนี้ (ทำไว้ก่อนมี sync/ทำตอนออฟไลน์) ขึ้น Supabase ให้ครบ
+   ===================================================================== */
+function sbSetShopLike(shopId, liked) {
+	var me = getMe();
+	if (!me || !sbClient) return Promise.resolve();
+	var query = liked
+		? sbClient.from("likes_shops").insert({ user_id: me.id, shop_id: shopId })
+		: sbClient.from("likes_shops").delete().eq("user_id", me.id).eq("shop_id", shopId);
+	return Promise.resolve(query).catch(function() {});
+}
+function sbSetPostLike(postId, liked) {
+	var me = getMe();
+	var numericId = parseInt(postId, 10);
+	if (!me || !sbClient || isNaN(numericId)) return Promise.resolve();
+	var query = liked
+		? sbClient.from("likes_posts").insert({ user_id: me.id, post_id: numericId })
+		: sbClient.from("likes_posts").delete().eq("user_id", me.id).eq("post_id", numericId);
+	return Promise.resolve(query).catch(function() {});
+}
+function sbSetFollow(targetType, targetId, following) {
+	var me = getMe();
+	if (!me || !sbClient) return Promise.resolve();
+	var query = following
+		? sbClient.from("follows").insert({ follower_id: me.id, target_type: targetType, target_id: String(targetId) })
+		: sbClient.from("follows").delete().eq("follower_id", me.id).eq("target_type", targetType).eq("target_id", String(targetId));
+	return Promise.resolve(query).catch(function() {});
+}
+function syncLikesAndFollowsWithSupabase(onUpdated) {
+	var me = getMe();
+	if (!me || !sbClient) return;
+
+	var p1 = sbClient.from("likes_shops").select("shop_id").eq("user_id", me.id).then(function(res) {
+		var remote = (res.data || []).map(function(r) { return r.shop_id; });
+		var local = getLikedShops();
+		mergeLocalIdSet(CHIMCHIM_LIKES_KEY, remote);
+		local.forEach(function(id) { if (remote.indexOf(id) === -1) sbSetShopLike(id, true); });
+	}).catch(function() {});
+
+	var p2 = sbClient.from("likes_posts").select("post_id").eq("user_id", me.id).then(function(res) {
+		var remote = (res.data || []).map(function(r) { return String(r.post_id); });
+		var local = getLikedPosts();
+		mergeLocalIdSet(CHIMCHIM_POST_LIKES_KEY, remote);
+		local.forEach(function(id) { if (remote.indexOf(id) === -1) sbSetPostLike(id, true); });
+	}).catch(function() {});
+
+	var p3 = sbClient.from("follows").select("target_type, target_id").eq("follower_id", me.id).then(function(res) {
+		var rows = res.data || [];
+		var remoteShops = rows.filter(function(r) { return r.target_type === "shop"; }).map(function(r) { return parseInt(r.target_id, 10); });
+		var remoteUsers = rows.filter(function(r) { return r.target_type === "profile"; }).map(function(r) { return r.target_id; });
+		var localShops = getFollowedShops();
+		var localUsers = getFollowedUsers();
+		mergeLocalIdSet(CHIMCHIM_FOLLOWS_KEY, remoteShops);
+		mergeLocalIdSet(CHIMCHIM_FOLLOWED_USERS_KEY, remoteUsers);
+		localShops.forEach(function(id) { if (remoteShops.indexOf(id) === -1) sbSetFollow("shop", id, true); });
+		localUsers.forEach(function(id) { if (remoteUsers.indexOf(id) === -1) sbSetFollow("profile", id, true); });
+	}).catch(function() {});
+
+	Promise.all([p1, p2, p3]).then(function() {
+		if (typeof onUpdated === "function") onUpdated();
+	});
+}
+// นับไลก์จริงของร้าน/โพสต์หลายรายการพร้อมกันในคำขอเดียว (ใช้ตอน render การ์ดหลายใบพร้อมกัน) คืน Promise<{id: count}>
+function sbFetchShopLikeCounts(shopIds) {
+	if (!sbClient || !shopIds.length) return Promise.resolve({});
+	return sbClient.from("likes_shops").select("shop_id").in("shop_id", shopIds).then(function(res) {
+		var counts = {};
+		(res.data || []).forEach(function(r) { counts[r.shop_id] = (counts[r.shop_id] || 0) + 1; });
+		return counts;
+	}).catch(function() { return {}; });
+}
+function sbFetchPostLikeCounts(postIds) {
+	var numericIds = postIds.map(function(id) { return parseInt(id, 10); }).filter(function(n) { return !isNaN(n); });
+	if (!sbClient || !numericIds.length) return Promise.resolve({});
+	return sbClient.from("likes_posts").select("post_id").in("post_id", numericIds).then(function(res) {
+		var counts = {};
+		(res.data || []).forEach(function(r) { counts[r.post_id] = (counts[r.post_id] || 0) + 1; });
+		return counts;
+	}).catch(function() { return {}; });
+}
+function sbFetchCommentCounts(postIds) {
+	var numericIds = postIds.map(function(id) { return parseInt(id, 10); }).filter(function(n) { return !isNaN(n); });
+	if (!sbClient || !numericIds.length) return Promise.resolve({});
+	return sbClient.from("comments").select("post_id").in("post_id", numericIds).then(function(res) {
+		var counts = {};
+		(res.data || []).forEach(function(r) { counts[r.post_id] = (counts[r.post_id] || 0) + 1; });
+		return counts;
+	}).catch(function() { return {}; });
+}
+
+/* =====================================================================
+   โพสต์ — sync จริงกับ Supabase (เหมือนร้าน: local-first แล้วผลักขึ้น + reconcile id ถ้าเป็นโพสต์ใหม่)
+   ===================================================================== */
+function sbPostRowToLocal(row) {
+	return { id: String(row.id), userId: row.user_id, pageId: row.page_id, images: row.images, caption: row.caption || "", date: row.created_at };
+}
+function sbPostToRow(post) {
+	return { user_id: post.userId, page_id: post.pageId || null, images: post.images, caption: post.caption || "" };
+}
+// ผลักโพสต์ขึ้น Supabase จริง (insert ถ้ายังไม่เคย sync — เช็คจาก remoteId ที่แปะไว้ตอน sync ครั้งก่อน, update ถ้าเคยแล้ว)
+function sbSavePost(post) {
+	if (!sbClient) return Promise.resolve(null);
+	var row = sbPostToRow(post);
+	var query = post.remoteId
+		? sbClient.from("posts").update(row).eq("id", post.remoteId)
+		: sbClient.from("posts").insert(row);
+	return query.select().single().then(function(res) {
+		if (res.error) {
+			console.error("[chimchim] sbSavePost error:", res.error.message);
+			return null;
+		}
+		return res.data;
+	}).catch(function() { return null; });
+}
+function sbDeletePost(remoteId) {
+	if (!sbClient || !remoteId) return Promise.resolve();
+	return Promise.resolve(sbClient.from("posts").delete().eq("id", remoteId)).catch(function() {});
+}
+// ดึงโพสต์ของทุกคนจาก Supabase จริง (ไม่ใช่แค่ที่เคยเห็นในเครื่องนี้) — ซ่อนอันที่โดนรายงานถึงเกณฑ์ไปแล้วออกเลย
+function sbFetchAllPosts() {
+	if (!sbClient) return Promise.resolve([]);
+	return sbClient.from("posts").select("*").eq("is_hidden", false).order("created_at", { ascending: false }).then(function(res) {
+		if (res.error) {
+			console.error("[chimchim] sbFetchAllPosts error:", res.error.message);
+			return [];
+		}
+		return res.data.map(sbPostRowToLocal);
+	}).catch(function() { return []; });
+}
+// จุดเรียกหลัก — เรียกตอนเปิดหน้าแรก/โปรไฟล์: push โพสต์ของฉันที่ยังไม่เคย sync ขึ้นก่อน แล้วดึงโพสต์ทุกคนมาผสาน
+function syncPostsWithSupabase(onUpdated) {
+	if (!sbClient) return;
+	var me = getMe();
+	var myUnsyncedPosts = me ? getAllPosts().filter(function(p) { return p.userId === me.id && !p.remoteId; }) : [];
+
+	var pushAll = myUnsyncedPosts.reduce(function(chain, post) {
+		return chain.then(function() {
+			return sbSavePost(post).then(function(saved) {
+				if (saved) reconcilePostId(post.id, String(saved.id));
+			});
+		});
+	}, Promise.resolve());
+
+	pushAll.then(function() {
+		return sbFetchAllPosts();
+	}).then(function(remotePosts) {
+		if (!remotePosts.length) return;
+		mergeRemotePostsIntoLocal(remotePosts);
+		if (typeof onUpdated === "function") onUpdated();
+	});
+}
+
+/* =====================================================================
+   คอมเมนต์ — ใช้ได้จริงข้ามเครื่องเฉพาะโพสต์ที่ sync ขึ้น Supabase แล้ว (postId เป็นตัวเลขจริง)
+   ===================================================================== */
+function sbAddComment(postId, authorName, text) {
+	var me = getMe();
+	var numericPostId = parseInt(postId, 10);
+	if (!sbClient || !me || isNaN(numericPostId)) return Promise.resolve(null);
+	return sbClient.from("comments").insert({ post_id: numericPostId, author_id: me.id, text: text }).select().single().then(function(res) {
+		if (res.error) {
+			console.error("[chimchim] sbAddComment error:", res.error.message);
+			return null;
+		}
+		return res.data;
+	}).catch(function() { return null; });
+}
+// จุดเรียกหลัก — เรียกตอนเปิดโพสต์ดูคอมเมนต์ ดึงคอมเมนต์จริงของทุกคนมาแทนที่ของในเครื่องนี้ทั้งชุด
+function syncCommentsWithSupabase(postId, onUpdated) {
+	var numericPostId = parseInt(postId, 10);
+	if (!sbClient || isNaN(numericPostId)) return;
+	sbClient.from("comments").select("*, profiles!author_id(name)").eq("post_id", numericPostId).order("created_at", { ascending: true }).then(function(res) {
+		if (res.error || !res.data) return;
+		var comments = res.data.map(function(row) {
+			return { id: "cmt" + row.id, author: (row.profiles && row.profiles.name) || t("common.chimchimFoodie"), text: row.text, date: row.created_at, userId: row.author_id };
+		});
+		replaceLocalComments(postId, comments);
+		if (typeof onUpdated === "function") onUpdated();
+	}).catch(function() {});
+}

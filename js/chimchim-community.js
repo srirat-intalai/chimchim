@@ -29,7 +29,16 @@ function refreshAuthUI() {
 		if (loginBtn) loginBtn.hidden = true;
 		if (avatarLink) {
 			avatarLink.hidden = false;
-			if (avatarIco) avatarIco.textContent = session.name.charAt(0).toUpperCase();
+			var me = typeof getMe === "function" ? getMe() : null;
+			if (avatarIco) {
+				if (me && me.avatar) {
+					avatarIco.textContent = "";
+					avatarLink.style.background = "var(--cream2) center/cover no-repeat url('" + me.avatar + "')";
+				} else {
+					avatarIco.textContent = session.name.charAt(0).toUpperCase();
+					avatarLink.style.background = "";
+				}
+			}
 		}
 	} else {
 		if (loginBtn) loginBtn.hidden = false;
@@ -213,6 +222,10 @@ document.addEventListener("keydown", function(e) {
 		btn.classList.toggle("liked", liked);
 		document.getElementById("pvLikeCount").textContent = formatLikeCount(getPostLikeCount(currentPostId));
 	}
+	function queuePvCounts() {
+		if (!currentPostId) return;
+		if (typeof queuePostLikeCountFetch === "function") queuePostLikeCountFetch(currentPostId, document.getElementById("pvLikeCount"));
+	}
 	document.getElementById("pvLikeBtn").addEventListener("click", function() {
 		if (!currentPostId) return;
 		togglePostLike(currentPostId);
@@ -304,9 +317,17 @@ document.addEventListener("keydown", function(e) {
 		}
 		document.getElementById("pvName").textContent = post.posterName || "";
 		currentPostId = post.id || null;
-		document.getElementById("pvReportBtn").hidden = !(currentPostId && /^post/.test(currentPostId));
+		// รายงานได้เฉพาะโพสต์จริงของผู้ใช้ (id เป็น "post"+timestamp ก่อน sync หรือตัวเลขจริงหลัง sync แล้ว)
+		// ไม่ใช่โพสต์ตัวอย่างของร้าน BU ตั้งต้นระบบ (id ขึ้นต้นด้วย "bu-")
+		document.getElementById("pvReportBtn").hidden = !(currentPostId && !/^bu-/.test(currentPostId));
 		renderPvComments();
 		refreshPvLike();
+		queuePvCounts();
+		if (typeof syncCommentsWithSupabase === "function") {
+			syncCommentsWithSupabase(currentPostId, function() {
+				if (currentPostId === post.id) renderPvComments();
+			});
+		}
 		modal.classList.add("open");
 		document.body.style.overflow = "hidden";
 	};
@@ -428,9 +449,12 @@ function buildFeedItemEl(item) {
 			refreshFeedLike();
 		});
 		refreshFeedLike();
+		if (typeof queuePostLikeCountFetch === "function") queuePostLikeCountFetch(item.id, likeBtn.querySelector("span"));
 
 	var commentBtn = el.querySelector(".feedcommentbtn");
-	commentBtn.querySelector("span").textContent = getComments(item.id).length;
+	var commentCountEl = commentBtn.querySelector("span");
+	commentCountEl.textContent = getComments(item.id).length;
+	if (typeof queueCommentCountFetch === "function") queueCommentCountFetch(item.id, commentCountEl);
 	commentBtn.addEventListener("click", function() {
 		openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl });
 	});

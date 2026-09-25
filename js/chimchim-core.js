@@ -168,6 +168,71 @@ function updateMe(patch) {
 	saveUsers(users);
 }
 
+/* --- ย้ายโพสต์/รีวิว/เพจ/ร้านที่เคยสร้างไว้ด้วยบัญชีเก่า (สมัยก่อนมี Supabase Auth เก็บ id แบบ
+   "u"+timestamp ในเครื่องล้วน ๆ) มาอยู่ใต้บัญชีใหม่ที่ล็อกอินผ่าน Supabase อยู่ตอนนี้ โดยจับคู่จากอีเมลเดียวกัน
+   เรียกอัตโนมัติทุกครั้งที่ล็อกอิน/สมัครสำเร็จ (ดู sbSyncLocalSession ใน chimchim-supabase-client.js)
+   กันปัญหาโพสต์/รีวิวเก่า "หาย" เพราะเปลี่ยนมาใช้ id ใหม่หลังสลับระบบล็อกอิน --- */
+function migrateOrphanedLocalData(newUserId, email) {
+	var users = getUsers();
+	var oldEntries = users.filter(function(u) { return u.email === email && u.id !== newUserId; });
+	if (!oldEntries.length) return;
+
+	oldEntries.forEach(function(old) {
+		var oldId = old.id;
+
+		var posts = getAllPosts();
+		var postsChanged = false;
+		posts.forEach(function(p) {
+			if (p.userId === oldId) {
+				p.userId = newUserId;
+				postsChanged = true;
+			}
+		});
+		if (postsChanged) localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+
+		try {
+			var allReviews = JSON.parse(localStorage.getItem(CHIMCHIM_REVIEWS_KEY)) || {};
+			var reviewsChanged = false;
+			Object.keys(allReviews).forEach(function(shopId) {
+				allReviews[shopId].forEach(function(r) {
+					if (r.userId === oldId) {
+						r.userId = newUserId;
+						reviewsChanged = true;
+					}
+				});
+			});
+			if (reviewsChanged) localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(allReviews));
+		} catch (e) {
+			// ข้อมูลรีวิวเสีย/parse ไม่ได้ ข้ามไปเลย ไม่ให้การย้ายส่วนอื่นล้มไปด้วย
+		}
+
+		var pages = getPages();
+		var pagesChanged = false;
+		pages.forEach(function(pg) {
+			if (pg.ownerId === oldId) {
+				pg.ownerId = newUserId;
+				pagesChanged = true;
+			}
+		});
+		if (pagesChanged) savePages(pages);
+
+		var shops = getShops();
+		var shopsChanged = false;
+		shops.forEach(function(s) {
+			if (s.vendorId === oldId) {
+				s.vendorId = newUserId;
+				s.vendorName = old.name;
+				shopsChanged = true;
+			}
+		});
+		if (shopsChanged) saveShops(shops);
+	});
+
+	// ลบบัญชีเก่าที่ย้ายข้อมูลออกหมดแล้วทิ้ง กันซ้ำ/สับสนกับบัญชีใหม่
+	var remaining = users.filter(function(u) { return !(u.email === email && u.id !== newUserId); });
+	saveUsers(remaining);
+}
+
 /* --- ใช้ Food DNA ส่วนตัวของผู้ใช้ (ถ้าทำแบบสอบถามตอนสมัครไว้แล้ว) แทนค่าเริ่มต้น
    ถ้ายังไม่ได้ทำแบบทดสอบ/ยังไม่ได้ล็อกอิน ให้เดาความชอบจากพฤติกรรมจริงแทน (ร้านที่เคย
    กดถูกใจ/Follow/รีวิวดี ๆ ไว้ในเบราว์เซอร์นี้) เพื่อให้ Match % ตรงกับผู้ใช้จริง ไม่ใช่ค่ากลาง ๆ เดิมทุกคน --- */

@@ -16,7 +16,10 @@ var sbClient = (typeof supabase !== "undefined" && typeof CHIMCHIM_SUPABASE_URL 
 function sbSyncLocalSession(sbUser) {
 	var users = getUsers();
 	var existing = users.filter(function(u) { return u.id === sbUser.id; })[0];
-	var name = (sbUser.user_metadata && sbUser.user_metadata.name) || (existing && existing.name) || sbUser.email;
+	// ถ้ายังไม่เคยเจอ id ใหม่นี้มาก่อน เช็คว่ามีบัญชีเก่า (สมัยก่อนมี Supabase Auth, id แบบ "u"+timestamp)
+	// ที่ใช้อีเมลเดียวกันไหม เอาชื่อจากบัญชีเก่ามาใช้ต่อ กันต้องขึ้นเป็นอีเมลดิบ ๆ แทนชื่อจริง
+	var oldMatch = !existing ? users.filter(function(u) { return u.email === sbUser.email && u.id !== sbUser.id; })[0] : null;
+	var name = (sbUser.user_metadata && sbUser.user_metadata.name) || (existing && existing.name) || (oldMatch && oldMatch.name) || sbUser.email;
 	if (existing) {
 		existing.name = name;
 		existing.email = sbUser.email;
@@ -25,6 +28,8 @@ function sbSyncLocalSession(sbUser) {
 		users.push(existing);
 	}
 	saveUsers(users);
+	// ย้ายโพสต์/รีวิว/เพจ/ร้านที่เคยสร้างไว้ด้วยบัญชีเก่า (อีเมลเดียวกัน) มาอยู่ใต้ id ใหม่นี้ให้อัตโนมัติ
+	if (typeof migrateOrphanedLocalData === "function") migrateOrphanedLocalData(sbUser.id, sbUser.email);
 	setSession(existing);
 	return existing;
 }

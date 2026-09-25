@@ -50,91 +50,8 @@
          </div>
 
          <!-- ============================================================
-            เพจร้านอาหาร (เหมือนเพจ Facebook) — ใครก็สร้างได้จากตรงนี้ ไม่ต้องสมัครบัญชีร้านค้าแยก
-            ============================================================ -->
-         <div class="profcard" id="pageGuestCard" hidden>
-            <div class="profcardtit"><i class="fas fa-store me-1"></i><span data-i18n="settings.myPage">My Restaurant Page</span></div>
-            <p style="font-size:.82rem;color:#999;margin-bottom:12px;" data-i18n="settings.pageLoginHint">Log in to create a page for your restaurant.</p>
-            <a href="profile.html" class="rdghost" style="width:100%;" data-i18n="auth.login">Log In</a>
-         </div>
-
-         <div class="profcard" id="pageFormCard" hidden>
-            <div class="profcardtit"><i class="fas fa-store me-1"></i><span data-i18n="settings.myPage">My Restaurant Page</span></div>
-            <div class="pagepreview" id="pagePreview" hidden>
-               <img class="pagepreviewavatar" id="pagePreviewAvatar" src="" alt=""/>
-               <div>
-                  <div class="pagepreviewname" id="pagePreviewName"></div>
-                  <div class="pagepreviewcat" id="pagePreviewCat"></div>
-               </div>
-            </div>
-            <form id="pageForm" class="apform">
-               <div class="aperr" id="pageErr"></div>
-               <label class="flbl" data-i18n="settings.pageName">Page name</label>
-               <input class="fctrl" type="text" id="pageName" placeholder="เช่น ป้าหน่อย ข้าวมันไก่" data-i18n-ph="shop.pageNamePlaceholder" required/>
-               <label class="flbl" data-i18n="shop.category">Food category</label>
-               <select class="fctrl" id="pageCat" required>
-                  <optgroup label="🍽️ ทั่วไป" data-group-key="optgroup.everyday">
-                     <option value="อาหารตามสั่ง">🍳 อาหารตามสั่ง</option>
-                     <option value="ข้าวแกง">🍛 ข้าวแกง</option>
-                     <option value="ของทอด">🍤 ของทอด</option>
-                     <option value="ปิ้งย่าง">🍖 ปิ้งย่าง</option>
-                  </optgroup>
-                  <optgroup label="🌶️ รสจัดจ้าน" data-group-key="optgroup.spicy">
-                     <option value="ส้มตำ">🥭 ส้มตำ</option>
-                     <option value="ยำ">🌶️ ยำ</option>
-                     <option value="หม่าล่า">🍲 หม่าล่า</option>
-                  </optgroup>
-                  <optgroup label="🗺️ ตามภาค" data-group-key="optgroup.regional">
-                     <option value="อีสาน">🍢 อีสาน</option>
-                     <option value="เหนือ">🍛 เหนือ</option>
-                     <option value="กลาง">🍚 กลาง</option>
-                     <option value="อาหารใต้">🌶️ อาหารใต้</option>
-                     <option value="อาหารป่า">🦌 อาหารป่า</option>
-                  </optgroup>
-                  <optgroup label="🍜 เส้น/ก๋วยเตี๋ยว" data-group-key="optgroup.noodles">
-                     <option value="เมนูเส้น">🍜 เมนูเส้น</option>
-                     <option value="ก๋วยเตี๋ยว">🍲 ก๋วยเตี๋ยว</option>
-                  </optgroup>
-                  <optgroup label="🌏 นานาชาติ" data-group-key="optgroup.international">
-                     <option value="อาหารญี่ปุ่น">🍣 อาหารญี่ปุ่น</option>
-                     <option value="อาหารจีน">🥟 อาหารจีน</option>
-                     <option value="อาหารเกาหลี">🍚 อาหารเกาหลี</option>
-                     <option value="อาหารอินเดีย">🍛 อาหารอินเดีย</option>
-                     <option value="อาหารเวียดนาม">🍜 อาหารเวียดนาม</option>
-                     <option value="พิซซ่า">🍕 พิซซ่า</option>
-                     <option value="เบอร์เกอร์">🍔 เบอร์เกอร์</option>
-                     <option value="สเต็ก">🥩 สเต็ก</option>
-                     <option value="Fast Food">🍔 Fast Food</option>
-                  </optgroup>
-                  <optgroup label="🍰 ของหวาน/เครื่องดื่ม" data-group-key="optgroup.dessertsDrinks">
-                     <option value="ของหวาน/เบเกอรี่">🍰 ของหวาน/เบเกอรี่</option>
-                     <option value="ผลไม้">🍉 ผลไม้</option>
-                     <option value="เครื่องดื่ม">🥤 เครื่องดื่ม</option>
-                  </optgroup>
-                  <optgroup label="🥗 เฉพาะทาง" data-group-key="optgroup.dietary">
-                     <option value="อาหารเจ">🥬 อาหารเจ</option>
-                     <option value="อาหารฮาลาล">🕌 อาหารฮาลาล</option>
-                     <option value="มังสวิรัติ">🥗 มังสวิรัติ</option>
-                     <option value="วีแกน">🌱 วีแกน</option>
-                  </optgroup>
-               </select>
-               <label class="flbl" data-i18n="settings.pageAvatar">Page photo</label>
-               <div class="imguploadbox" id="pageAvatarUploadBox">
-                  <img class="imguploadpreview" id="pageAvatarPreviewImg" src="" alt="" hidden/>
-                  <label class="imguploadlbl" for="pageAvatarFile"><i class="fas fa-camera"></i><span data-i18n="shop.uploadPhoto">Upload a photo</span></label>
-               </div>
-               <input type="file" id="pageAvatarFile" accept="image/*" hidden/>
-               <input type="hidden" id="pageAvatar" required/>
-               <label class="flbl" data-i18n="shop.shortDesc">Short bio</label>
-               <textarea class="fctrl" id="pageBio" rows="2" placeholder="บอกจุดเด่นร้านคุณสั้น ๆ" data-i18n-ph="shop.bioPlaceholder"></textarea>
-               <button type="submit" class="btn-red w-100 justify-content-center mt-2" id="pageSubmitBtn"><i class="fas fa-floppy-disk"></i><span data-i18n="settings.pageSave">Save Page</span></button>
-            </form>
-            <a href="#" id="pageViewLink" class="rdghost" style="width:100%;margin-top:10px;" hidden data-i18n="settings.pageView">View my page</a>
-         </div>
-
-         <!-- ============================================================
-            ร้านของฉัน — ต่างจากเพจร้านด้านบน ร้านนี้มีราคา/ระยะทาง/หมวด เข้าไปคำนวณ Match %
-            และโชว์เป็นผลแนะนำได้จริงใน Discovery Feed / AI Finder ไม่ใช่แค่โพสต์รูปเฉย ๆ
+            ร้านของฉัน — รวม "เพจร้านอาหาร" (โพสต์รูป/bio) กับ "ร้านของฉัน" (ราคา/หมวด/Match %)
+            ที่เคยแยกเป็นคนละระบบกัน ให้เป็นเอนทิตีเดียว กรอกครั้งเดียวได้ทั้งโพสต์รูปและเข้าระบบแนะนำจริง
             ============================================================ -->
          <div class="profcard" id="shopGuestCard" hidden>
             <div class="profcardtit"><i class="fas fa-shop me-1"></i><span data-i18n="shop.postMyShop">Post My Shop</span></div>
@@ -255,7 +172,6 @@
       <script src="js/chimchim-core.js"></script>
       <script src="js/chimchim-community.js"></script>
       <script src="js/chimchim-settings.js"></script>
-      <script src="js/chimchim-page.js"></script>
       <script src="js/chimchim-shop.js"></script>
    </body>
 </html>

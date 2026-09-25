@@ -118,12 +118,13 @@ if (!ร้านปัจจุบัน) {
 	document.getElementById("rdReviewBtn").href = "review.html?id=" + ร้านปัจจุบัน.id;
 
 	/* --- แท็บภาพรวม / รีวิว --- */
+	var RD_TAB_PANE_MAP = { overview: "rdPaneOverview", reviews: "rdPaneReviews", posts: "rdPanePosts" };
 	document.querySelectorAll(".rdtab").forEach(function(tab) {
 		tab.addEventListener("click", function() {
 			document.querySelectorAll(".rdtab").forEach(function(t) { t.classList.remove("active"); });
 			document.querySelectorAll(".rdpane").forEach(function(p) { p.classList.remove("active"); });
 			this.classList.add("active");
-			var target = this.getAttribute("data-tab") === "overview" ? "rdPaneOverview" : "rdPaneReviews";
+			var target = RD_TAB_PANE_MAP[this.getAttribute("data-tab")];
 			document.getElementById(target).classList.add("active");
 		});
 	});
@@ -149,5 +150,29 @@ if (!ร้านปัจจุบัน) {
 				"</div>";
 		});
 		listBox.innerHTML = html;
+	}
+
+	/* --- แท็บโพสต์ — โชว์เฉพาะร้านที่ผู้ใช้โพสต์เข้าชุมชนเอง (มี vendorId) ร้านทีม ChimChim ไม่มีโพสต์ให้โชว์ --- */
+	if (ร้านปัจจุบัน.community && ร้านปัจจุบัน.vendorId) {
+		var shopPosts = getPostsByPage(ร้านปัจจุบัน.id);
+		if (shopPosts.length) {
+			document.getElementById("rdPostsTab").hidden = false;
+			var postGrid = document.getElementById("rdPostGrid");
+			var postEmpty = document.getElementById("rdPostEmpty");
+			postEmpty.hidden = true;
+			shopPosts.forEach(function(p) {
+				var images = getPostImages(p);
+				var el = document.createElement("div");
+				el.className = "ppost";
+				el.innerHTML =
+					'<img src="' + images[0] + '" alt=""/>' +
+					(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
+					'<div class="ppostcap">' + escapeHtml(p.caption) + '</div>';
+				el.addEventListener("click", function() {
+					openPostView({ id: p.id, images: images, caption: p.caption, posterName: ร้านปัจจุบัน.ร้าน, posterColor: "var(--cream2)" });
+				});
+				postGrid.appendChild(el);
+			});
+		}
 	}
 }

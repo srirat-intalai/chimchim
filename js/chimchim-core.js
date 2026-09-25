@@ -1134,8 +1134,10 @@ function hasUserReported(targetType, targetId) {
 })();
 
 /* =====================================================================
-   เพจร้านอาหาร (เหมือนเพจ Facebook) — ผู้ใช้คนไหนก็สร้างได้จากหน้า Settings
-   โดยไม่ต้องสมัครบัญชีร้านค้าแยก แล้วสลับ "โพสต์ในนาม" ตัวเอง/เพจได้ตลอด
+   เพจร้านอาหาร (ระบบเก่า) — เดิมแยกจาก "ร้านของฉัน" ตอนนี้รวมเป็นเอนทิตีเดียวแล้ว
+   (ดู migratePageIntoShop() ด้านล่าง) เหลือไว้แค่ getPages()/getPageById() เพราะยังใช้
+   ตอนย้ายข้อมูลเก่า + โชว์ลิงก์เพจเก่าที่อาจมีคนแชร์ไว้ก่อนหน้านี้ (public-profile.html?u=page-<id>)
+   ไม่มีทางสร้างเพจใหม่แบบนี้ได้อีกแล้ว (ฟอร์มสร้าง/แก้ไขเพจแยกถูกลบไปแล้ว ใช้ฟอร์ม "ร้านของฉัน" แทน)
    ===================================================================== */
 var CHIMCHIM_PAGES_KEY = "chimchim_pages";
 var CHIMCHIM_ACTIVE_PERSONA_KEY = "chimchim_active_persona";
@@ -1149,32 +1151,10 @@ function getPages() {
 function savePages(list) {
 	localStorage.setItem(CHIMCHIM_PAGES_KEY, JSON.stringify(list));
 }
-function getMyPage() {
-	var me = getMe();
-	if (!me) return null;
-	return getPages().filter(function(p) { return p.ownerId === me.id; })[0] || null;
-}
 function getPageById(id) {
 	return getPages().filter(function(p) { return p.id === id; })[0] || null;
 }
-function createOrUpdateMyPage(data) {
-	var me = getMe();
-	if (!me) return null;
-	var pages = getPages();
-	var existing = pages.filter(function(p) { return p.ownerId === me.id; })[0];
-	if (existing) {
-		existing.name = data.name;
-		existing.avatar = data.avatar;
-		existing.cat = data.cat;
-		existing.bio = data.bio;
-	} else {
-		existing = { id: "page" + Date.now(), ownerId: me.id, name: data.name, avatar: data.avatar, cat: data.cat, bio: data.bio };
-		pages.push(existing);
-	}
-	savePages(pages);
-	return existing;
-}
-// "โพสต์ในนามใคร" ตอนนี้ — "self" (ค่าเริ่มต้น) หรือ id ของเพจร้านที่ตัวเองเป็นเจ้าของ
+// "โพสต์ในนามใคร" ตอนนี้ — "self" (ค่าเริ่มต้น) หรือ numId ของร้านตัวเอง (เดิมเป็น id ของเพจร้าน)
 function getActivePersona() {
 	return localStorage.getItem(CHIMCHIM_ACTIVE_PERSONA_KEY) || "self";
 }
@@ -1182,6 +1162,67 @@ function setActivePersona(v) {
 	localStorage.setItem(CHIMCHIM_ACTIVE_PERSONA_KEY, v);
 }
 
-/* --- รันทันทีตอนโหลดไฟล์: เตรียมข้อมูลให้พร้อมก่อนหน้าเพจจะคำนวณ Match % --- */
+/* --- รวม "เพจร้านอาหาร" (ระบบเก่า แยกจากร้าน) เข้ากับ "ร้านของฉัน" ให้เป็นอันเดียว
+   เพจกับร้านเคยเป็นคนละระบบกัน (เพจ = โพสต์รูป, ร้าน = ราคา/หมวด/Match %) ตอนนี้รวมเป็นเอนทิตีเดียว
+   เรียกครั้งเดียวตอนมี session อยู่ (ดูจุดเรียกท้ายไฟล์) ปลอดภัยเรียกซ้ำได้ ถ้าไม่มีเพจเก่าจะไม่ทำอะไรเลย --- */
+function migratePageIntoShop() {
+	var me = getMe();
+	if (!me) return;
+	var pages = getPages();
+	var myPage = pages.filter(function(p) { return p.ownerId === me.id; })[0];
+	if (!myPage) return;
+
+	var shops = getShops();
+	var myShop = shops.filter(function(s) { return s.vendorId === me.id; })[0];
+
+	if (!myShop) {
+		// ไม่เคยมีร้านมาก่อน -> ยกเพจเก่าขึ้นเป็นร้านใหม่เลย (ราคา/ระยะทางใส่ค่า default ไปก่อน เจ้าของแก้เพิ่มเองทีหลังได้)
+		myShop = {
+			numId: generateUniqueShopNumId(),
+			vendorId: me.id,
+			vendorName: me.name,
+			name: myPage.name,
+			dish: myPage.name,
+			cat: myPage.cat,
+			img: myPage.avatar,
+			priceLow: 50,
+			priceHigh: 150,
+			distance: 500,
+			uni: มหาวิทยาลัยทั้งหมด[0],
+			desc: myPage.bio,
+			hours: null,
+			promo: null
+		};
+		shops.push(myShop);
+	} else {
+		if (!myShop.desc && myPage.bio) myShop.desc = myPage.bio;
+		if (!myShop.img && myPage.avatar) myShop.img = myPage.avatar;
+	}
+	saveShops(shops);
+
+	// ย้ายโพสต์ที่เคยผูกกับเพจเก่า มาผูกกับร้าน(ใหม่/เดิม)แทน
+	var posts = getAllPosts();
+	var postsChanged = false;
+	posts.forEach(function(p) {
+		if (p.pageId === myPage.id) {
+			p.pageId = myShop.numId;
+			postsChanged = true;
+		}
+	});
+	if (postsChanged) localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+
+	// ถ้ากำลังตั้งค่าโพสต์ในนามเพจเก่าอยู่ สลับมาชี้ร้านใหม่แทนให้อัตโนมัติ
+	if (getActivePersona() === myPage.id) {
+		setActivePersona(String(myShop.numId));
+	}
+
+	// ลบเพจเก่าออกจากลิสต์ กันซ้ำ/สับสน (ข้อมูลย้ายเข้าร้านหมดแล้ว)
+	savePages(pages.filter(function(p) { return p.id !== myPage.id; }));
+}
+
+/* --- รันทันทีตอนโหลดไฟล์: เตรียมข้อมูลให้พร้อมก่อนหน้าเพจจะคำนวณ Match %
+   (ต้อง migratePageIntoShop() ก่อน merge เสมอ เผื่อมันเพิ่งสร้าง/แก้ไขร้านจากเพจเก่า
+   จะได้เห็นร้านนั้นในรายการร้านตั้งแต่รอบโหลดนี้เลย ไม่ต้องรีเฟรชซ้ำ) --- */
+migratePageIntoShop();
 var __chimchimCommunityShops = mergeCommunityShopsIntoรายการร้าน();
 applyPersonalFoodDNA();

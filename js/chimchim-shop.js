@@ -1,11 +1,14 @@
 // chimchim-shop.js
-// หน้า Settings: สร้าง/แก้ไข "ร้านของฉัน" เข้าสู่ Discovery Feed / AI Finder ได้จริง
-// ต่างจากเพจร้าน (chimchim-page.js) ตรงที่ร้านนี้มีราคา/ระยะทาง/หมวด เข้าไปคำนวณ Match % ได้
-// ไม่ใช่แค่โพสต์รูปเฉย ๆ — บันทึกผ่าน createOrUpdateMyShop() ใน chimchim-core.js
+// หน้า Settings: สร้าง/แก้ไข "ร้านของฉัน" — รวมทั้งข้อมูลสำหรับ Match %/Discovery Feed/AI Finder
+// (ราคา/ระยะทาง/หมวด/เมนูเด่น) และความสามารถแบบเพจร้าน (โพสต์รูป, สลับโพสต์ในนาม) ไว้ในที่เดียว
+// เดิมแยกเป็น "เพจร้านอาหาร" (chimchim-page.js) กับ "ร้านของฉัน" คนละระบบกัน ตอนนี้รวมเป็นเอนทิตีเดียว
+// (ร้านเก่า/เพจเก่าที่เคยแยกกันไว้ จะถูกรวมอัตโนมัติผ่าน migratePageIntoShop() ใน chimchim-core.js)
+// บันทึกผ่าน createOrUpdateMyShop() ใน chimchim-core.js
 
 (function() {
 	var guestCard = document.getElementById("shopGuestCard");
 	var formCard = document.getElementById("shopFormCard");
+	var personaCard = document.getElementById("personaCard");
 	if (!guestCard || !formCard) return;
 
 	var session = getSession();
@@ -39,6 +42,22 @@
 		viewLink.href = "restaurant.html?id=" + shop.numId;
 	}
 
+	/* --- สลับ "โพสต์ในนามตัวเอง / ในนามร้าน" — ใช้ shop.numId เป็นตัวระบุแทน id เพจเดิม --- */
+	function refreshPersonaUI(shop) {
+		if (!personaCard) return;
+		if (!shop) {
+			personaCard.hidden = true;
+			return;
+		}
+		personaCard.hidden = false;
+		document.getElementById("personaPageLabel").textContent = shop.name;
+		var active = getActivePersona();
+		document.querySelectorAll("#personaToggle .settopt").forEach(function(btn) {
+			var isPage = btn.getAttribute("data-persona") === "page";
+			btn.classList.toggle("active", isPage ? active === String(shop.numId) : active === "self");
+		});
+	}
+
 	if (myShop) {
 		var titleEl = document.getElementById("shopFormTitle");
 		titleEl.setAttribute("data-i18n", "shop.editMyShop");
@@ -56,6 +75,7 @@
 		document.getElementById("shopSubmitBtn").innerHTML = '<i class="fas fa-floppy-disk"></i><span>' + t("shop.saveChanges") + "</span>";
 	}
 	refreshViewLink(myShop);
+	refreshPersonaUI(myShop);
 
 	document.getElementById("shopForm").addEventListener("submit", function(e) {
 		e.preventDefault();
@@ -100,6 +120,19 @@
 		});
 		document.getElementById("shopSubmitBtn").innerHTML = '<i class="fas fa-floppy-disk"></i><span>' + t("shop.saveChanges") + "</span>";
 		refreshViewLink(shop);
+		refreshPersonaUI(shop);
 		if (typeof showToast === "function") showToast(t("shop.postedToast").replace("{name}", name));
 	});
+
+	if (personaCard) {
+		document.querySelectorAll("#personaToggle .settopt").forEach(function(btn) {
+			btn.addEventListener("click", function() {
+				var shop = getMyShop();
+				if (!shop) return;
+				var choice = this.getAttribute("data-persona") === "page" ? String(shop.numId) : "self";
+				setActivePersona(choice);
+				refreshPersonaUI(shop);
+			});
+		});
+	}
 })();

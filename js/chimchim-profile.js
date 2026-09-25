@@ -200,7 +200,7 @@ function initMyPosts() {
 		}
 
 		var activePage = getActivePostingPage();
-		addPost(session.id, chosenImages, caption, activePage ? activePage.id : null);
+		addPost(session.id, chosenImages, caption, activePage ? activePage.numId : null);
 		resetFormToCreateMode();
 		form.style.display = "none";
 		showToast(activePage ? t("profile.postedAsToast").replace("{name}", activePage.name) : t("profile.postedToast"));
@@ -214,8 +214,9 @@ function initMyPosts() {
 function getActivePostingPage() {
 	var persona = getActivePersona();
 	if (persona === "self") return null;
-	var page = getPageById(persona);
-	return (page && page.ownerId === session.id) ? page : null;
+	// "เพจ"/"ร้าน" รวมเป็นเอนทิตีเดียวกันแล้ว (ดู migratePageIntoShop ใน core.js) — ผู้ใช้มีได้แค่ร้านเดียว
+	// เลยไม่ต้องเช็คว่า persona ตรงกับ id ไหน แค่คืนร้านของตัวเองไปเลยถ้าไม่ได้ตั้งเป็น "self"
+	return getMyShop();
 }
 
 function renderMyPosts() {
@@ -228,7 +229,7 @@ function renderMyPosts() {
 	if (row) {
 		if (activePage) {
 			row.hidden = false;
-			document.getElementById("postingAsAvatar").src = activePage.avatar;
+			document.getElementById("postingAsAvatar").src = activePage.img;
 			document.getElementById("postingAsLabel").textContent = t("settings.postingAsPrefix") + ": " + activePage.name;
 		} else {
 			row.hidden = true;
@@ -236,7 +237,7 @@ function renderMyPosts() {
 	}
 
 	grid.innerHTML = "";
-	var posts = activePage ? getPostsByPage(activePage.id) : getPostsByUser(session.id);
+	var posts = activePage ? getPostsByPage(activePage.numId) : getPostsByUser(session.id);
 	var igStatPosts = document.getElementById("igStatPosts");
 	if (igStatPosts) igStatPosts.textContent = posts.length;
 	if (posts.length === 0) {

@@ -282,3 +282,7 @@ alter table public.profiles add column avatar_url text;
 -- อ้างอิง "shops" แทน ไม่งั้นโพสต์ในนามร้านจะ insert ขึ้น Supabase ไม่ได้เพราะ id ไม่ตรงตารางที่ผูกไว้เดิม
 alter table public.posts drop constraint posts_page_id_fkey;
 alter table public.posts add constraint posts_shop_id_fkey foreign key (page_id) references public.shops(id) on delete cascade;
+
+-- posts: ตอน Phase 1 ลืมใส่ policy update ไว้ (มีแค่ select/insert/delete) — ฟีเจอร์แก้ไขโพสต์ (updatePost)
+-- เลยจะ push การแก้ไขขึ้น Supabase ไม่ได้เลยจนกว่าจะเพิ่มอันนี้ (ถูก RLS บล็อกเงียบ ๆ ไม่ error ที่เห็นชัด)
+create policy "posts_update_own" on public.posts for update using (auth.uid() = user_id);

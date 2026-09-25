@@ -1127,7 +1127,9 @@ function updatePost(postId, patch) {
 // หรือเพิ่มเป็นโพสต์ใหม่ถ้ายังไม่เคยเห็น (เห็นโพสต์ของคนอื่นข้ามเครื่องได้จริง ไม่ใช่แค่โพสต์ตัวอย่าง)
 function mergeRemotePostsIntoLocal(remotePosts) {
 	var posts = getAllPosts();
+	var remoteIds = {};
 	remotePosts.forEach(function(remote) {
+		remoteIds[remote.id] = true;
 		if (isContentHidden("post", remote.id)) return;
 		var idx = -1, i;
 		for (i = 0; i < posts.length; i++) {
@@ -1136,6 +1138,9 @@ function mergeRemotePostsIntoLocal(remotePosts) {
 		var withRemoteId = { id: remote.id, remoteId: remote.id, userId: remote.userId, pageId: remote.pageId, images: remote.images, img: remote.images[0], caption: remote.caption, date: remote.date };
 		if (idx !== -1) { posts[idx] = withRemoteId; } else { posts.push(withRemoteId); }
 	});
+	// เอาโพสต์ที่เคย sync ไปแล้ว (มี remoteId) แต่ไม่อยู่ในชุดล่าสุดจาก Supabase ออกทิ้ง — แปลว่าโดนลบ/โดนซ่อน
+	// จากเครื่องอื่นไปจริง ๆ แล้ว (ไม่งั้นจะค้างเป็นโพสต์ผีในเครื่องนี้ตลอดไป) โพสต์ที่ยังไม่เคย sync (ไม่มี remoteId) ไม่แตะ
+	posts = posts.filter(function(p) { return !p.remoteId || remoteIds[p.remoteId]; });
 	posts.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
 	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
 }
@@ -1289,6 +1294,9 @@ function logEvent(eventType, metadata) {
 		events = events.slice(-MAX_STORED_EVENTS);
 	}
 	localStorage.setItem(CHIMCHIM_EVENTS_KEY, JSON.stringify(events));
+	// ผลักขึ้น Supabase จริงด้วย (analytics_events เป็น insert-only ตาม RLS — อ่านสรุปคืนได้เฉพาะฝั่ง dashboard
+	// ที่ใช้ service role key เท่านั้น) หน้า analytics.html ในแอปยังคงโชว์แค่สถิติของเครื่องนี้เหมือนเดิม
+	if (typeof sbLogEvent === "function") sbLogEvent(eventType, session ? session.id : null, metadata || {});
 }
 function getEventCounts() {
 	var counts = {};
@@ -1298,7 +1306,11 @@ function getEventCounts() {
 	return counts;
 }
 // เรียกครั้งเดียวตอนโหลดไฟล์นี้ (ซึ่งโหลดทุกหน้าของแอป) เลยนับเป็น "เปิดแอป/เปิดหน้า" ได้ครบทุกหน้าอัตโนมัติ
-logEvent("app_open", { page: (typeof location !== "undefined" ? location.pathname.split("/").pop() : "") });
+// หน่วงด้วย setTimeout(0) เพราะไฟล์นี้โหลดก่อน chimchim-supabase-client.js เสมอ — เรียกตรง ๆ ตอนนี้เลย
+// sbLogEvent จะยังไม่มีอยู่ (ยังไม่ได้ประกาศ) ทำให้ event แรกสุดของทุกหน้าไม่เคยถูกผลักขึ้น Supabase เลย
+setTimeout(function() {
+	logEvent("app_open", { page: (typeof location !== "undefined" ? location.pathname.split("/").pop() : "") });
+}, 0);
 
 /* =====================================================================
    ระบบรายงานเนื้อหา (Moderation) — รายงานได้เฉพาะโพสต์/ร้านที่ "ผู้ใช้" เพิ่มเข้ามาเอง
@@ -1329,6 +1341,11 @@ function reportContent(targetType, targetId, reason) {
 	});
 	saveReports(reports);
 	if (typeof logEvent === "function") logEvent("content_reported", { targetType: targetType, reason: reason });
+	// ผลักรายงานขึ้น Supabase จริง — ต้องมีรายงานจริงสะสมถึงเกณฑ์ (3 รายงาน) ข้ามผู้ใช้/เครื่องถึงจะซ่อนเนื้อหาได้จริง
+	// (ไม่งั้นนับแค่รายงานในเครื่องนี้เครื่องเดียว ซึ่งแทบไม่มีทางถึงเกณฑ์จริง) ตาราง moderation_reports อ่านกลับไม่ได้
+	// (insert-only ตาม RLS) แต่ trigger check_report_threshold() ฝั่ง Supabase จะเซ็ต is_hidden ให้เองอัตโนมัติ
+	// แล้ว sbFetchCommunityShops/sbFetchAllPosts ที่กรอง is_hidden=false อยู่แล้วจะไม่ดึงเนื้อหานั้นมาอีกทุกเครื่อง
+	if (typeof sbReportContent === "function") sbReportContent(targetType, targetId, reason);
 }
 function getReportCount(targetType, targetId) {
 	var id = String(targetId);

@@ -279,37 +279,62 @@ function sbSetFollow(targetType, targetId, following) {
 		: sbClient.from("follows").delete().eq("follower_id", me.id).eq("target_type", targetType).eq("target_id", String(targetId));
 	return Promise.resolve(query).catch(function() {});
 }
+// ครั้งแรกที่เคย sync ในเครื่องนี้เท่านั้น (ยังไม่เคย backfill): เอาไลก์/ติดตามเดิมที่ทำไว้ก่อนมีระบบ sync
+// (ยุค localStorage ล้วน ๆ) ผลักขึ้น Supabase ให้ครบก่อน แล้ว union เข้ากับของจริง — ครั้งต่อ ๆ ไปหลังจากนั้น
+// ให้ "แทนที่ทั้งชุด" ด้วยของจริงจาก Supabase ตรง ๆ เลย เพราะทุกครั้งที่กด/เลิกกดหลังจากนี้ push ขึ้นจริงทันทีอยู่แล้ว
+// (ถ้ายัง union ตลอดไป การเลิกไลก์/เลิกติดตามจากเครื่องอื่นจะไม่มีวันหายไปจากเครื่องนี้ แถมจะถูกผลักกลับขึ้นไปซ้ำอีกด้วย)
+var CHIMCHIM_LIKES_FOLLOWS_BACKFILLED_KEY = "chimchim_likes_follows_backfilled_v1";
 function syncLikesAndFollowsWithSupabase(onUpdated) {
 	var me = getMe();
 	if (!me || !sbClient) return;
+	var isFirstBackfill = !localStorage.getItem(CHIMCHIM_LIKES_FOLLOWS_BACKFILLED_KEY);
 
 	var p1 = sbClient.from("likes_shops").select("shop_id").eq("user_id", me.id).then(function(res) {
 		var remote = (res.data || []).map(function(r) { return r.shop_id; });
-		var local = getLikedShops();
-		mergeLocalIdSet(CHIMCHIM_LIKES_KEY, remote);
-		local.forEach(function(id) { if (remote.indexOf(id) === -1) sbSetShopLike(id, true); });
+		if (!isFirstBackfill) {
+			localStorage.setItem(CHIMCHIM_LIKES_KEY, JSON.stringify(remote));
+			return;
+		}
+		var toPush = getLikedShops().filter(function(id) { return remote.indexOf(id) === -1; });
+		return Promise.all(toPush.map(function(id) { return sbSetShopLike(id, true); })).then(function() {
+			mergeLocalIdSet(CHIMCHIM_LIKES_KEY, remote);
+		});
 	}).catch(function() {});
 
 	var p2 = sbClient.from("likes_posts").select("post_id").eq("user_id", me.id).then(function(res) {
 		var remote = (res.data || []).map(function(r) { return String(r.post_id); });
-		var local = getLikedPosts();
-		mergeLocalIdSet(CHIMCHIM_POST_LIKES_KEY, remote);
-		local.forEach(function(id) { if (remote.indexOf(id) === -1) sbSetPostLike(id, true); });
+		if (!isFirstBackfill) {
+			localStorage.setItem(CHIMCHIM_POST_LIKES_KEY, JSON.stringify(remote));
+			return;
+		}
+		var toPush = getLikedPosts().filter(function(id) { return remote.indexOf(id) === -1; });
+		return Promise.all(toPush.map(function(id) { return sbSetPostLike(id, true); })).then(function() {
+			mergeLocalIdSet(CHIMCHIM_POST_LIKES_KEY, remote);
+		});
 	}).catch(function() {});
 
 	var p3 = sbClient.from("follows").select("target_type, target_id").eq("follower_id", me.id).then(function(res) {
 		var rows = res.data || [];
 		var remoteShops = rows.filter(function(r) { return r.target_type === "shop"; }).map(function(r) { return parseInt(r.target_id, 10); });
 		var remoteUsers = rows.filter(function(r) { return r.target_type === "profile"; }).map(function(r) { return r.target_id; });
-		var localShops = getFollowedShops();
-		var localUsers = getFollowedUsers();
-		mergeLocalIdSet(CHIMCHIM_FOLLOWS_KEY, remoteShops);
-		mergeLocalIdSet(CHIMCHIM_FOLLOWED_USERS_KEY, remoteUsers);
-		localShops.forEach(function(id) { if (remoteShops.indexOf(id) === -1) sbSetFollow("shop", id, true); });
-		localUsers.forEach(function(id) { if (remoteUsers.indexOf(id) === -1) sbSetFollow("profile", id, true); });
+		if (!isFirstBackfill) {
+			localStorage.setItem(CHIMCHIM_FOLLOWS_KEY, JSON.stringify(remoteShops));
+			localStorage.setItem(CHIMCHIM_FOLLOWED_USERS_KEY, JSON.stringify(remoteUsers));
+			return;
+		}
+		var toPushShops = getFollowedShops().filter(function(id) { return remoteShops.indexOf(id) === -1; });
+		var toPushUsers = getFollowedUsers().filter(function(id) { return remoteUsers.indexOf(id) === -1; });
+		return Promise.all(
+			toPushShops.map(function(id) { return sbSetFollow("shop", id, true); })
+				.concat(toPushUsers.map(function(id) { return sbSetFollow("profile", id, true); }))
+		).then(function() {
+			mergeLocalIdSet(CHIMCHIM_FOLLOWS_KEY, remoteShops);
+			mergeLocalIdSet(CHIMCHIM_FOLLOWED_USERS_KEY, remoteUsers);
+		});
 	}).catch(function() {});
 
 	Promise.all([p1, p2, p3]).then(function() {
+		if (isFirstBackfill) localStorage.setItem(CHIMCHIM_LIKES_FOLLOWS_BACKFILLED_KEY, "1");
 		if (typeof onUpdated === "function") onUpdated();
 	});
 }
@@ -397,10 +422,43 @@ function syncPostsWithSupabase(onUpdated) {
 	pushAll.then(function() {
 		return sbFetchAllPosts();
 	}).then(function(remotePosts) {
-		if (!remotePosts.length) return;
+		// เรียก merge เสมอแม้ remote จะว่าง (ต้องเช็ค "โพสต์ที่เคย sync แต่หายไปแล้วจริง ๆ" ด้วย ไม่ใช่แค่เพิ่มของใหม่)
 		mergeRemotePostsIntoLocal(remotePosts);
 		if (typeof onUpdated === "function") onUpdated();
 	});
+}
+
+/* =====================================================================
+   Analytics — ผลัก event ขึ้น Supabase จริงด้วย (insert-only ตาม RLS เหมือนรายงาน)
+   ===================================================================== */
+function sbLogEvent(eventType, userId, metadata) {
+	if (!sbClient) return Promise.resolve(null);
+	return sbClient.from("analytics_events").insert({
+		user_id: userId || null,
+		event_type: eventType,
+		metadata: metadata || {}
+	}).then(function(res) {
+		if (res.error) console.error("[chimchim] sbLogEvent error:", res.error.message);
+	}).catch(function() {});
+}
+
+/* =====================================================================
+   รายงานเนื้อหา — ผลักขึ้น Supabase จริง (moderation_reports เป็น insert-only อ่านกลับไม่ได้ตาม RLS
+   ผลลัพธ์ที่เห็นได้คือ is_hidden ที่ trigger ฝั่ง Supabase เซ็ตให้เองเมื่อถึงเกณฑ์ 3 รายงาน)
+   ใช้ได้เฉพาะร้าน/โพสต์ที่ sync ขึ้น Supabase แล้วเท่านั้น (id เป็นตัวเลขจริง ไม่ใช่ "post"+timestamp ชั่วคราว)
+   ===================================================================== */
+function sbReportContent(targetType, targetId, reason) {
+	var me = getMe();
+	var numericId = parseInt(targetId, 10);
+	if (!sbClient || !me || isNaN(numericId)) return Promise.resolve(null);
+	return sbClient.from("moderation_reports").insert({
+		target_type: targetType,
+		target_id: numericId,
+		reporter_id: me.id,
+		reason: reason
+	}).then(function(res) {
+		if (res.error) console.error("[chimchim] sbReportContent error:", res.error.message);
+	}).catch(function() {});
 }
 
 /* =====================================================================

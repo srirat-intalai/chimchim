@@ -142,7 +142,9 @@ if (authPop) {
 
 		sbSignIn(email, password).then(function(res) {
 			if (!res.ok) {
-				errBox.textContent = t("auth.invalidCredentials");
+				errBox.textContent = (res.errorCode === "email_not_confirmed")
+					? t("auth.emailNotConfirmed")
+					: t("auth.invalidCredentials");
 				errBox.classList.add("show");
 				return;
 			}

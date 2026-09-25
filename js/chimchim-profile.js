@@ -124,7 +124,9 @@ function initMyPosts() {
 	var toggle = document.getElementById("addPostToggle");
 	var form = document.getElementById("postForm");
 	var listBox = document.getElementById("postImgList");
+	var submitBtn = document.getElementById("postSubmitBtn");
 	var chosenImages = [];
+	var editingPostId = null; // null = กำลังสร้างโพสต์ใหม่, มีค่า = กำลังแก้ไขโพสต์เดิม
 
 	function renderChosenImages() {
 		listBox.innerHTML = "";
@@ -140,6 +142,14 @@ function initMyPosts() {
 		});
 	}
 
+	function resetFormToCreateMode() {
+		editingPostId = null;
+		form.reset();
+		chosenImages = [];
+		renderChosenImages();
+		submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i><span>' + t("profile.postBtn") + "</span>";
+	}
+
 	// อัปโหลดรูปจริงจากเครื่องผู้ใช้เอง (แทนดรอปดาวน์เลือกรูปสต็อกเดิม) เลือกได้หลายรูปพร้อมกัน สูงสุด 10 รูปต่อโพสต์
 	wireMultiImageUpload("postImgFile", function(dataUrls) {
 		dataUrls.forEach(function(dataUrl) {
@@ -150,8 +160,24 @@ function initMyPosts() {
 	});
 
 	toggle.addEventListener("click", function() {
-		form.style.display = form.style.display === "none" ? "block" : "none";
+		if (form.style.display === "none") {
+			resetFormToCreateMode();
+			form.style.display = "block";
+		} else {
+			form.style.display = "none";
+		}
 	});
+
+	// เปิดฟอร์มเดิมมาแก้ไข พรีฟิลรูป+แคปชั่นของโพสต์นั้น สลับปุ่มเป็นโหมดแก้ไข
+	window.startEditingPost = function(post) {
+		editingPostId = post.id;
+		chosenImages = getPostImages(post).slice();
+		renderChosenImages();
+		document.getElementById("postCaption").value = post.caption || "";
+		submitBtn.innerHTML = '<i class="fas fa-floppy-disk"></i><span>' + t("profile.saveChangesPost") + "</span>";
+		form.style.display = "block";
+		form.scrollIntoView({ behavior: "smooth", block: "nearest" });
+	};
 
 	form.addEventListener("submit", function(e) {
 		e.preventDefault();
@@ -163,11 +189,19 @@ function initMyPosts() {
 			errBox.classList.add("show");
 			return;
 		}
+
+		if (editingPostId) {
+			updatePost(editingPostId, { images: chosenImages, caption: caption });
+			resetFormToCreateMode();
+			form.style.display = "none";
+			showToast(t("profile.postUpdatedToast"));
+			renderMyPosts();
+			return;
+		}
+
 		var activePage = getActivePostingPage();
 		addPost(session.id, chosenImages, caption, activePage ? activePage.id : null);
-		this.reset();
-		chosenImages = [];
-		renderChosenImages();
+		resetFormToCreateMode();
 		form.style.display = "none";
 		showToast(activePage ? t("profile.postedAsToast").replace("{name}", activePage.name) : t("profile.postedToast"));
 		renderMyPosts();
@@ -220,9 +254,14 @@ function renderMyPosts() {
 			'<img src="' + images[0] + '" alt=""/>' +
 			(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
 			'<div class="ppostcap">' + escapeHtml(p.caption) + '</div>' +
+			'<button class="ppostedit" data-id="' + p.id + '" title="' + t("common.editPost") + '"><i class="fas fa-pen"></i></button>' +
 			'<button class="ppostdel" data-id="' + p.id + '" title="' + t("common.deletePost") + '"><i class="fas fa-times"></i></button>';
 		el.addEventListener("click", function() {
 			openPostView({ id: p.id, images: images, caption: p.caption, posterName: posterName, posterColor: posterColor });
+		});
+		el.querySelector(".ppostedit").addEventListener("click", function(e) {
+			e.stopPropagation();
+			startEditingPost(p);
 		});
 		el.querySelector(".ppostdel").addEventListener("click", function(e) {
 			e.stopPropagation();

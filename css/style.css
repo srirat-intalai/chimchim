@@ -5845,10 +5845,10 @@ body.appshell {
 .ppost:hover .ppostcap {
   opacity: 1;
 }
-.ppostdel {
+.ppostdel,
+.ppostedit {
   position: absolute;
   top: 5px;
-  right: 5px;
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -5860,6 +5860,12 @@ body.appshell {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.ppostdel {
+  right: 5px;
+}
+.ppostedit {
+  right: 31px;
 }
 .addpostbox {
   display: flex;

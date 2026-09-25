@@ -897,6 +897,22 @@ function deletePost(postId) {
 	delete allComments[postId];
 	localStorage.setItem(CHIMCHIM_COMMENTS_KEY, JSON.stringify(allComments));
 }
+// แก้ไขโพสต์เดิม (รูป/แคปชั่น) — แก้ได้เฉพาะเจ้าของโพสต์อยู่แล้วในทางปฏิบัติ เพราะเรียกจากหน้า "โพสต์ของฉัน" เท่านั้น
+function updatePost(postId, patch) {
+	var posts = getAllPosts();
+	var i;
+	for (i = 0; i < posts.length; i++) {
+		if (posts[i].id === postId) {
+			if (patch.images) {
+				posts[i].images = patch.images;
+				posts[i].img = patch.images[0];
+			}
+			if (typeof patch.caption === "string") posts[i].caption = patch.caption;
+			break;
+		}
+	}
+	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+}
 
 /* =====================================================================
    ฟีดชุมชนรวม (หน้าแรก) — รวมโพสต์จริงของผู้ใช้/เพจร้าน + โพสต์ของ 11 ร้านจริงใกล้ ม.กรุงเทพ (เพจร้านBU)

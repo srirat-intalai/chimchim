@@ -5,6 +5,44 @@
 // (buildMiniCard ย้ายไปอยู่ chimchim-core.js แล้ว เพื่อให้หน้าอื่น เช่น วงล้อสุ่มเมนู เรียกใช้ได้ด้วย)
 
 /* -----------------------------------------------------
+   แบนเนอร์ขอตำแหน่งที่ตั้ง — โผล่ทันทีตอนเข้าหน้าแรก (แทนที่จะให้ต้องไปกดเองใน Settings)
+   ถ้าเคยอนุญาต/เคยกดปิดไปแล้ว ไม่โผล่ซ้ำอีก ใช้ ขอตำแหน่งผู้ใช้() ตัวเดียวกับใน Settings เป๊ะ ๆ
+----------------------------------------------------- */
+var CHIMCHIM_LOCATION_PROMPT_DISMISSED_KEY = "chimchim_location_prompt_dismissed";
+(function setupLocationPrompt() {
+	var banner = document.getElementById("locationPrompt");
+	if (!banner) return;
+	if (getUserLocation() || localStorage.getItem(CHIMCHIM_LOCATION_PROMPT_DISMISSED_KEY)) return;
+
+	banner.hidden = false;
+
+	function dismiss() {
+		banner.hidden = true;
+		localStorage.setItem(CHIMCHIM_LOCATION_PROMPT_DISMISSED_KEY, "1");
+	}
+
+	document.getElementById("locationPromptCloseBtn").addEventListener("click", dismiss);
+	document.getElementById("locationPromptAllowBtn").addEventListener("click", function() {
+		var btn = this;
+		btn.disabled = true;
+		var originalHtml = btn.innerHTML;
+		btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+		ขอตำแหน่งผู้ใช้().then(function() {
+			dismiss();
+			if (typeof showToast === "function") showToast(t("settings.locationSuccess"));
+			if (typeof renderRecommendedRow === "function") renderRecommendedRow();
+			if (typeof renderMatchHero === "function") renderMatchHero();
+		}).catch(function() {
+			dismiss();
+			if (typeof showToast === "function") showToast(t("settings.locationError"));
+		}).finally(function() {
+			btn.disabled = false;
+			btn.innerHTML = originalHtml;
+		});
+	});
+})();
+
+/* -----------------------------------------------------
    แถบหมวดหมู่อาหารหน้าเทรนด์ — กดหมวดไหนแล้วทั้งหน้า (แนะนำสำหรับคุณ + ฟีดชุมชน) กรองตามหมวดนั้นทันที
    จำหมวดที่เลือกไว้ใน sessionStorage กันหายตอนเลื่อนฟีดจนสุดแล้วรีเฟรชอัตโนมัติ
 ----------------------------------------------------- */

@@ -82,17 +82,17 @@ refreshSettingsUI();
 		}
 	}
 
-	var reviewsCard = document.getElementById("reviewsHistoryCard");
-	if (reviewsCard) {
-		reviewsCard.hidden = false;
-		var reviewList = document.getElementById("settingsReviewsList");
-		var reviewEmpty = document.getElementById("settingsReviewsEmpty");
-		var reviews = getReviewsByUser(session.id).filter(function(r) { return หาร้านจากId(r.shopId); });
-		if (reviews.length === 0) {
-			reviewEmpty.hidden = false;
+	var followsCard = document.getElementById("followsHistoryCard");
+	if (followsCard) {
+		followsCard.hidden = false;
+		var followList = document.getElementById("settingsFollowsList");
+		var followEmpty = document.getElementById("settingsFollowsEmpty");
+		var followedShops = getFollowedShops().map(function(id) { return หาร้านจากId(id); }).filter(function(r) { return r; });
+		if (followedShops.length === 0) {
+			followEmpty.hidden = false;
 		} else {
-			reviewEmpty.hidden = true;
-			reviews.forEach(function(r) { reviewList.appendChild(buildReviewItem(r)); });
+			followEmpty.hidden = true;
+			followedShops.forEach(function(ร้าน) { followList.appendChild(buildLikeRow(ร้าน)); });
 		}
 	}
 })();

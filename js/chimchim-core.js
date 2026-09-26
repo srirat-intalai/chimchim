@@ -95,6 +95,7 @@ function กรองรูปไม่ซ้ำ(list, getImg) {
    ===================================================================== */
 var CHIMCHIM_USERS_KEY = "chimchim_users";
 var CHIMCHIM_SESSION_KEY = "chimchim_session";
+var CHIMCHIM_AI_CHAT_KEY = "chimchim_ai_chat";
 var CHIMCHIM_SHOPS_KEY = "chimchim_shops";
 var CHIMCHIM_REVIEWS_KEY = "chimchim_reviews";
 var CHIMCHIM_FOLLOWS_KEY = "chimchim_follows";
@@ -138,6 +139,8 @@ function setSession(user) {
 }
 function clearSession() {
 	localStorage.removeItem(CHIMCHIM_SESSION_KEY);
+	// ออกจากระบบแล้วลบแชท AI Finder ที่เก็บไว้ทิ้งไปด้วย (ผู้ใช้คนถัดไปที่ใช้เครื่องนี้จะได้ไม่เห็นบทสนทนาเก่า)
+	localStorage.removeItem(CHIMCHIM_AI_CHAT_KEY);
 }
 function getMe() {
 	var session = getSession();

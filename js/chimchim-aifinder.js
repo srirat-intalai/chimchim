@@ -60,6 +60,33 @@ function renderQuickSuggestions() {
 }
 
 /* -----------------------------------------------------
+   บันทึกบทสนทนาไว้ใน localStorage ระหว่างยังไม่ออกจากระบบ (clearSession() ใน core.js จะลบทิ้งให้อัตโนมัติ
+   ตอนกดออกจากระบบ) เพื่อให้สลับหน้าไปมาหรือรีเฟรชแล้วยังเห็นบทสนทนาเดิมต่อได้ ไม่ใช่เจอแชทว่างเปล่าใหม่ทุกครั้ง
+   เก็บแค่ "สิ่งที่ต้องวาดใหม่" (ข้อความ/id ร้านในการ์ด) ไม่เก็บข้อมูลร้านทั้งก้อนซ้ำ เผื่อร้านมีอัปเดตทีหลัง
+----------------------------------------------------- */
+var AI_CHAT_LOG_MAX = 60;
+var isRestoringChat = false;
+function getSavedChatState() {
+	try {
+		return JSON.parse(localStorage.getItem(CHIMCHIM_AI_CHAT_KEY)) || { history: [], log: [] };
+	} catch (e) {
+		return { history: [], log: [] };
+	}
+}
+var บทสนทนาที่บันทึกไว้ = getSavedChatState().log;
+function บันทึกสถานะแชท() {
+	localStorage.setItem(CHIMCHIM_AI_CHAT_KEY, JSON.stringify({ history: ประวัติแชท, log: บทสนทนาที่บันทึกไว้ }));
+}
+function จดบันทึกลงแชท(entry) {
+	if (isRestoringChat) return;
+	บทสนทนาที่บันทึกไว้.push(entry);
+	if (บทสนทนาที่บันทึกไว้.length > AI_CHAT_LOG_MAX) {
+		บทสนทนาที่บันทึกไว้ = บทสนทนาที่บันทึกไว้.slice(-AI_CHAT_LOG_MAX);
+	}
+	บันทึกสถานะแชท();
+}
+
+/* -----------------------------------------------------
    วาดข้อความ/การ์ดผลลัพธ์ในแชท
 ----------------------------------------------------- */
 function เลื่อนแชทลงล่าง() {
@@ -71,6 +98,7 @@ function addUserBubble(text) {
 	el.textContent = text;
 	aiChatBody.appendChild(el);
 	เลื่อนแชทลงล่าง();
+	จดบันทึกลงแชท({ type: "user", text: text });
 }
 function addBotBubble(text) {
 	var el = document.createElement("div");
@@ -78,6 +106,7 @@ function addBotBubble(text) {
 	el.textContent = text;
 	aiChatBody.appendChild(el);
 	เลื่อนแชทลงล่าง();
+	จดบันทึกลงแชท({ type: "bot", text: text });
 }
 function addTyping() {
 	var el = document.createElement("div");
@@ -114,6 +143,10 @@ function addResultCards(ร้านพร้อมคะแนน) {
 	});
 	aiChatBody.appendChild(row);
 	เลื่อนแชทลงล่าง();
+	จดบันทึกลงแชท({
+		type: "cards",
+		items: ร้านพร้อมคะแนน.map(function(item) { return { id: item.ข้อมูล.id, คะแนน: item.คะแนน }; })
+	});
 }
 
 /* -----------------------------------------------------
@@ -190,11 +223,11 @@ function ดูเหมือนถามเรื่องอาหารไ�
 var AI_REQUEST_TIMEOUT_MS = 15000;
 
 /* -----------------------------------------------------
-   ประวัติแชทของเซสชันนี้ (อยู่แค่ในหน่วยความจำ ไม่เก็บลง localStorage เพื่อความเป็นส่วนตัว
-   หายเมื่อรีเฟรชหน้า) — ส่งย้อนหลังไม่กี่เทิร์นไปให้ Gemini ทุกครั้ง เพื่อให้ "ชิมชิม" จำบริบท
-   บทสนทนาก่อนหน้าได้ (เช่น คุยเรื่องเผ็ดไปแล้ว รอบถัดมาไม่ต้องถามซ้ำ)
+   ประวัติแชทที่ส่งย้อนหลังไม่กี่เทิร์นไปให้ Gemini ทุกครั้ง เพื่อให้ "ชิมชิม" จำบริบทบทสนทนาก่อนหน้าได้
+   (เช่น คุยเรื่องเผ็ดไปแล้ว รอบถัดมาไม่ต้องถามซ้ำ) เก็บไว้ใน localStorage คู่กับ บทสนทนาที่บันทึกไว้ ด้านบน
+   ระหว่างยังไม่ออกจากระบบ (ดู getSavedChatState/บันทึกสถานะแชท) หายเมื่อกดออกจากระบบเท่านั้น
 ----------------------------------------------------- */
-var ประวัติแชท = [];
+var ประวัติแชท = getSavedChatState().history;
 var AI_HISTORY_MAX_TURNS = 12; // 6 คู่ ผู้ใช้+ชิมชิม กันข้อความยาวเกินและกัน quota บาน
 
 function เก็บประวัติแชท(role, text) {
@@ -202,6 +235,7 @@ function เก็บประวัติแชท(role, text) {
 	if (ประวัติแชท.length > AI_HISTORY_MAX_TURNS) {
 		ประวัติแชท = ประวัติแชท.slice(-AI_HISTORY_MAX_TURNS);
 	}
+	บันทึกสถานะแชท();
 }
 
 /* -----------------------------------------------------
@@ -277,9 +311,28 @@ aiChatForm.addEventListener("submit", function(e) {
 });
 
 /* -----------------------------------------------------
-   เริ่มบทสนทนา
+   เริ่มบทสนทนา — ถ้ามีบทสนทนาเดิมที่ยังไม่ถูกลบ (ยังไม่ออกจากระบบ) เล่นซ้ำให้ดูต่อจากเดิมได้เลย
+   ไม่งั้นค่อยเริ่มทักทายใหม่ตามปกติ
 ----------------------------------------------------- */
-addBotBubble(t("ai.startBubble"));
+if (บทสนทนาที่บันทึกไว้.length) {
+	isRestoringChat = true;
+	บทสนทนาที่บันทึกไว้.forEach(function(entry) {
+		if (entry.type === "user") {
+			addUserBubble(entry.text);
+		} else if (entry.type === "bot") {
+			addBotBubble(entry.text);
+		} else if (entry.type === "cards") {
+			var restored = entry.items.map(function(it) {
+				var ร้าน = หาร้านจากId(it.id);
+				return ร้าน ? { ข้อมูล: ร้าน, คะแนน: it.คะแนน } : null;
+			}).filter(function(x) { return x; });
+			if (restored.length) addResultCards(restored);
+		}
+	});
+	isRestoringChat = false;
+} else {
+	addBotBubble(t("ai.startBubble"));
+}
 renderQuickSuggestions();
 
 // ดึงร้านที่คนอื่นโพสต์ไว้ใน Supabase จริงมาผสานกับ รายการร้าน เงียบ ๆ กันชิมชิมแนะนำร้านไม่ครบ

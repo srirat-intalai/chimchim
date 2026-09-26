@@ -92,6 +92,9 @@ var CHIMCHIM_DICT = {
 		"shop.editMyShop": "Edit My Shop",
 		"shop.saveChanges": "Save Changes",
 		"shop.viewMyShop": "View my shop",
+		"shop.deleteMyShop": "Delete my shop",
+		"shop.confirmDelete": "Delete your shop permanently? This also removes any posts made as your shop. This can't be undone.",
+		"shop.deletedToast": "Your shop has been deleted",
 		"profile.editShop": "Edit",
 		"home.searchPlaceholder": "Search restaurants, dishes, people, places...",
 		"home.sellpoint": "Every Match % is calculated from your real Food DNA — not a guess 🦖",
@@ -362,7 +365,10 @@ var CHIMCHIM_DICT = {
 		"review.tellExperience": "Tell us about your experience",
 		"review.textPlaceholder": "How was the food? Anything you'd like to share...",
 		"review.submit": "Submit Review",
-		"review.rateAllThree": "Please rate all 3 categories first"
+		"review.rateAllThree": "Please rate all 3 categories first",
+		"review.editPageTitle": "Edit Review",
+		"review.saveChanges": "Save Changes",
+		"review.confirmDelete": "Delete this review? This can't be undone."
 	},
 	th: {
 		"nav.trending": "เทรนด์",
@@ -411,6 +417,9 @@ var CHIMCHIM_DICT = {
 		"shop.editMyShop": "แก้ไขร้านของฉัน",
 		"shop.saveChanges": "บันทึกการแก้ไข",
 		"shop.viewMyShop": "ดูร้านของฉัน",
+		"shop.deleteMyShop": "ลบร้านของฉัน",
+		"shop.confirmDelete": "ลบร้านของคุณถาวรเลยไหม? โพสต์ในนามร้านจะถูกลบไปด้วยทั้งหมด กู้คืนไม่ได้นะ",
+		"shop.deletedToast": "ลบร้านของคุณแล้ว",
 		"profile.editShop": "แก้ไข",
 		"home.searchPlaceholder": "ค้นหาร้าน เมนู คน หรือสถานที่...",
 		"home.sellpoint": "Match % ทุกร้านคำนวณจาก Food DNA จริงของคุณ ไม่ใช่การเดา 🦖",
@@ -681,7 +690,10 @@ var CHIMCHIM_DICT = {
 		"review.tellExperience": "เล่าประสบการณ์ของคุณ",
 		"review.textPlaceholder": "อาหารเป็นยังไงบ้าง อยากบอกอะไรคนอื่นไหม...",
 		"review.submit": "ส่งรีวิว",
-		"review.rateAllThree": "ให้คะแนนทั้ง 3 หัวข้อก่อนนะ"
+		"review.rateAllThree": "ให้คะแนนทั้ง 3 หัวข้อก่อนนะ",
+		"review.editPageTitle": "แก้ไขรีวิว",
+		"review.saveChanges": "บันทึกการแก้ไข",
+		"review.confirmDelete": "ลบรีวิวนี้เลยไหม? กู้คืนไม่ได้นะ"
 	}
 };
 

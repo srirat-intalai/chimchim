@@ -219,7 +219,7 @@ function syncMyProfileWithSupabase(onUpdated) {
    รีวิวร้าน — ผลักขึ้นทันทีตอนส่ง + ดึงของคนอื่นมาผสานตอนเปิดดูร้าน (ดู mergeRemoteReviewsIntoLocal ใน core.js)
    ===================================================================== */
 function sbReviewRowToLocal(row) {
-	return { taste: row.taste, atmosphere: row.atmosphere, service: row.service, text: row.text || "", author: row.author_name, userId: row.user_id, date: row.created_at };
+	return { remoteId: row.id, taste: row.taste, atmosphere: row.atmosphere, service: row.service, text: row.text || "", author: row.author_name, userId: row.user_id, date: row.created_at };
 }
 function sbSubmitReview(shopId, review) {
 	if (!sbClient) return Promise.resolve(null);
@@ -238,6 +238,27 @@ function sbSubmitReview(shopId, review) {
 		}
 		return sbReviewRowToLocal(res.data);
 	}).catch(function() { return null; });
+}
+// แก้ไข/ลบรีวิวที่เคย sync ขึ้น Supabase แล้วเท่านั้น (ต้องมี remoteId จริง) ต้องรัน migration "Phase 4"
+// (reviews_update_own / reviews_delete_own policy) ก่อน ไม่งั้นจะถูก RLS บล็อกเงียบ ๆ เหมือนที่เจอกับ posts มาก่อน
+function sbUpdateReview(remoteId, patch) {
+	if (!sbClient) return Promise.resolve(null);
+	var row = {};
+	if (typeof patch.taste === "number") row.taste = patch.taste;
+	if (typeof patch.atmosphere === "number") row.atmosphere = patch.atmosphere;
+	if (typeof patch.service === "number") row.service = patch.service;
+	if (typeof patch.text === "string") row.text = patch.text;
+	return sbClient.from("reviews").update(row).eq("id", remoteId).then(function(res) {
+		if (res.error) console.error("[chimchim] sbUpdateReview error:", res.error.message);
+	}).catch(function() {});
+}
+function sbDeleteReview(remoteId) {
+	if (!sbClient) return Promise.resolve(null);
+	return Promise.resolve(sbClient.from("reviews").delete().eq("id", remoteId)).catch(function() {});
+}
+function sbDeleteMyShop(numId) {
+	if (!sbClient) return Promise.resolve(null);
+	return Promise.resolve(sbClient.from("shops").delete().eq("id", numId)).catch(function() {});
 }
 // จุดเรียกหลัก — เรียกตอนเปิดหน้าร้าน (restaurant.html) เพื่อดึงรีวิวจริงของทุกคนมาผสานกับในเครื่องนี้
 function syncReviewsWithSupabase(shopId, onUpdated) {

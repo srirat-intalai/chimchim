@@ -5252,6 +5252,30 @@ body.appshell {
   padding: 14px 0;
   border-bottom: 1px solid #f2f2f2;
 }
+.rdreviewactions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+.rdreviewactions button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface2, #f2f2f2);
+  color: #999;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.rdreviewactions .rdreviewdel:hover {
+  background: #e5576b;
+  color: #fff;
+}
+.rdreviewactions .rdreviewedit:hover {
+  background: var(--primary);
+  color: #fff;
+}
 .rdreviewavt {
   width: 40px;
   height: 40px;

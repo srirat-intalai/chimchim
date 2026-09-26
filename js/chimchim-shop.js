@@ -42,6 +42,22 @@
 		viewLink.href = "restaurant.html?id=" + shop.numId;
 	}
 
+	/* --- ลบร้านของฉัน — ลบทิ้งทั้งเครื่องนี้และ Supabase จริง (โพสต์ในนามร้านนี้จะถูกลบตามไปด้วยอัตโนมัติ
+	   ผ่าน on delete cascade ฝั่ง Supabase) มีป๊อปอัพยืนยันก่อนเสมอเพราะเป็นการลบที่กู้คืนไม่ได้ --- */
+	var deleteBtn = document.getElementById("shopDeleteBtn");
+	function refreshDeleteBtn(shop) {
+		if (!deleteBtn) return;
+		deleteBtn.hidden = !shop;
+	}
+	if (deleteBtn) {
+		deleteBtn.addEventListener("click", function() {
+			if (!confirm(t("shop.confirmDelete"))) return;
+			deleteMyShop();
+			showToast(t("shop.deletedToast"));
+			setTimeout(function() { window.location.reload(); }, 400);
+		});
+	}
+
 	/* --- สลับ "โพสต์ในนามตัวเอง / ในนามร้าน" — ใช้ shop.numId เป็นตัวระบุแทน id เพจเดิม --- */
 	function refreshPersonaUI(shop) {
 		if (!personaCard) return;
@@ -76,6 +92,7 @@
 	}
 	refreshViewLink(myShop);
 	refreshPersonaUI(myShop);
+	refreshDeleteBtn(myShop);
 
 	document.getElementById("shopForm").addEventListener("submit", function(e) {
 		e.preventDefault();
@@ -121,6 +138,7 @@
 		document.getElementById("shopSubmitBtn").innerHTML = '<i class="fas fa-floppy-disk"></i><span>' + t("shop.saveChanges") + "</span>";
 		refreshViewLink(shop);
 		refreshPersonaUI(shop);
+		refreshDeleteBtn(shop);
 		if (typeof showToast === "function") showToast(t("shop.postedToast").replace("{name}", name));
 	});
 

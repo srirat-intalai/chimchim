@@ -147,22 +147,40 @@ if (!ร้านปัจจุบัน) {
 		var listBox = document.getElementById("rdReviewList");
 		if (reviews.length === 0) {
 			listBox.innerHTML = '<p class="rdempty">' + t("restaurant.noReviewsYet") + '</p>';
-		} else {
-			var html = "";
-			reviews.forEach(function(r) {
-				var avgScore = Math.round((r.taste + r.atmosphere + r.service) / 3 * 10) / 10;
-				html +=
-					'<div class="rdreviewrow">' +
-						'<div class="rdreviewavt">' + escapeHtml(r.author.charAt(0).toUpperCase()) + "</div>" +
-						"<div>" +
-							'<div class="rdreviewnm">' + escapeHtml(r.author) + "</div>" +
-							'<div class="rdreviewscore">🎯 ' + avgScore + t("restaurant.avgScoreSuffix") + "</div>" +
-							'<div class="rdreviewtxt">' + escapeHtml(r.text || t("restaurant.noReviewText")) + "</div>" +
-						"</div>" +
-					"</div>";
-			});
-			listBox.innerHTML = html;
+			return;
 		}
+		listBox.innerHTML = "";
+		var me = getMe();
+		reviews.forEach(function(r) {
+			var avgScore = Math.round((r.taste + r.atmosphere + r.service) / 3 * 10) / 10;
+			// แก้ไข/ลบได้เฉพาะรีวิวของตัวเองที่ sync ขึ้น Supabase แล้วเท่านั้น (มี remoteId จริง)
+			var isMine = me && r.userId === me.id && r.remoteId;
+			var row = document.createElement("div");
+			row.className = "rdreviewrow";
+			row.innerHTML =
+				'<div class="rdreviewavt">' + escapeHtml(r.author.charAt(0).toUpperCase()) + "</div>" +
+				'<div style="flex:1;min-width:0;">' +
+					'<div class="rdreviewnm">' + escapeHtml(r.author) + "</div>" +
+					'<div class="rdreviewscore">🎯 ' + avgScore + t("restaurant.avgScoreSuffix") + "</div>" +
+					'<div class="rdreviewtxt">' + escapeHtml(r.text || t("restaurant.noReviewText")) + "</div>" +
+				"</div>" +
+				(isMine ?
+					'<div class="rdreviewactions">' +
+						'<button type="button" class="rdreviewedit" title="' + t("common.editPost") + '"><i class="fas fa-pen"></i></button>' +
+						'<button type="button" class="rdreviewdel" title="' + t("common.deletePost") + '"><i class="fas fa-times"></i></button>' +
+					"</div>" : "");
+			if (isMine) {
+				row.querySelector(".rdreviewedit").addEventListener("click", function() {
+					window.location.href = "review.html?id=" + ร้านปัจจุบัน.id + "&editRemoteId=" + encodeURIComponent(r.remoteId);
+				});
+				row.querySelector(".rdreviewdel").addEventListener("click", function() {
+					if (!confirm(t("review.confirmDelete"))) return;
+					deleteReview(ร้านปัจจุบัน.id, r.remoteId);
+					renderReviews();
+				});
+			}
+			listBox.appendChild(row);
+		});
 	}
 	renderReviews();
 	// ดึงรีวิวจริงของทุกคนจาก Supabase มาผสาน (ไม่ใช่แค่รีวิวที่เขียนจากเครื่องนี้) แล้ว re-render

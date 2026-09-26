@@ -440,6 +440,22 @@ function createOrUpdateMyShop(data) {
 	saveShops(shops);
 	return existing;
 }
+// ลบร้านของฉันทิ้งถาวร (กู้คืนไม่ได้) — ลบทั้งในเครื่องนี้และ Supabase จริง โพสต์ในนามร้านนี้ถูกลบตามไปด้วย
+// (ฝั่ง Supabase cascade เองผ่าน posts.page_id -> shops(id) on delete cascade, ฝั่งเครื่องนี้ลบเองตรงนี้เลย)
+function deleteMyShop() {
+	var me = getMe();
+	if (!me) return;
+	var shops = getShops();
+	var mine = shops.filter(function(s) { return s.vendorId === me.id; })[0];
+	if (!mine) return;
+	saveShops(shops.filter(function(s) { return s.vendorId !== me.id; }));
+	var idx = รายการร้าน.findIndex(function(r) { return r.id === mine.numId; });
+	if (idx !== -1) รายการร้าน.splice(idx, 1);
+	var posts = getAllPosts().filter(function(p) { return p.pageId !== mine.numId; });
+	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+	if (getActivePersona() === String(mine.numId)) setActivePersona("self");
+	if (typeof sbDeleteMyShop === "function") sbDeleteMyShop(mine.numId);
+}
 
 function shopToร้าน(shop) {
 	var ชาติอาหาร = "ไทย";
@@ -615,10 +631,69 @@ function addReview(shopId, review) {
 		all = {};
 	}
 	if (!all[shopId]) all[shopId] = [];
+	// localId ใช้แค่ชั่วคราวเพื่อหารีวิวนี้เจอตอน push ขึ้น Supabase เสร็จแล้วมาแปะ remoteId จริงให้ (ดูด้านล่าง)
+	var localId = "rev" + Date.now() + Math.random().toString(36).slice(2, 6);
+	review.localId = localId;
 	all[shopId].unshift(review);
 	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
 	logEvent("review_submitted", { shopId: shopId });
-	if (typeof sbSubmitReview === "function") sbSubmitReview(shopId, review);
+	if (typeof sbSubmitReview === "function") {
+		sbSubmitReview(shopId, review).then(function(saved) {
+			if (saved && saved.remoteId) tagReviewRemoteId(shopId, localId, saved.remoteId);
+		});
+	}
+}
+function tagReviewRemoteId(shopId, localId, remoteId) {
+	var all;
+	try {
+		all = JSON.parse(localStorage.getItem(CHIMCHIM_REVIEWS_KEY)) || {};
+	} catch (e) {
+		return;
+	}
+	var list = all[shopId] || [];
+	var i;
+	for (i = 0; i < list.length; i++) {
+		if (list[i].localId === localId) { list[i].remoteId = remoteId; break; }
+	}
+	all[shopId] = list;
+	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
+}
+// แก้ไข/ลบรีวิวของตัวเอง — ใช้ได้เฉพาะรีวิวที่ sync ขึ้น Supabase แล้วเท่านั้น (มี remoteId จริง)
+function updateReview(shopId, remoteId, patch) {
+	var all;
+	try {
+		all = JSON.parse(localStorage.getItem(CHIMCHIM_REVIEWS_KEY)) || {};
+	} catch (e) {
+		all = {};
+	}
+	var list = all[shopId] || [];
+	var i;
+	for (i = 0; i < list.length; i++) {
+		if (String(list[i].remoteId) === String(remoteId)) {
+			if (typeof patch.taste === "number") list[i].taste = patch.taste;
+			if (typeof patch.atmosphere === "number") list[i].atmosphere = patch.atmosphere;
+			if (typeof patch.service === "number") list[i].service = patch.service;
+			if (typeof patch.text === "string") list[i].text = patch.text;
+			break;
+		}
+	}
+	all[shopId] = list;
+	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
+	if (typeof sbUpdateReview === "function") sbUpdateReview(remoteId, patch);
+}
+function deleteReview(shopId, remoteId) {
+	var all;
+	try {
+		all = JSON.parse(localStorage.getItem(CHIMCHIM_REVIEWS_KEY)) || {};
+	} catch (e) {
+		all = {};
+	}
+	all[shopId] = (all[shopId] || []).filter(function(r) { return String(r.remoteId) !== String(remoteId); });
+	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
+	if (typeof sbDeleteReview === "function") sbDeleteReview(remoteId);
+}
+function getReviewByRemoteId(shopId, remoteId) {
+	return getReviews(shopId).filter(function(r) { return String(r.remoteId) === String(remoteId); })[0] || null;
 }
 // ผสานรีวิวจริงจาก Supabase (ของทุกคน ไม่ใช่แค่เครื่องนี้) เข้ากับรีวิวในเครื่องนี้ — กันซ้ำด้วย
 // คีย์ ผู้เขียน+เวลา+ข้อความ เดียวกัน (รีวิวจริงแทบเป็นไปไม่ได้ที่จะชนกันพอดีทั้ง 3 อย่าง)

@@ -286,3 +286,12 @@ alter table public.posts add constraint posts_shop_id_fkey foreign key (page_id)
 -- posts: ตอน Phase 1 ลืมใส่ policy update ไว้ (มีแค่ select/insert/delete) — ฟีเจอร์แก้ไขโพสต์ (updatePost)
 -- เลยจะ push การแก้ไขขึ้น Supabase ไม่ได้เลยจนกว่าจะเพิ่มอันนี้ (ถูก RLS บล็อกเงียบ ๆ ไม่ error ที่เห็นชัด)
 create policy "posts_update_own" on public.posts for update using (auth.uid() = user_id);
+
+-- =====================================================================
+-- Phase 4 — แก้ไข/ลบรีวิวของตัวเอง + ลบร้านของฉัน
+-- =====================================================================
+
+-- reviews: เดิมมีแค่ select/insert (เขียนได้อย่างเดียว แก้/ลบไม่ได้เลย) — ฟีเจอร์แก้ไข/ลบรีวิวของตัวเอง
+-- (updateReview/deleteReview) เลยต้องเพิ่ม policy นี้ก่อน ไม่งั้นจะถูก RLS บล็อกเหมือนที่เจอกับ posts มาก่อน
+create policy "reviews_update_own" on public.reviews for update using (auth.uid() = user_id);
+create policy "reviews_delete_own" on public.reviews for delete using (auth.uid() = user_id);

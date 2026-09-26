@@ -818,6 +818,16 @@ function mergeLocalIdSet(key, remoteIds) {
 	localStorage.setItem(key, JSON.stringify(local));
 }
 
+// ต้องเข้าสู่ระบบก่อนถึงจะกดถูกใจ/ติดตามได้ (กันข้อมูลกดไปแล้วไม่ sync ไปไหนเลยเพราะไม่มีบัญชี)
+// เรียกจาก toggleLikeShop/toggleFollowShop/togglePostLike/toggleFollowUser ทุกจุด — ยังไม่ล็อกอินจะเด้ง
+// popup เข้าสู่ระบบ/สมัครสมาชิกให้เอง แล้วคืน true (บล็อกการกระทำ) ล็อกอินแล้วคืน false (ทำต่อได้ปกติ)
+function ต้องล็อกอินก่อนไหม() {
+	if (getSession()) return false;
+	if (typeof showToast === "function") showToast(t("auth.loginRequiredToast"));
+	if (typeof openAuthPop === "function") openAuthPop("login");
+	return true;
+}
+
 /* =====================================================================
    Follow ร้าน (บันทึกไว้ในเบราว์เซอร์)
    ===================================================================== */
@@ -829,6 +839,7 @@ function getFollowedShops() {
 	}
 }
 function toggleFollowShop(shopId) {
+	if (ต้องล็อกอินก่อนไหม()) return null;
 	var list = getFollowedShops();
 	var idx = list.indexOf(shopId);
 	var nowFollowing = idx === -1;
@@ -862,6 +873,7 @@ function isShopLiked(shopId) {
 	return getLikedShops().indexOf(shopId) !== -1;
 }
 function toggleLikeShop(shopId) {
+	if (ต้องล็อกอินก่อนไหม()) return null;
 	var list = getLikedShops();
 	var idx = list.indexOf(shopId);
 	var nowLiked = idx === -1;
@@ -958,6 +970,7 @@ function isPostLiked(postId) {
 	return getLikedPosts().indexOf(postId) !== -1;
 }
 function togglePostLike(postId) {
+	if (ต้องล็อกอินก่อนไหม()) return null;
 	var list = getLikedPosts();
 	var idx = list.indexOf(postId);
 	var nowLiked = idx === -1;
@@ -1068,6 +1081,7 @@ function getFollowedUsers() {
 	}
 }
 function toggleFollowUser(userId) {
+	if (ต้องล็อกอินก่อนไหม()) return null;
 	var list = getFollowedUsers();
 	var idx = list.indexOf(userId);
 	var nowFollowing = idx === -1;

@@ -93,6 +93,41 @@
          <a href="profile.html" class="anitem"><i class="fas fa-user"></i><span data-i18n="nav.profile">โปรไฟล์</span></a>
       </nav>
 
+      <!-- ============================================================
+         AUTH POPUP — เข้าสู่ระบบ / สมัครสมาชิก (เด้งอัตโนมัติเมื่อกดถูกใจ/ติดตามโดยยังไม่ล็อกอิน)
+         ============================================================ -->
+      <div id="authPop">
+         <div class="apbox">
+            <button class="apclose" id="apClose"><i class="fas fa-times"></i></button>
+            <div class="aptabs">
+               <button class="aptab active" id="apTabLogin" data-tab="login" data-i18n="auth.login">เข้าสู่ระบบ</button>
+               <button class="aptab" id="apTabRegister" data-tab="register" data-i18n="auth.register">สมัครสมาชิก</button>
+            </div>
+            <img class="apdino" src="img/Dino/4.png" alt="Dino ต้อนรับสมาชิกใหม่"/>
+            <form id="loginForm" class="apform">
+               <div class="aperr" id="loginErr"></div>
+               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <input class="fctrl" type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email" required/>
+               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <input class="fctrl" type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required/>
+               <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-right-to-bracket"></i><span data-i18n="auth.login">เข้าสู่ระบบ</span></button>
+               <p class="apnote"><span data-i18n="auth.noAccount">ยังไม่มีบัญชี?</span> <a href="#" data-switch="register" data-i18n="auth.registerLink">สมัครสมาชิกเลย</a></p>
+            </form>
+            <form id="registerForm" class="apform" style="display:none;">
+               <div class="aperr" id="registerErr"></div>
+               <label class="flbl" data-i18n="auth.yourName">ชื่อของคุณ</label>
+               <input class="fctrl" type="text" id="registerName" placeholder="ชื่อ นามสกุล" autocomplete="name" required/>
+               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <input class="fctrl" type="email" id="registerEmail" placeholder="you@email.com" autocomplete="email" required/>
+               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <input class="fctrl" type="password" id="registerPassword" placeholder="อย่างน้อย 4 ตัวอักษร" autocomplete="new-password" required/>
+               <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-egg"></i><span data-i18n="auth.createAccount">สร้างบัญชี</span></button>
+               <p class="apnote"><span data-i18n="auth.haveAccount">มีบัญชีอยู่แล้ว?</span> <a href="#" data-switch="login" data-i18n="auth.loginLink">เข้าสู่ระบบ</a></p>
+               <p class="apdisclaimer"><i class="fas fa-circle-info me-1"></i><span data-i18n="auth.disclaimer">ระบบสมาชิกเวอร์ชันทดลอง ข้อมูลเก็บไว้ในเบราว์เซอร์นี้เท่านั้น</span></p>
+            </form>
+         </div>
+      </div>
+
       <div id="appToast"></div>
 
       <script src="js/chimchim-i18n.js"></script>

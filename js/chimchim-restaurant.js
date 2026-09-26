@@ -115,6 +115,7 @@ function renderShopDetail() {
 	refreshFollowBtn();
 	followBtn.addEventListener("click", function() {
 		var nowFollowing = buShopของร้านนี้ ? toggleFollowUser(followId) : toggleFollowShop(followId);
+		if (nowFollowing === null) return; // ยังไม่ล็อกอิน — เด้ง popup ให้แล้วจาก toggleFollowUser/toggleFollowShop เอง
 		refreshFollowBtn();
 		showToast(nowFollowing ? t("restaurant.followedToast") : t("restaurant.unfollowedToast"));
 	});

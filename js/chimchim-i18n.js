@@ -20,9 +20,9 @@ function savePrefs(patch) {
 	}
 	localStorage.setItem(CHIMCHIM_PREFS_KEY, JSON.stringify(p));
 }
-// ภาษาเริ่มต้นของแอปคือ English ตามที่กำหนดไว้ ผู้ใช้เปลี่ยนเป็นไทยได้ในหน้า Settings
+// ภาษาเริ่มต้นของแอปคือไทย ผู้ใช้เปลี่ยนเป็นอังกฤษได้ในหน้า Settings
 function getLang() {
-	return getPrefs().lang === "th" ? "th" : "en";
+	return getPrefs().lang === "en" ? "en" : "th";
 }
 function setLang(lang) {
 	savePrefs({ lang: lang === "th" ? "th" : "en" });
@@ -74,6 +74,7 @@ var CHIMCHIM_DICT = {
 		"auth.noAccount": "Don't have an account?",
 		"auth.registerLink": "Sign up now",
 		"auth.disclaimer": "Demo account system — your data is stored in this browser only.",
+		"auth.loginRequiredToast": "Log in first to like or follow",
 		"shop.postMyShop": "Post My Shop",
 		"shop.formHint": "Fill in your shop's details and it'll show up in the Discovery Feed right away.",
 		"shop.shopName": "Shop name",
@@ -399,6 +400,7 @@ var CHIMCHIM_DICT = {
 		"auth.noAccount": "ยังไม่มีบัญชี?",
 		"auth.registerLink": "สมัครสมาชิกเลย",
 		"auth.disclaimer": "ระบบสมาชิกเวอร์ชันทดลอง ข้อมูลเก็บไว้ในเบราว์เซอร์นี้เท่านั้น",
+		"auth.loginRequiredToast": "เข้าสู่ระบบก่อนนะ ถึงจะกดถูกใจ/ติดตามได้",
 		"shop.postMyShop": "โพสต์ร้านของฉัน",
 		"shop.formHint": "กรอกรายละเอียดร้าน แล้วร้านของคุณจะไปโผล่ใน Discovery Feed ทันที",
 		"shop.shopName": "ชื่อร้าน",

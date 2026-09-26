@@ -29,8 +29,10 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 /* =====================================================================
    จำกัด origin ที่เรียก API ได้ — กัน browser จาก domain อื่นยิงเข้ามาเผา Gemini quota
-   ตั้งค่าจริงผ่าน .env: ALLOWED_ORIGINS=http://localhost:5500,http://127.0.0.1:5500
-   (คั่นด้วย comma) ถ้าไม่ตั้ง จะ fallback ไปที่พอร์ต dev server ที่พบบ่อยเท่านั้น
+   ตอนพัฒนาในเครื่อง ไม่ต้องตั้งอะไรก็ได้ (fallback ไปที่พอร์ต dev server ที่พบบ่อยให้อัตโนมัติ)
+   แต่พอ deploy เซิร์ฟเวอร์นี้ขึ้นจริง (เช่น Render) ต้องตั้ง environment variable บนนั้นเพิ่ม:
+   ALLOWED_ORIGINS=https://srirat-intalai.github.io (คั่นด้วย comma ถ้ามีหลาย origin)
+   ไม่งั้นเว็บจริงจะเรียก API นี้ไม่ได้เลย (โดน CORS บล็อก)
    ===================================================================== */
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "http://localhost:5500,http://127.0.0.1:5500,http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080,http://127.0.0.1:8080")
 	.split(",")

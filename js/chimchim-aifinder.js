@@ -243,7 +243,8 @@ function เก็บประวัติแชท(role, text) {
    ส่งเฉพาะผลลัพธ์ที่คำนวณจริงแล้วไปให้ (ชื่อร้าน/เมนู/Match %/ราคา) กันไม่ให้ AI มั่วร้านขึ้นมาเอง
    ถ้าเรียกไม่ได้ จะคืนค่า null แล้วผู้เรียกใช้ข้อความสำเร็จรูปเดิมแทน
 ----------------------------------------------------- */
-var AI_CHAT_REPLY_URL = "http://localhost:8787/api/chat-reply";
+// URL จริงกำหนดไว้ใน chimchim-ai-config.js (สลับ localhost/production อัตโนมัติ) — ต้องโหลดไฟล์นั้นก่อนไฟล์นี้เสมอ
+var AI_CHAT_REPLY_URL = (typeof CHIMCHIM_AI_CHAT_URL !== "undefined") ? CHIMCHIM_AI_CHAT_URL : "http://localhost:8787/api/chat-reply";
 
 function ขอคำตอบจากชิมชิม(text, ผลลัพธ์, เกี่ยวกับอาหาร) {
 	var results = เกี่ยวกับอาหาร ? ผลลัพธ์.map(function(item) {

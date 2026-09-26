@@ -295,3 +295,30 @@ create policy "posts_update_own" on public.posts for update using (auth.uid() = 
 -- (updateReview/deleteReview) เลยต้องเพิ่ม policy นี้ก่อน ไม่งั้นจะถูก RLS บล็อกเหมือนที่เจอกับ posts มาก่อน
 create policy "reviews_update_own" on public.reviews for update using (auth.uid() = user_id);
 create policy "reviews_delete_own" on public.reviews for delete using (auth.uid() = user_id);
+
+-- =====================================================================
+-- Phase 5 — seed ร้านตั้งต้น 11 ร้าน (จาก รายการร้าน ใน chimchim-data.js, id 101-111) เข้า Supabase จริง
+-- เดิมร้านพวกนี้มีแค่ในโค้ดฝั่ง client เท่านั้น เลยกดไลก์/ติดตาม/รีวิวแล้ว sync ข้ามเครื่องไม่ได้เลย
+-- (ชน foreign key เพราะ shops.id แถวนี้ไม่มีอยู่จริงใน Supabase) vendor_id เป็น null เพราะเป็น "ร้านตั้งต้นของระบบ"
+-- ไม่ใช่ร้านที่ผู้ใช้โพสต์เอง — sbFetchCommunityShops() กรอง vendor_id ไม่ null อยู่แล้ว เลยไม่ซ้ำกับของเดิม
+-- ใช้ OVERRIDING SYSTEM VALUE เพราะ id เป็น identity column ปกติกำหนดเองไม่ได้ ต้องบังคับให้ตรงกับ id
+-- ที่ chimchim-data.js ใช้อยู่แล้วเป๊ะ — รันซ้ำได้ปลอดภัย (on conflict do nothing)
+-- =====================================================================
+insert into public.shops (id, vendor_id, menu_name, shop_name, category, cuisine, flavors, price_low, price_high, distance_m, university, is_trending, meal_times, image_url, tags, description)
+overriding system value
+values
+  (101, null, 'ยำมะม่วงปูม้า', 'ร้านยำมะม่วงปูม้า ป้าใจดี', 'ยำ', 'ไทย', ARRAY['เผ็ด', 'เปรี้ยว'], 80, 150, 450, 'มหาวิทยาลัยกรุงเทพ', true, ARRAY['เที่ยง', 'เย็น'], 'img/bu/yammamuang/yammamuang-yum-mango-01.jpg', ARRAY['เผ็ด', 'ยำ', 'ทะเล'], ''),
+  (102, null, 'หมูทอดคัตสึซอสสไตล์ญี่ปุ่น', 'MOM KITCHEN', 'อาหารญี่ปุ่น', 'ญี่ปุ่น', ARRAY['กลมกล่อม', 'เค็ม'], 150, 350, 300, 'มหาวิทยาลัยกรุงเทพ', true, ARRAY['เที่ยง', 'เย็น'], 'img/bu/momkitchen/momkitchen-katsu-set-01.jpg', ARRAY['ญี่ปุ่น', 'คัตสึ', 'สเต็ก'], ''),
+  (103, null, 'ก๋วยเตี๋ยวหมูน้ำตก', 'กินเตี๋ยวบ้านแม่', 'ก๋วยเตี๋ยว', 'ไทย', ARRAY['เผ็ด', 'กลมกล่อม'], 40, 65, 600, 'มหาวิทยาลัยกรุงเทพ', false, ARRAY['เที่ยง', 'เย็น'], 'img/bu/kinteaw-banmae/kinteaw-banmae-noodle-soup-01.webp', ARRAY['เส้น', 'ก๋วยเตี๋ยว', 'งบน้อย'], ''),
+  (104, null, 'ก๋วยเตี๋ยวเรือ', 'ก๋วยเตี๋ยวเรือยกซดมอกรุงเทพ', 'ก๋วยเตี๋ยว', 'ไทย', ARRAY['เผ็ด', 'เข้มข้น'], 50, 90, 700, 'มหาวิทยาลัยกรุงเทพ', true, ARRAY['เที่ยง', 'เย็น'], 'img/bu/boat-noodle/boat-noodle-boat-noodle-01.jpg', ARRAY['เส้น', 'ก๋วยเตี๋ยวเรือ', 'น้ำข้น'], ''),
+  (105, null, 'ข้าวมันไก่', 'ข้าวมันไก่ลุงนวย', 'ข้าวแกง', 'ไทย', ARRAY['กลมกล่อม', 'เค็ม'], 45, 70, 350, 'มหาวิทยาลัยกรุงเทพ', false, ARRAY['เที่ยง', 'เย็น'], 'img/bu/khaomankai-luangnuay/khaomankai-luangnuay-roast-pork-rice-01.jpg', ARRAY['ข้าว', 'ข้าวมันไก่', 'งบน้อย'], ''),
+  (106, null, 'อาหารตามสั่งครัวใบมิ้นท์', 'ครัวใบมิ้นท์', 'อาหารตามสั่ง', 'ไทย', ARRAY['กลมกล่อม', 'เผ็ด'], 50, 120, 500, 'มหาวิทยาลัยกรุงเทพ', false, ARRAY['เที่ยง', 'เย็น', 'ดึก'], 'img/bu/krua-baimint/krua-baimint-crispy-pork-basil.jpg', ARRAY['ข้าว', 'ตามสั่ง', 'เมนูเยอะ'], ''),
+  (107, null, 'หม่าล่าทั่ง', 'ฉงเมาไท่ หม่าล่าทั่ง', 'หม่าล่า', 'จีน', ARRAY['เผ็ด'], 100, 250, 900, 'มหาวิทยาลัยกรุงเทพ', true, ARRAY['เย็น', 'ดึก'], 'img/bu/chongmaotai-mala/chongmaotai-mala-mala-bowl-01.jpg', ARRAY['เผ็ดมาก', 'จีน', 'หม่าล่า'], ''),
+  (108, null, 'ตำยำยั่ว', 'ตำยำยั่ว By โบตั๋น', 'ส้มตำ', 'ไทย', ARRAY['เผ็ด', 'เปรี้ยว'], 40, 90, 400, 'มหาวิทยาลัยกรุงเทพ', false, ARRAY['เที่ยง', 'เย็น'], 'img/bu/tamyamyua-botan/tamyamyua-botan-yum-somtum.webp', ARRAY['เผ็ด', 'ส้มตำ', 'อีสาน'], ''),
+  (109, null, 'ส้มตำแซ่บ', 'ร้านแอบแซ่บ', 'อีสาน', 'ไทย', ARRAY['เผ็ด', 'เปรี้ยว'], 35, 85, 550, 'มหาวิทยาลัยกรุงเทพ', false, ARRAY['เที่ยง', 'เย็น'], 'img/bu/aab-saep/aab-saep-somtum-seafood.jpg', ARRAY['เผ็ด', 'อีสาน', 'งบน้อย'], ''),
+  (110, null, 'สเต็กเนื้อซอสพริกไทยดำ', 'แซมสเต็ก', 'สเต็ก', 'ฝรั่ง', ARRAY['เค็ม', 'กลมกล่อม'], 79, 159, 650, 'มหาวิทยาลัยกรุงเทพ', false, ARRAY['เที่ยง', 'เย็น'], 'img/bu/sam-steak/sam-steak-steak-gravy.jpg', ARRAY['สเต็ก', 'งบน้อย', 'จานเดียว'], ''),
+  (111, null, 'ลาบหมูไข่ดาว', 'ไก่และไข่ขายข้าว', 'อีสาน', 'ไทย', ARRAY['เผ็ด', 'เค็ม'], 40, 69, 300, 'มหาวิทยาลัยกรุงเทพ', false, ARRAY['เที่ยง', 'เย็น', 'ดึก'], 'img/bu/kai-lae-khai-khaikhao/kai-lae-khai-khaikhao-pad-thai-01.webp', ARRAY['เผ็ด', 'ลาบ', 'งบน้อย'], '')
+on conflict (id) do nothing;
+
+-- แก้ sequence ของ id ให้ต่อจาก 111 (กันร้านชุมชนที่โพสต์ทีหลังได้ id ชนกับร้านตั้งต้นพวกนี้)
+select setval(pg_get_serial_sequence('public.shops', 'id'), (select max(id) from public.shops));

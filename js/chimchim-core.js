@@ -1030,7 +1030,7 @@ function queueCommentCountFetch(postId, countEl) {
 function buildMiniCard(ร้าน, onClick) {
 	var คะแนน = คำนวณMatch(ร้าน, foodDNA);
 	var card = document.createElement("div");
-	card.className = "mcard";
+	card.className = "mcard card-enter";
 	card.setAttribute("data-id", ร้าน.id);
 	card.innerHTML =
 		'<div class="mimg">' +

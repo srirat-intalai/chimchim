@@ -386,7 +386,7 @@ function renderCommunityFeed(container, catFilter) {
 
 function buildFeedItemEl(item) {
 		var el = document.createElement("div");
-		el.className = "feeditem";
+		el.className = "feeditem card-enter";
 
 		var avatarHtml = item.posterAvatarUrl
 			? '<div class="feedavatar" style="background:var(--cream2) center/cover no-repeat url(\'' + item.posterAvatarUrl + '\')"></div>'

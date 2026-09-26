@@ -5,6 +5,12 @@
       <meta http-equiv="X-UA-Compatible" content="IE=edge">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="author" content="CHIMCHIM">
+      <link rel="manifest" href="manifest.json">
+      <meta name="theme-color" content="#ff999d">
+      <meta name="apple-mobile-web-app-capable" content="yes">
+      <meta name="apple-mobile-web-app-status-bar-style" content="default">
+      <meta name="apple-mobile-web-app-title" content="ChimChim">
+      <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
       <meta name="description" content="ChimChim - แอป AI + Food DNA ช่วยจับคู่ร้านอาหารให้ตรงรสนิยมคุณ (Prototype)">
       <title>ChimChim - Find Food. Find Your People.</title>
       <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
@@ -89,6 +95,13 @@
          document.getElementById("welSkip").addEventListener("click", function() {
             window.location.href = "home.html";
          });
+      </script>
+         <script>
+         if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function() {
+               navigator.serviceWorker.register("sw.js").catch(function() {});
+            });
+         }
       </script>
    </body>
 </html>

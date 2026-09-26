@@ -289,7 +289,7 @@ function renderMyPosts() {
 	posts.forEach(function(p) {
 		var images = getPostImages(p);
 		var el = document.createElement("div");
-		el.className = "ppost";
+		el.className = "ppost card-enter";
 		el.innerHTML =
 			'<img src="' + images[0] + '" alt=""/>' +
 			(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +

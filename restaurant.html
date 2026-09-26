@@ -5,6 +5,12 @@
       <meta http-equiv="X-UA-Compatible" content="IE=edge">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="author" content="CHIMCHIM">
+      <link rel="manifest" href="manifest.json">
+      <meta name="theme-color" content="#ff999d">
+      <meta name="apple-mobile-web-app-capable" content="yes">
+      <meta name="apple-mobile-web-app-status-bar-style" content="default">
+      <meta name="apple-mobile-web-app-title" content="ChimChim">
+      <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
       <meta name="description" content="ChimChim - รายละเอียดร้าน">
       <title>รายละเอียดร้าน - ChimChim</title>
       <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
@@ -20,7 +26,17 @@
          <button class="rdheroreport" id="rdReportBtn" hidden><i class="fas fa-flag"></i></button>
       </div>
 
-      <div class="rdbody">
+      <!-- ระหว่างรอ sync ร้านจากเครื่องอื่น (ยังไม่เจอในเครื่องนี้) โชว์โครงนี้แทนที่จะโผล่ "ไม่พบ" แวบหนึ่งก่อนเจอจริง -->
+      <div class="rdbody" id="rdSkeleton" hidden>
+         <div class="skeleton" style="height:22px;width:70%;margin-bottom:10px;"></div>
+         <div class="skeleton" style="height:15px;width:45%;margin-bottom:18px;"></div>
+         <div class="skeleton" style="height:38px;width:100%;border-radius:50px;margin-bottom:18px;"></div>
+         <div class="skeleton" style="height:60px;width:100%;margin-bottom:18px;"></div>
+         <div class="skeleton" style="height:14px;width:95%;margin-bottom:8px;"></div>
+         <div class="skeleton" style="height:14px;width:80%;"></div>
+      </div>
+
+      <div class="rdbody" id="rdBody">
          <div class="rdcat" id="rdCat"></div>
          <div class="rdtitle" id="rdTitle"></div>
          <div class="rdmeta">
@@ -87,5 +103,12 @@
       <script src="js/chimchim-supabase-client.js"></script>
       <script src="js/chimchim-community.js"></script>
       <script src="js/chimchim-restaurant.js"></script>
+         <script>
+         if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function() {
+               navigator.serviceWorker.register("sw.js").catch(function() {});
+            });
+         }
+      </script>
    </body>
 </html>

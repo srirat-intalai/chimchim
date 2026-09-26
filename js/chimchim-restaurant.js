@@ -6,21 +6,40 @@ var params = new URLSearchParams(window.location.search);
 var shopId = parseInt(params.get("id"), 10);
 var ร้านปัจจุบัน = หาร้านจากId(shopId);
 
-if (!ร้านปัจจุบัน) {
-	document.querySelector(".rdbody").innerHTML =
+function renderShopNotFound() {
+	document.getElementById("rdBody").hidden = false;
+	document.getElementById("rdBody").innerHTML =
 		'<div style="text-align:center;padding:60px 10px;">' +
 		'<p style="color:#999;font-size:.9rem;margin-bottom:16px;">' + t("common.shopNotFound") + '</p>' +
 		'<a href="home.html" class="btn-red"><i class="fas fa-house"></i><span>' + t("common.backToHome") + '</span></a>' +
 		"</div>";
-	// ร้านนี้อาจโพสต์จากเครื่องอื่น ยังไม่เคย sync มาที่เครื่องนี้ — ลอง sync แล้วโหลดหน้าใหม่ครั้งเดียวถ้าเจอ
-	var retryFlag = "chimchim_shop_sync_retry_" + shopId;
-	if (typeof syncShopsWithSupabase === "function" && !sessionStorage.getItem(retryFlag)) {
-		sessionStorage.setItem(retryFlag, "1");
+}
+
+if (!ร้านปัจจุบัน) {
+	// ร้านนี้อาจโพสต์จากเครื่องอื่น ยังไม่เคย sync มาที่เครื่องนี้ — โชว์โครง skeleton รอไว้ก่อน (เนื้อหาจริงข้างใต้
+	// #rdBody ยังไม่ถูกแตะเลย) แล้วลอง sync ครั้งเดียว ถ้าเจอก็ render ต่อในหน้าเดิมได้เลยไม่ต้องรีโหลดหน้า
+	document.getElementById("rdBody").hidden = true;
+	document.getElementById("rdSkeleton").hidden = false;
+	if (typeof syncShopsWithSupabase === "function") {
 		syncShopsWithSupabase(function() {
-			if (หาร้านจากId(shopId)) location.reload();
+			ร้านปัจจุบัน = หาร้านจากId(shopId);
+			document.getElementById("rdSkeleton").hidden = true;
+			if (ร้านปัจจุบัน) {
+				document.getElementById("rdBody").hidden = false;
+				renderShopDetail();
+			} else {
+				renderShopNotFound();
+			}
 		});
+	} else {
+		document.getElementById("rdSkeleton").hidden = true;
+		renderShopNotFound();
 	}
 } else {
+	renderShopDetail();
+}
+
+function renderShopDetail() {
 	var คะแนน = คำนวณMatch(ร้านปัจจุบัน, foodDNA);
 	var เหตุผล = สร้างเหตุผลmatch(ร้านปัจจุบัน, foodDNA);
 
@@ -205,7 +224,7 @@ if (!ร้านปัจจุบัน) {
 		shopPosts.forEach(function(p) {
 			var images = getPostImages(p);
 			var el = document.createElement("div");
-			el.className = "ppost";
+			el.className = "ppost card-enter";
 			el.innerHTML =
 				'<img src="' + images[0] + '" alt=""/>' +
 				(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +

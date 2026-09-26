@@ -5,6 +5,12 @@
       <meta http-equiv="X-UA-Compatible" content="IE=edge">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="author" content="CHIMCHIM">
+      <link rel="manifest" href="manifest.json">
+      <meta name="theme-color" content="#ff999d">
+      <meta name="apple-mobile-web-app-capable" content="yes">
+      <meta name="apple-mobile-web-app-status-bar-style" content="default">
+      <meta name="apple-mobile-web-app-title" content="ChimChim">
+      <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
       <meta name="description" content="ChimChim - โปรไฟล์นักชิมในชุมชน">
       <title>โปรไฟล์ - ChimChim</title>
       <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
@@ -16,6 +22,18 @@
          <button class="obback" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
          <span class="obstepnum" data-i18n="nav.profile">โปรไฟล์</span>
          <span style="width:38px;"></span>
+      </div>
+
+      <!-- ระหว่างรอถามโปรไฟล์จริงจาก Supabase (คนที่เครื่องนี้ไม่เคยเห็นมาก่อน) โชว์โครงนี้แทนที่จะโผล่ว่าง ๆ ก่อนเจอจริง -->
+      <div class="profwrap" id="ppSkeleton" hidden>
+         <div class="profhead">
+            <div class="skeleton" style="width:64px;height:64px;border-radius:50%;flex-shrink:0;"></div>
+            <div style="flex:1;">
+               <div class="skeleton" style="height:18px;width:60%;margin-bottom:8px;"></div>
+               <div class="skeleton" style="height:13px;width:40%;"></div>
+            </div>
+         </div>
+         <div class="skeleton" style="height:38px;width:100%;border-radius:50px;margin:14px 0;"></div>
       </div>
 
       <div class="profwrap" id="ppContent">
@@ -49,5 +67,12 @@
       <script src="js/chimchim-supabase-client.js"></script>
       <script src="js/chimchim-community.js"></script>
       <script src="js/chimchim-publicprofile.js"></script>
+         <script>
+         if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function() {
+               navigator.serviceWorker.register("sw.js").catch(function() {});
+            });
+         }
+      </script>
    </body>
 </html>

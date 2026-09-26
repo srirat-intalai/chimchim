@@ -6206,6 +6206,83 @@ body.appshell {
   }
 }
 
+/* =====================================================================
+   Animation & micro-interactions — ทำให้แอปดูมีชีวิตชีวา ไม่นิ่งเกินไป
+   ===================================================================== */
+
+/* --- โครงกระดูก (skeleton) ระหว่างรอข้อมูลจริงจาก Supabase — ใช้แทนหน้าว่าง ๆ/ข้อความ "ไม่พบ" ที่โผล่มาแวบหนึ่ง
+   ก่อนข้อมูลจริงมาถึง (เช่น เปิดโปรไฟล์คนอื่น/ร้านที่เพิ่ง sync จากเครื่องอื่น) --- */
+.skeleton {
+  background: linear-gradient(90deg, #eee 25%, #e2e2e2 37%, #eee 63%);
+  background-size: 400% 100%;
+  animation: skeletonShimmer 1.4s ease infinite;
+  border-radius: 8px;
+}
+[data-theme="dark"] .skeleton {
+  background: linear-gradient(90deg, #34303f 25%, #3d3850 37%, #34303f 63%);
+  background-size: 400% 100%;
+}
+@keyframes skeletonShimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* --- หัวใจ/ปุ่มถูกใจเด้งตอนกด — เห็นชัดว่าแอปตอบสนองจริง ไม่ใช่แค่เปลี่ยนสีเฉย ๆ --- */
+@keyframes likeBounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.4); }
+  55% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.mhrt.liked i,
+.rdherosave.saved i,
+.feedlikebtn.liked i,
+.pvlikebtn.liked i {
+  animation: likeBounce 0.4s ease;
+}
+
+/* --- ปุ่มยุบตัวนิดหน่อยตอนกด (tactile feedback) ให้รู้สึกว่ากดโดนจริง ๆ --- */
+.btn-red,
+.rdghost,
+.filtbtn,
+.igbtn,
+.apptop-btn,
+.apptop-loginbtn,
+.mcard,
+.feedlikebtn,
+.feedcommentbtn {
+  transition: transform 0.15s ease;
+}
+.btn-red:active,
+.rdghost:active,
+.filtbtn:active,
+.igbtn:active,
+.apptop-btn:active,
+.apptop-loginbtn:active,
+.mcard:active,
+.feedlikebtn:active,
+.feedcommentbtn:active {
+  transform: scale(0.96);
+}
+
+/* --- การ์ด/โพสต์ที่เพิ่งสร้างขึ้นมาใหม่ (เช่น sync ข้อมูลจริงมาเติมฟีด) ค่อย ๆ ลอยขึ้นแทนที่จะโผล่มาทื่อ ๆ --- */
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.card-enter {
+  animation: cardEnter 0.35s ease both;
+}
+
+/* --- เปลี่ยนหน้าแล้วค่อย ๆ จางเข้ามาแทนที่จะกระพริบขาวโพลนทันที (เว็บนี้ไม่ใช่ SPA เปลี่ยนหน้าจริงทุกครั้ง) --- */
+@keyframes pageFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+body.appshell {
+  animation: pageFadeIn 0.25s ease;
+}
+
 /* หมายเหตุ: กรอบแอปบนจอกว้าง (คอม/แท็บเล็ต) ย้ายไปรวมไว้ที่กฎ body.appshell +
    .appnav ตัวหลักแล้ว (ค้นหา "บนจอกว้างกว่ามือถือ") ใช้ max-width เดียวกันทั้งหน้า
    ไม่ใช่แค่แถบบน/ล่าง กันปัญหากรอบ header/nav กับเนื้อหาข้างในกว้างไม่เท่ากัน */

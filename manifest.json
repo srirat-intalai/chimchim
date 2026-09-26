@@ -1,0 +1,17 @@
+{
+  "name": "ChimChim - Find Food. Find Your People.",
+  "short_name": "ChimChim",
+  "description": "AI + Food DNA ช่วยจับคู่ร้านอาหารให้ตรงรสนิยมคุณ",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ff999d",
+  "lang": "th",
+  "icons": [
+    { "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "img/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

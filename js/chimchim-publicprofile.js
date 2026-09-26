@@ -20,7 +20,7 @@ function ppRenderPosts(posts, posterName, posterColor) {
 	posts.forEach(function(p, idx) {
 		var images = (typeof getPostImages === "function") ? getPostImages(p) : (p.images && p.images.length ? p.images : [p.img]);
 		var el = document.createElement("div");
-		el.className = "ppost";
+		el.className = "ppost card-enter";
 		el.innerHTML =
 			'<img src="' + images[0] + '" alt=""/>' +
 			(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
@@ -172,14 +172,21 @@ if (ppIsBuShop) {
 	if (user) {
 		renderRealUserProfile(user);
 	} else if (sbClient) {
-		// ยังไม่เคยเห็นผู้ใช้นี้ในเครื่องนี้เลย (เช่น เปิดลิงก์โปรไฟล์คนอื่นข้ามอุปกรณ์ครั้งแรก) — ลองถาม Supabase จริงแทน
+		// ยังไม่เคยเห็นผู้ใช้นี้ในเครื่องนี้เลย (เช่น เปิดลิงก์โปรไฟล์คนอื่นข้ามอุปกรณ์ครั้งแรก) — โชว์โครง skeleton
+		// รอไว้ก่อนแทนที่จะให้เห็นการ์ดว่าง ๆ แวบหนึ่ง แล้วลองถาม Supabase จริง
+		document.getElementById("ppContent").hidden = true;
+		document.getElementById("ppSkeleton").hidden = false;
 		sbClient.from("profiles").select("id, name, bio, avatar_url").eq("id", ppUid).single().then(function(res) {
+			document.getElementById("ppSkeleton").hidden = true;
+			document.getElementById("ppContent").hidden = false;
 			if (res.error || !res.data) {
 				document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">' + t("common.profileNotFound") + '</p>';
 				return;
 			}
 			renderRealUserProfile({ id: res.data.id, name: res.data.name, bio: res.data.bio, avatar: res.data.avatar_url });
 		}).catch(function() {
+			document.getElementById("ppSkeleton").hidden = true;
+			document.getElementById("ppContent").hidden = false;
 			document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">' + t("common.profileNotFound") + '</p>';
 		});
 	} else {

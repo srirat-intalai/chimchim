@@ -391,7 +391,16 @@ function sbFetchCommentCounts(postIds) {
    โพสต์ — sync จริงกับ Supabase (เหมือนร้าน: local-first แล้วผลักขึ้น + reconcile id ถ้าเป็นโพสต์ใหม่)
    ===================================================================== */
 function sbPostRowToLocal(row) {
-	return { id: String(row.id), userId: row.user_id, pageId: row.page_id, images: row.images, caption: row.caption || "", date: row.created_at };
+	return {
+		id: String(row.id),
+		userId: row.user_id,
+		userName: row.profiles ? row.profiles.name : null,
+		userAvatar: row.profiles ? row.profiles.avatar_url : null,
+		pageId: row.page_id,
+		images: row.images,
+		caption: row.caption || "",
+		date: row.created_at
+	};
 }
 function sbPostToRow(post) {
 	return { user_id: post.userId, page_id: post.pageId || null, images: post.images, caption: post.caption || "" };
@@ -418,7 +427,7 @@ function sbDeletePost(remoteId) {
 // ดึงโพสต์ของทุกคนจาก Supabase จริง (ไม่ใช่แค่ที่เคยเห็นในเครื่องนี้) — ซ่อนอันที่โดนรายงานถึงเกณฑ์ไปแล้วออกเลย
 function sbFetchAllPosts() {
 	if (!sbClient) return Promise.resolve([]);
-	return sbClient.from("posts").select("*").eq("is_hidden", false).order("created_at", { ascending: false }).then(function(res) {
+	return sbClient.from("posts").select("*, profiles!user_id(name, avatar_url)").eq("is_hidden", false).order("created_at", { ascending: false }).then(function(res) {
 		if (res.error) {
 			console.error("[chimchim] sbFetchAllPosts error:", res.error.message);
 			return [];

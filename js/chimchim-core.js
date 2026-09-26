@@ -1210,7 +1210,10 @@ function mergeRemotePostsIntoLocal(remotePosts) {
 		for (i = 0; i < posts.length; i++) {
 			if (posts[i].id === remote.id) { idx = i; break; }
 		}
-		var withRemoteId = { id: remote.id, remoteId: remote.id, userId: remote.userId, pageId: remote.pageId, images: remote.images, img: remote.images[0], caption: remote.caption, date: remote.date };
+		// userName/userAvatar มาจาก join กับ profiles ตอนดึงจาก Supabase (ดู sbPostRowToLocal) — เก็บติดไว้ที่โพสต์เลย
+		// กันปัญหาโพสต์ของคนอื่นที่เครื่องนี้ไม่เคยเห็นมาก่อน (ไม่มีใน getUsers() ในเครื่องนี้) ขึ้นเป็นชื่อกลาง ๆ
+		// "นักชิม ChimChim" ทั้งที่จริงมีชื่อจริงอยู่แล้วบน Supabase (ดู getFeedItems())
+		var withRemoteId = { id: remote.id, remoteId: remote.id, userId: remote.userId, userName: remote.userName || null, userAvatar: remote.userAvatar || null, pageId: remote.pageId, images: remote.images, img: remote.images[0], caption: remote.caption, date: remote.date };
 		if (idx !== -1) { posts[idx] = withRemoteId; } else { posts.push(withRemoteId); }
 	});
 	// เอาโพสต์ที่เคย sync ไปแล้ว (มี remoteId) แต่ไม่อยู่ในชุดล่าสุดจาก Supabase ออกทิ้ง — แปลว่าโดนลบ/โดนซ่อน
@@ -1260,7 +1263,9 @@ function getFeedItems() {
 		// pageId ตอนนี้คือ numId ของ "ร้านของฉัน" (เพจ/ร้านรวมเป็นเอนทิตีเดียวแล้ว ดู migratePageIntoShop)
 		var shop = p.pageId ? shops.filter(function(s) { return s.numId === p.pageId; })[0] : null;
 		var user = users.filter(function(u) { return u.id === p.userId; })[0];
-		var posterName = shop ? shop.name : (user ? user.name : t("common.chimchimFoodie"));
+		// เรียงลำดับหาชื่อ: ร้าน > ชื่อจริงที่ sync มาจาก Supabase (p.userName, ใช้ได้แม้เครื่องนี้ไม่เคยเห็นคนโพสต์มาก่อน)
+		// > ชื่อในเครื่องนี้ (โพสต์ของตัวเอง) > "นักชิม ChimChim" (fallback จริง ๆ เฉพาะตอนหาไม่เจอทุกทางแล้วเท่านั้น)
+		var posterName = shop ? shop.name : (p.userName || (user ? user.name : t("common.chimchimFoodie")));
 		return {
 			id: p.id,
 			kind: shop ? "page" : "user",
@@ -1268,7 +1273,7 @@ function getFeedItems() {
 			caption: p.caption || "",
 			date: p.date,
 			posterName: posterName,
-			posterAvatarUrl: shop ? shop.img : null,
+			posterAvatarUrl: shop ? shop.img : (p.userAvatar || null),
 			posterColor: shop ? "var(--cream2)" : "linear-gradient(135deg, var(--dark), #7d6fb0)",
 			posterLink: shop ? ("restaurant.html?id=" + shop.numId) : ("public-profile.html?u=" + p.userId),
 			cat: shop ? shop.cat : null

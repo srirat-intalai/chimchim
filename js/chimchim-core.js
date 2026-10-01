@@ -14,6 +14,33 @@ function escapeHtml(str) {
 
 // ผูกกล่องอัปโหลดรูปเอง (input type=file) เข้ากับ hidden input ที่เก็บค่าจริง (data URL) + รูปพรีวิว
 // ใช้ร่วมกันได้ทุกฟอร์มที่ให้ผู้ใช้อัปโหลดรูปเอง (รูปเพจร้าน, รูปเมนูเด่นตอนโพสต์ร้าน) แทนดรอปดาวน์เลือกรูปสต็อกเดิม
+// บีบอัด + ย่อขนาดรูปก่อนเก็บเป็น base64 ในเครื่องเสมอ — รูปจากกล้องมือถือจริงมักใหญ่ 3-8MB/รูป
+// เก็บแบบเต็มความละเอียดได้ไม่กี่รูปก็ชน localStorage quota (~5-10MB รวมทั้งเว็บ) แล้วโพสต์เงียบ ๆ ไม่สำเร็จ
+// (เจอบั๊กจริง: กดโพสต์แล้วไม่มีอะไรเกิดขึ้นเลย เพราะ setItem() throw QuotaExceededError แล้วไม่มีใครจับ)
+// ย่อเหลือด้านยาวสุดไม่เกิน 1280px + แปลงเป็น JPEG คุณภาพ 80% ลดขนาดไฟล์ลงได้หลายสิบเท่าโดยภาพยังดูดีอยู่
+var CHIMCHIM_IMG_MAX_DIMENSION = 1280;
+var CHIMCHIM_IMG_JPEG_QUALITY = 0.8;
+function บีบอัดรูปภาพ(dataUrl) {
+	return new Promise(function(resolve) {
+		var img = new Image();
+		img.onload = function() {
+			var scale = Math.min(1, CHIMCHIM_IMG_MAX_DIMENSION / Math.max(img.width, img.height));
+			var canvas = document.createElement("canvas");
+			canvas.width = Math.max(1, Math.round(img.width * scale));
+			canvas.height = Math.max(1, Math.round(img.height * scale));
+			var ctx = canvas.getContext("2d");
+			ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+			try {
+				resolve(canvas.toDataURL("image/jpeg", CHIMCHIM_IMG_JPEG_QUALITY));
+			} catch (e) {
+				resolve(dataUrl); // บีบอัดไม่ได้ (เช่น canvas tainted) ก็ใช้ของเดิมไปก่อน ดีกว่าทำให้อัปโหลดพังทั้งหมด
+			}
+		};
+		img.onerror = function() { resolve(dataUrl); };
+		img.src = dataUrl;
+	});
+}
+
 function wireImageUpload(fileInputId, hiddenInputId, previewImgId, boxId, existingValue) {
 	var fileInput = document.getElementById(fileInputId);
 	var hiddenInput = document.getElementById(hiddenInputId);
@@ -37,14 +64,14 @@ function wireImageUpload(fileInputId, hiddenInputId, previewImgId, boxId, existi
 		if (!file) return;
 		var reader = new FileReader();
 		reader.onload = function(e) {
-			showPreview(e.target.result);
+			บีบอัดรูปภาพ(e.target.result).then(showPreview);
 		};
 		reader.readAsDataURL(file);
 	});
 }
 
 // เหมือน wireImageUpload แต่รองรับเลือกได้หลายรูปพร้อมกัน (หรือกดเพิ่มทีละรอบหลายครั้งก็ได้) — ใช้กับฟอร์มโพสต์ที่แนบได้หลายรูป
-// onFilesAdded(dataUrls) จะถูกเรียกพร้อมอาร์เรย์ data URL ของรูปที่เพิ่งเลือกทั้งหมด
+// onFilesAdded(dataUrls) จะถูกเรียกพร้อมอาร์เรย์ data URL ของรูปที่เพิ่งเลือกทั้งหมด (บีบอัดแล้วทุกรูป)
 function wireMultiImageUpload(fileInputId, onFilesAdded) {
 	var fileInput = document.getElementById(fileInputId);
 	if (!fileInput) return;
@@ -58,10 +85,12 @@ function wireMultiImageUpload(fileInputId, onFilesAdded) {
 				reader.readAsDataURL(file);
 			});
 		});
-		Promise.all(readers).then(function(dataUrls) {
-			onFilesAdded(dataUrls);
-			fileInput.value = ""; // เคลียร์ค่าเดิม เผื่อผู้ใช้อยากเลือกรูปเดิมซ้ำได้อีกรอบ
-		});
+		Promise.all(readers)
+			.then(function(dataUrls) { return Promise.all(dataUrls.map(บีบอัดรูปภาพ)); })
+			.then(function(compressed) {
+				onFilesAdded(compressed);
+				fileInput.value = ""; // เคลียร์ค่าเดิม เผื่อผู้ใช้อยากเลือกรูปเดิมซ้ำได้อีกรอบ
+			});
 	});
 }
 
@@ -1160,12 +1189,19 @@ function getPostsByPage(pageId) {
 }
 // pageId ใส่เฉพาะตอนโพสต์ในนามเพจร้าน (ไม่ใส่ = โพสต์ในนามตัวเอง) userId เก็บไว้เสมอเพื่อ audit/คำนวณ XP
 // images รับได้ทั้ง string เดียว (รูปเดียว) หรืออาร์เรย์ (โพสต์ได้หลายรูปในโพสต์เดียวเหมือน IG)
+// คืน true ถ้าโพสต์สำเร็จ, false ถ้าเก็บไม่ได้ (เช่น localStorage เต็ม — รูปใหญ่เกินไปแม้บีบอัดแล้ว)
+// ผู้เรียกต้องเช็คค่านี้แล้วโชว์ error ให้ผู้ใช้เห็นจริง ๆ ไม่ใช่ปล่อยเงียบเหมือนเดิม (เคยเจอบั๊กกดโพสต์ไม่ได้
+// เพราะ setItem() throw QuotaExceededError แล้วไม่มีใครจับ ฟอร์มเลยไม่ปิด แต่ก็ไม่มี error ให้เห็นว่าทำไม)
 function addPost(userId, images, caption, pageId) {
 	var imgList = Array.isArray(images) ? images.filter(Boolean) : [images];
 	var posts = getAllPosts();
 	var localId = "post" + Date.now();
 	posts.unshift({ id: localId, userId: userId, pageId: pageId || null, images: imgList, img: imgList[0], caption: caption, date: new Date().toISOString() });
-	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+	try {
+		localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+	} catch (e) {
+		return false;
+	}
 	logEvent("post_created", { pageId: pageId || null });
 	// ผลักโพสต์ขึ้น Supabase จริงทันที ให้คนอื่นเห็นในฟีดข้ามเครื่องได้เลย ไม่ต้องรอ sync รอบถัดไป
 	// (ถ้า pageId เป็นร้านที่ยังไม่เคย sync id จริง ครั้งนี้อาจ push ไม่สำเร็จ — syncPostsWithSupabase()
@@ -1175,6 +1211,7 @@ function addPost(userId, images, caption, pageId) {
 			if (saved) reconcilePostId(localId, String(saved.id));
 		});
 	}
+	return true;
 }
 // คืนอาร์เรย์รูปของโพสต์เสมอ ไม่ว่าโพสต์นั้นจะเป็นโพสต์เก่า (มีแค่ img เดียว) หรือใหม่ (มี images หลายรูป)
 function getPostImages(p) {
@@ -1198,6 +1235,7 @@ function deletePost(postId) {
 	if (target && target.remoteId && typeof sbDeletePost === "function") sbDeletePost(target.remoteId);
 }
 // แก้ไขโพสต์เดิม (รูป/แคปชั่น) — แก้ได้เฉพาะเจ้าของโพสต์อยู่แล้วในทางปฏิบัติ เพราะเรียกจากหน้า "โพสต์ของฉัน" เท่านั้น
+// คืน true/false เหมือน addPost (ดูคอมเมนต์ที่ addPost ว่าทำไมต้องเช็คค่านี้)
 function updatePost(postId, patch) {
 	var posts = getAllPosts();
 	var i, target = null;
@@ -1212,8 +1250,13 @@ function updatePost(postId, patch) {
 			break;
 		}
 	}
-	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+	try {
+		localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+	} catch (e) {
+		return false;
+	}
 	if (target && target.remoteId && typeof sbSavePost === "function") sbSavePost(target);
+	return true;
 }
 // ผสานโพสต์จริงของทุกคนจาก Supabase เข้ากับ localStorage เครื่องนี้ — แทนที่โพสต์เดิมถ้า id ตรงกัน (ข้อมูลใหม่กว่า)
 // หรือเพิ่มเป็นโพสต์ใหม่ถ้ายังไม่เคยเห็น (เห็นโพสต์ของคนอื่นข้ามเครื่องได้จริง ไม่ใช่แค่โพสต์ตัวอย่าง)

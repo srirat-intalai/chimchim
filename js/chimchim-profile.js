@@ -230,7 +230,11 @@ function initMyPosts() {
 		}
 
 		if (editingPostId) {
-			updatePost(editingPostId, { images: chosenImages, caption: caption });
+			if (!updatePost(editingPostId, { images: chosenImages, caption: caption })) {
+				errBox.textContent = t("profile.storageFullError");
+				errBox.classList.add("show");
+				return;
+			}
 			resetFormToCreateMode();
 			form.style.display = "none";
 			showToast(t("profile.postUpdatedToast"));
@@ -239,7 +243,11 @@ function initMyPosts() {
 		}
 
 		var activePage = getActivePostingPage();
-		addPost(session.id, chosenImages, caption, activePage ? activePage.numId : null);
+		if (!addPost(session.id, chosenImages, caption, activePage ? activePage.numId : null)) {
+			errBox.textContent = t("profile.storageFullError");
+			errBox.classList.add("show");
+			return;
+		}
 		resetFormToCreateMode();
 		form.style.display = "none";
 		showToast(activePage ? t("profile.postedAsToast").replace("{name}", activePage.name) : t("profile.postedToast"));

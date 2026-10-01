@@ -196,6 +196,11 @@ function initMyPosts() {
 			chosenImages.push(dataUrl);
 		});
 		renderChosenImages();
+		// บนมือถือ พอเลือกรูปแล้วฟอร์มจะยาวขึ้นเยอะ ปุ่มโพสต์อาจตกขอบจอไปโดยไม่รู้ตัวว่าต้องเลื่อนลงไปกด
+		// เลื่อนจอให้เห็นปุ่มเองเลย กันปัญหา "กดปุ่มไม่ติด" ทั้งที่จริง ๆ แค่มองไม่เห็นปุ่ม
+		setTimeout(function() {
+			submitBtn.scrollIntoView({ behavior: "smooth", block: "end" });
+		}, 100);
 	});
 
 	toggle.addEventListener("click", function() {

@@ -32,6 +32,33 @@
 	/* --- อัปโหลดรูปเมนูเด่นเอง --- */
 	wireImageUpload("shopImageFile", "shopImage", "shopImagePreviewImg", "shopImageUploadBox", myShop ? myShop.img : null);
 
+	/* --- ใช้ตำแหน่งจริงของเจ้าของร้านตอนโพสต์ (ไม่บังคับ) — ถ้ากด จะได้ระยะทางที่คำนวณสด ๆ จากตำแหน่งจริง
+	   ของผู้ชมแต่ละคนแทนตัวเลขกะประมาณที่กรอกเอง (ดู shopToร้าน() ใน chimchim-core.js) --- */
+	var shopLat = myShop && typeof myShop.lat === "number" ? myShop.lat : null;
+	var shopLng = myShop && typeof myShop.lng === "number" ? myShop.lng : null;
+	var useLocationBtn = document.getElementById("shopUseLocationBtn");
+	var locationHint = document.getElementById("shopLocationHint");
+	if (shopLat !== null) {
+		locationHint.hidden = false;
+		locationHint.textContent = t("shop.locationSavedHint");
+	}
+	if (useLocationBtn) {
+		useLocationBtn.addEventListener("click", function() {
+			useLocationBtn.disabled = true;
+			ขอตำแหน่งผู้ใช้().then(function(loc) {
+				shopLat = loc.lat;
+				shopLng = loc.lng;
+				useLocationBtn.disabled = false;
+				locationHint.hidden = false;
+				locationHint.textContent = t("shop.locationSavedHint");
+			}).catch(function() {
+				useLocationBtn.disabled = false;
+				locationHint.hidden = false;
+				locationHint.textContent = t("shop.locationFailedHint");
+			});
+		});
+	}
+
 	function refreshViewLink(shop) {
 		var viewLink = document.getElementById("shopViewLink");
 		if (!shop) {
@@ -133,7 +160,9 @@
 			uni: uni,
 			desc: desc,
 			hours: hours,
-			promo: promo
+			promo: promo,
+			lat: shopLat,
+			lng: shopLng
 		});
 		if (!shop) {
 			errBox.textContent = t("shop.storageFullError");
@@ -144,6 +173,7 @@
 		refreshViewLink(shop);
 		refreshPersonaUI(shop);
 		refreshDeleteBtn(shop);
+		if (typeof sbSaveMyShopLocation === "function" && shopLat !== null) sbSaveMyShopLocation(shop.numId, shopLat, shopLng);
 		if (typeof showToast === "function") showToast(t("shop.postedToast").replace("{name}", name));
 	});
 

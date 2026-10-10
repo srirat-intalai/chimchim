@@ -34,16 +34,16 @@ function renderCreators() {
 	grid.innerHTML = '';
 
 	var seedPeople = เพจร้านBU.map(function(shop) {
-		return { id: 'bu-' + shop.id, name: shop.name, color: 'linear-gradient(135deg, var(--primary), var(--secondary))', avatarImg: shop.avatar, sub: '🏪 ' + catEmoji(shop.cat) + ' ' + catLabel(shop.cat) };
+		return { id: 'bu-' + shop.id, name: shop.name, color: 'linear-gradient(135deg, var(--primary), var(--secondary))', avatarImg: shop.avatar, sub: '<i class="fas fa-store"></i> ' + catEmoji(shop.cat) + ' ' + escapeHtml(catLabel(shop.cat)) };
 	});
 
 	var list;
 	if (currentPeopleFilter === 'following') {
 		var realPeople = getUsers().map(function(u) {
-			return { id: u.id, name: u.name, color: 'linear-gradient(135deg, var(--dark), #7d6fb0)', sub: '🧑‍🎓 ' + t("common.member") };
+			return { id: u.id, name: u.name, color: 'linear-gradient(135deg, var(--dark), #8b68e0)', sub: '<i class="fas fa-graduation-cap"></i> ' + t("common.member") };
 		});
 		var followedPages = getPages().map(function(p) {
-			return { id: p.id, linkId: 'page-' + p.id, name: p.name, color: 'var(--cream2)', avatarImg: p.avatar, sub: '🏪 ' + catEmoji(p.cat) + ' ' + catLabel(p.cat) };
+			return { id: p.id, linkId: 'page-' + p.id, name: p.name, color: 'var(--cream2)', avatarImg: p.avatar, sub: '<i class="fas fa-store"></i> ' + catEmoji(p.cat) + ' ' + escapeHtml(catLabel(p.cat)) };
 		});
 		list = seedPeople.concat(realPeople).concat(followedPages).filter(function(p) { return isUserFollowed(p.id); });
 		if (lbl) lbl.textContent = t('following.onlyFollowing');
@@ -65,7 +65,7 @@ function renderCreators() {
 		getUsers().forEach(function(u) {
 			if (!u.name || existingIds[u.id]) return;
 			existingIds[u.id] = true;
-			list.push({ id: u.id, name: u.name, color: 'linear-gradient(135deg, var(--dark), #7d6fb0)', sub: '🧑‍🎓 ' + t("common.member") });
+			list.push({ id: u.id, name: u.name, color: 'linear-gradient(135deg, var(--dark), #8b68e0)', sub: '<i class="fas fa-graduation-cap"></i> ' + t("common.member") });
 		});
 		list = list.filter(function(p) { return p.name.toLowerCase().indexOf(q) !== -1; });
 	}
@@ -89,7 +89,7 @@ function renderCreators() {
 			res.data.forEach(function(row) {
 				if (existingIdsForRemote[row.id]) return;
 				existingIdsForRemote[row.id] = true;
-				grid.appendChild(buildPersonCard({ id: row.id, name: row.name, color: 'linear-gradient(135deg, var(--dark), #7d6fb0)', sub: '🧑‍🎓 ' + t("common.member") }));
+				grid.appendChild(buildPersonCard({ id: row.id, name: row.name, color: 'linear-gradient(135deg, var(--dark), #8b68e0)', sub: '<i class="fas fa-graduation-cap"></i> ' + t("common.member") }));
 			});
 			wireFollowButtons();
 		}).catch(function() {});

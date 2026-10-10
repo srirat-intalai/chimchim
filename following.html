@@ -6,13 +6,16 @@
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="author" content="CHIMCHIM">
       <link rel="manifest" href="manifest.json">
-      <meta name="theme-color" content="#ff999d">
+      <meta name="theme-color" content="#6842b5">
       <meta name="apple-mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-status-bar-style" content="default">
       <meta name="apple-mobile-web-app-title" content="ChimChim">
       <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
       <meta name="description" content="ChimChim - Following ติดตามร้านอาหารและนักชิมในชุมชน ChimChim">
       <title>Following - ChimChim</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
       <link href="css/bootstrap.min.css" rel="stylesheet"/>
       <link href="css/aos.css" rel="stylesheet"/>
@@ -34,6 +37,7 @@
                      <div class="qstoggle">
                         <button type="button" data-theme-choice="light" title="Light"><i class="fas fa-sun"></i></button>
                         <button type="button" data-theme-choice="dark" title="Dark"><i class="fas fa-moon"></i></button>
+                        <button type="button" data-theme-choice="system" title="System"><i class="fas fa-circle-half-stroke"></i></button>
                      </div>
                   </div>
                   <div class="qsrow">
@@ -115,16 +119,16 @@
 
       <div id="appToast"></div>
 
-      <script src="js/aos.js"></script>
+      <script src="js/aos.js" defer></script>
       <script src="js/chimchim-i18n.js"></script>
-      <script src="js/chimchim-data.js"></script>
-      <script src="js/chimchim-core.js"></script>
-      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-      <script src="js/chimchim-supabase-config.js"></script>
-      <script src="js/chimchim-supabase-client.js"></script>
-      <script src="js/chimchim-nav.js"></script>
-      <script src="js/chimchim-following.js"></script>
-      <script src="js/chimchim-community.js"></script>
+      <script src="js/chimchim-data.js" defer></script>
+      <script src="js/chimchim-core.js" defer></script>
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
+      <script src="js/chimchim-supabase-config.js" defer></script>
+      <script src="js/chimchim-supabase-client.js" defer></script>
+      <script src="js/chimchim-nav.js" defer></script>
+      <script src="js/chimchim-following.js" defer></script>
+      <script src="js/chimchim-community.js" defer></script>
          <script>
          if ("serviceWorker" in navigator) {
             window.addEventListener("load", function() {

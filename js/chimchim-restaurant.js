@@ -46,14 +46,14 @@ function renderShopDetail() {
 	document.getElementById("rdImg").src = ร้านปัจจุบัน.รูป;
 	document.getElementById("rdImg").alt = ร้านปัจจุบัน.เมนู;
 	document.title = ร้านปัจจุบัน.เมนู + " - ChimChim";
-	document.getElementById("rdCat").textContent = catEmoji(ร้านปัจจุบัน.หมวด) + " " + catLabel(ร้านปัจจุบัน.หมวด);
+	document.getElementById("rdCat").innerHTML = catEmoji(ร้านปัจจุบัน.หมวด) + " " + escapeHtml(catLabel(ร้านปัจจุบัน.หมวด));
 	document.getElementById("rdTitle").textContent = ร้านปัจจุบัน.เมนู;
 	document.getElementById("rdRestaurant").innerHTML = '<i class="fas fa-store"></i> ' + escapeHtml(ร้านปัจจุบัน.ร้าน);
 	document.getElementById("rdPrice").textContent = "฿" + ร้านปัจจุบัน.ราคาต่ำ + "–" + ร้านปัจจุบัน.ราคาสูง;
 	document.getElementById("rdDistance").textContent = distanceText(ร้านปัจจุบัน.ระยะทาง);
 	document.getElementById("rdUni").textContent = t("restaurant.near") + ร้านปัจจุบัน.มหาลัย;
 	document.getElementById("rdMatchPct").setAttribute("data-match-score", คะแนน);
-	document.getElementById("rdMatchPct").textContent = matchBadgeText(คะแนน);
+	document.getElementById("rdMatchPct").innerHTML = matchBadgeText(คะแนน);
 	document.getElementById("rdMatchReason").textContent = เหตุผล;
 	document.getElementById("rdDesc").textContent = ร้านปัจจุบัน.community ?
 		(ร้านปัจจุบัน.คำโปรยกำหนดเอง || t("restaurant.postedBy").replace("{vendor}", ร้านปัจจุบัน.vendorName)) :
@@ -89,6 +89,23 @@ function renderShopDetail() {
 		toggleLikeShop(ร้านปัจจุบัน.id);
 		refreshLikeBtn();
 	});
+
+	/* --- ปุ่มบันทึกไว้ดูทีหลัง (ไอคอน bookmark) — แยกจากปุ่มถูกใจด้านบนจริง ๆ --- */
+	var bookmarkBtn = document.getElementById("rdBookmarkBtn");
+	function refreshBookmarkBtn() {
+		var saved = isShopSaved(ร้านปัจจุบัน.id);
+		bookmarkBtn.classList.toggle("saved", saved);
+		var ico = bookmarkBtn.querySelector("i");
+		ico.classList.toggle("far", !saved);
+		ico.classList.toggle("fas", saved);
+		bookmarkBtn.setAttribute("aria-label", t(saved ? "shop.savedForLater" : "shop.saveForLater"));
+	}
+	refreshBookmarkBtn();
+	bookmarkBtn.addEventListener("click", function() {
+		toggleSaveShop(ร้านปัจจุบัน.id);
+		refreshBookmarkBtn();
+	});
+	if (typeof syncSavedShopsWithSupabase === "function") syncSavedShopsWithSupabase(refreshBookmarkBtn);
 
 	/* --- ปุ่ม Follow ร้าน — รวมเป็นระบบเดียวกับ Follow คน/เพจร้าน (toggleFollowUser)
 	   ถ้าร้านนี้มีเพจร้าน BU ของตัวเอง ให้ Follow ผ่าน id ของเพจนั้นเลย จะได้เป็นสถานะเดียวกัน
@@ -177,12 +194,16 @@ function renderShopDetail() {
 			var isMine = me && r.userId === me.id && r.remoteId;
 			var row = document.createElement("div");
 			row.className = "rdreviewrow";
+			var reviewImgsHtml = (r.images && r.images.length)
+				? '<div class="rdreviewimgs">' + r.images.map(function(src) { return '<img src="' + src + '" alt=""/>'; }).join("") + '</div>'
+				: "";
 			row.innerHTML =
 				'<div class="rdreviewavt">' + escapeHtml(r.author.charAt(0).toUpperCase()) + "</div>" +
 				'<div style="flex:1;min-width:0;">' +
 					'<div class="rdreviewnm">' + escapeHtml(r.author) + "</div>" +
-					'<div class="rdreviewscore">🎯 ' + avgScore + t("restaurant.avgScoreSuffix") + "</div>" +
+					'<div class="rdreviewscore"><i class="fas fa-bullseye"></i> ' + avgScore + t("restaurant.avgScoreSuffix") + "</div>" +
 					'<div class="rdreviewtxt">' + escapeHtml(r.text || t("restaurant.noReviewText")) + "</div>" +
+					reviewImgsHtml +
 				"</div>" +
 				(isMine ?
 					'<div class="rdreviewactions">' +

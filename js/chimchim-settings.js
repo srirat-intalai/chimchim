@@ -14,6 +14,17 @@
 	document.getElementById("editProfileBio").value = me.bio || "";
 	wireImageUpload("avatarFile", "avatarUrl", "avatarPreviewImg", "avatarUploadBox", me.avatar || null);
 
+	var uniSelect = document.getElementById("editProfileUni");
+	if (uniSelect && typeof มหาวิทยาลัยทั้งหมด !== "undefined") {
+		มหาวิทยาลัยทั้งหมด.forEach(function(u) {
+			var opt = document.createElement("option");
+			opt.value = u;
+			opt.textContent = u;
+			uniSelect.appendChild(opt);
+		});
+		uniSelect.value = me.university || "";
+	}
+
 	if (typeof syncMyProfileWithSupabase === "function") {
 		syncMyProfileWithSupabase(function() {
 			var fresh = getMe();
@@ -26,6 +37,13 @@
 				img.hidden = false;
 				document.getElementById("avatarUploadBox").classList.add("haspreview");
 			}
+		});
+	}
+	// มหาวิทยาลัยแยก sync ต่างหากจากข้อมูลโปรไฟล์หลัก (ชื่อ/bio/avatar) โดยตั้งใจ — เผื่อยังไม่ได้รัน
+	// SQL Phase 6 (เพิ่มคอลัมน์ university ใน profiles) จะได้ไม่ทำให้ sync ชื่อ/bio/avatar พังไปด้วย
+	if (typeof syncMyUniversityWithSupabase === "function") {
+		syncMyUniversityWithSupabase(function() {
+			if (uniSelect) uniSelect.value = getMe().university || "";
 		});
 	}
 
@@ -42,6 +60,8 @@
 		var patch = { name: name, bio: document.getElementById("editProfileBio").value.trim() };
 		var avatar = document.getElementById("avatarUrl").value;
 		if (avatar) patch.avatar = avatar;
+		var university = uniSelect ? uniSelect.value : "";
+		if (uniSelect) patch.university = university;
 		if (!updateMe(patch)) {
 			errBox.textContent = t("shop.storageFullError");
 			errBox.classList.add("show");
@@ -49,12 +69,14 @@
 		}
 		setSession(getMe());
 		if (typeof sbSaveMyProfile === "function") sbSaveMyProfile(patch);
+		if (typeof sbSaveMyUniversity === "function" && uniSelect) sbSaveMyUniversity(university);
+		if (typeof refreshAuthUI === "function") refreshAuthUI();
 		if (typeof showToast === "function") showToast(t("settings.profileSavedToast"));
 	});
 })();
 
 function refreshSettingsUI() {
-	var theme = getTheme();
+	var theme = getThemeChoice();
 	document.querySelectorAll("#themeToggle .settopt").forEach(function(btn) {
 		btn.classList.toggle("active", btn.getAttribute("data-theme-choice") === theme);
 	});
@@ -149,9 +171,27 @@ function renderAccountHistory() {
 			followedShops.forEach(function(ร้าน) { followList.appendChild(buildLikeRow(ร้าน)); });
 		}
 	}
+
+	var savesCard = document.getElementById("savesHistoryCard");
+	if (savesCard && typeof getSavedShops === "function") {
+		savesCard.hidden = false;
+		var saveList = document.getElementById("settingsSavesList");
+		var saveEmpty = document.getElementById("settingsSavesEmpty");
+		saveList.innerHTML = "";
+		var savedShops = getSavedShops().map(function(id) { return หาร้านจากId(id); }).filter(function(r) { return r; });
+		if (savedShops.length === 0) {
+			saveEmpty.hidden = false;
+		} else {
+			saveEmpty.hidden = true;
+			savedShops.forEach(function(ร้าน) { saveList.appendChild(buildLikeRow(ร้าน)); });
+		}
+	}
 }
 renderAccountHistory();
 // ดึงไลก์/ติดตามจริงจาก Supabase (เผื่อทำไว้จากเครื่องอื่น) มาผสานแล้ว re-render ประวัติให้ตรงของจริง
 if (typeof syncLikesAndFollowsWithSupabase === "function" && getSession()) {
 	syncLikesAndFollowsWithSupabase(renderAccountHistory);
+}
+if (typeof syncSavedShopsWithSupabase === "function" && getSession()) {
+	syncSavedShopsWithSupabase(renderAccountHistory);
 }

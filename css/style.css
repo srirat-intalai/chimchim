@@ -1,20 +1,33 @@
 :root {
-  /* พาเลตสี CHIMCHIM (จากบลูปรินท์ข้อ 3) */
-  --primary: #ff999d; /* Pastel Pink - สีหลัก */
-  --secondary: #ffc2a8; /* Pastel Peach - สีรอง */
-  --dark: #8f82b8; /* Dusty Lavender - มาสคอต/ปุ่มเน้น/หัวข้อ */
-  --darkbg: #5b4f7d; /* lavender เข้ม ใช้เป็นพื้นหลังโซนมืดแทนสีดำเดิม อ่านง่ายกว่า */
-  --green: #46b087; /* mint เข้ม ใช้แทนที่สีเขียวเดิม (success / follow) */
-  --mint: #b5e8d0; /* Pastel Mint - accent/badge */
-  --cream: #f0f8c9; /* Pastel Cream - พื้นหลังสลับ section */
-  --cream2: #fbfce4;
-  --light: #fff6f1;
-  --shadow: 0 8px 40px rgba(143, 130, 184, 0.14);
-  --shadow-lg: 0 20px 60px rgba(143, 130, 184, 0.22);
+  /* พาเลตสี CHIMCHIM — แบรนด์ม่วง โทนเป็นมืออาชีพ สะอาด ใช้ม่วงแบบ accent ไม่ใช่พื้นหลังเต็มจอ */
+  --primary: #6842b5; /* ม่วงหลักที่ใช้ทำปุ่ม/การกระทำหลัก */
+  --secondary: #7652c8; /* ม่วงแบรนด์ (อ่อนกว่า primary เล็กน้อย) ใช้คู่กับ primary ใน gradient */
+  --dark: #4e3a85; /* ม่วงเข้ม — หัวข้อเน้น/อวาตาร์ไล่สี */
+  --darkbg: #2e2640; /* ม่วงเข้มมาก ใช้เป็นพื้นหลังโซนมืด */
+  --green: #46b087; /* สีความหมาย (success / follow) ไม่แตะ */
+  --mint: #b5e8d0; /* สีความหมาย accent/badge ไม่แตะ */
+  --cream: #f0eafb; /* พื้นผิวม่วงอ่อน ใช้สลับ section */
+  --cream2: #faf9fc; /* พื้นหลังหน้าแบบ neutral เกือบขาว */
+  --light: #faf9fc;
+  --shadow: 0 8px 40px rgba(104, 66, 181, 0.14);
+  --shadow-lg: 0 20px 60px rgba(104, 66, 181, 0.22);
   --surface: #fff; /* พื้นผิวการ์ด/ป็อปอัพ/อินพุตทั่วแอป — สลับเป็นสีเข้มในโหมด Dark */
-  --text: #444; /* สีตัวอักษรหลัก — สลับเป็นสีอ่อนในโหมด Dark */
-  --text-muted: #939393;
-  --border-soft: rgba(0, 0, 0, 0.06);
+  --text: #24212a; /* สีตัวอักษรหลัก — สลับเป็นสีอ่อนในโหมด Dark */
+  --text-muted: #77727f;
+  --border-soft: rgba(36, 19, 66, 0.08);
+
+  /* นามแฝงเชิงความหมาย (semantic tokens) — อ้างอิงค่าด้านบน เผื่อโค้ดส่วนใหม่อยากอ้างชื่อแบบนี้แทน */
+  --color-brand: var(--primary);
+  --color-brand-hover: var(--dark);
+  --color-brand-active: var(--dark);
+  --color-brand-soft: var(--cream);
+  --color-background: var(--light);
+  --color-surface: var(--surface);
+  --color-surface-elevated: #fff;
+  --color-text-primary: var(--text);
+  --color-text-secondary: var(--text-muted);
+  --color-border: var(--border-soft);
+  --color-focus-ring: var(--primary);
 }
 
 /* =====================================================================
@@ -23,12 +36,16 @@
    landing เดิม (index.html) ที่ไม่ได้ใช้ class appshell
    ===================================================================== */
 [data-theme="dark"] {
-  --surface: #2b2836;
-  --text: #ece8f6;
-  --text-muted: #a79fc2;
+  --primary: #8b68e0;
+  --secondary: #a98af2;
+  --dark: #c3a9f5;
+  --darkbg: #17141c;
+  --surface: #1d1b23;
+  --text: #f5f2fa;
+  --text-muted: #b5afbf;
   --border-soft: rgba(255, 255, 255, 0.08);
-  --cream: #332f2a;
-  --cream2: #2a2735;
+  --cream: #27242f; /* elevated surface */
+  --cream2: #221f2a;
   --shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
@@ -96,6 +113,34 @@
   color: var(--text-muted);
 }
 
+/* =====================================================================
+   ACCESSIBILITY — focus ที่มองเห็นได้ตอนใช้คีย์บอร์ด + ลดอนิเมชันเมื่อระบบขอ
+   ===================================================================== */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* ไอคอนหมวดอาหาร (เดิมเป็นอิโมจิ) — ให้สีม่วงแบรนด์สม่ำเสมอแทนสีสันหลากหลายของอิโมจิเดิม */
+.caticon {
+  color: var(--primary);
+  margin-right: 1px;
+}
+
 /* ---- ปุ่มลัดตั้งค่าด่วน (จากไอคอนเฟืองบนแถบบน) — สลับ Light/Dark + EN/TH โดยไม่ต้องเข้าหน้า Settings ---- */
 .qsettingswrap {
   position: relative;
@@ -115,7 +160,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px 10px;
   margin-bottom: 12px;
 }
 .qslbl {
@@ -132,7 +178,7 @@
   background: var(--cream2);
   color: #888;
   border-radius: 10px;
-  width: 38px;
+  width: 34px;
   height: 34px;
   display: flex;
   align-items: center;
@@ -144,7 +190,7 @@
 }
 .qstoggle button.active {
   border-color: var(--primary);
-  background: linear-gradient(135deg, var(--dark), #7d6fb0);
+  background: linear-gradient(135deg, var(--dark), #8b68e0);
   color: #fff;
 }
 .qsmore {
@@ -211,7 +257,7 @@
   padding: 20px 10px;
   text-align: center;
   cursor: pointer;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-weight: 700;
   font-size: 0.85rem;
   line-height: 1.4;
@@ -228,7 +274,7 @@
 }
 .settopt.active {
   border-color: var(--primary);
-  background: linear-gradient(135deg, var(--dark), #7d6fb0);
+  background: linear-gradient(135deg, var(--dark), #8b68e0);
   color: #fff;
 }
 * {
@@ -245,7 +291,7 @@ html {
   scroll-behavior: smooth;
 }
 body {
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   color: var(--text);
   background: var(--surface);
   overflow-x: hidden;
@@ -255,7 +301,7 @@ h2,
 h3,
 h4,
 h5 {
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   color: var(--dark);
 }
 a {
@@ -344,7 +390,7 @@ img {
   box-shadow: 0 4px 15px rgba(255, 153, 157, 0.35);
 }
 .bname {
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-size: 1.5rem;
   font-weight: 900;
   color: var(--dark);
@@ -400,7 +446,7 @@ img {
   color: var(--primary);
 }
 .nav-cta {
-  background: linear-gradient(135deg, var(--primary), #ff7d83);
+  background: linear-gradient(135deg, var(--primary), #9b7fe8);
   color: #fff !important;
   border-radius: 12px;
   padding: 10px 20px !important;
@@ -426,7 +472,7 @@ img {
   padding: 8px 18px;
   font-size: 0.84rem;
   font-weight: 600;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   cursor: pointer;
   margin-left: 6px;
   transition: 0.3s;
@@ -448,7 +494,7 @@ img {
   border-radius: 40px;
   padding: 6px 14px 6px 6px;
   cursor: pointer;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--darkbg);
@@ -519,7 +565,7 @@ img {
   border: none;
   padding: 11px 14px;
   border-radius: 10px;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-size: 0.85rem;
   color: var(--text);
   cursor: pointer;
@@ -704,7 +750,7 @@ img {
   background: none;
   padding: 10px 8px;
   border-radius: 40px;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
   color: #888;
@@ -813,7 +859,7 @@ section {
   padding: 88px 0;
 }
 .slbl {
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-size: 1.35rem;
   color: var(--primary);
   display: block;
@@ -827,7 +873,7 @@ section {
 }
 .stitle span {
   color: var(--primary);
-  background: linear-gradient(120deg, var(--primary) 10%, #ff7d83 55%, var(--dark) 110%);
+  background: linear-gradient(120deg, var(--primary) 10%, #9b7fe8 55%, var(--dark) 110%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -856,7 +902,7 @@ section {
   line-height: 1.8;
 }
 .btn-red {
-  background: linear-gradient(135deg, var(--dark), #7d6fb0 45%, var(--primary) 115%);
+  background: linear-gradient(135deg, var(--dark), #8b68e0 45%, var(--primary) 115%);
   background-size: 160% 160%;
   background-position: 0% 50%;
   color: #fff;
@@ -871,7 +917,7 @@ section {
   align-items: center;
   gap: 9px;
   cursor: pointer;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .btn-red:hover {
   transform: translateY(-3px) scale(1.02);
@@ -899,7 +945,7 @@ section {
   transform: translate(-50%, -50%);
   font-size: 22vw;
   font-weight: 900;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   color: rgba(0, 0, 0, 0.04);
   pointer-events: none;
   white-space: nowrap;
@@ -972,7 +1018,7 @@ section {
 }
 .htitle .hl {
   color: var(--primary);
-  background: linear-gradient(120deg, var(--primary) 10%, #ff7d83 55%, var(--dark) 110%);
+  background: linear-gradient(120deg, var(--primary) 10%, #9b7fe8 55%, var(--dark) 110%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1038,7 +1084,7 @@ section {
   margin-top: 32px;
 }
 .hstat .snum {
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-size: 1.9rem;
   font-weight: 900;
   color: var(--dark);
@@ -1308,7 +1354,7 @@ section {
   box-shadow: 0 10px 28px rgba(255, 153, 157, 0.4);
 }
 .aexp .anum {
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-size: 2.3rem;
   font-weight: 900;
   line-height: 1;
@@ -1355,7 +1401,7 @@ section {
   font-weight: 700;
   color: var(--dark);
   margin-bottom: 2px;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .fti p {
   font-size: 0.8rem;
@@ -1380,7 +1426,7 @@ section {
   cursor: pointer;
   transition: 0.3s;
   margin: 4px;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .filtbtn.active,
 .filtbtn:hover {
@@ -1539,7 +1585,7 @@ section {
   font-size: 1.05rem;
   font-weight: 700;
   margin-bottom: 5px;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .mdesc {
   font-size: 0.78rem;
@@ -1556,7 +1602,7 @@ section {
   font-size: 1.25rem;
   font-weight: 800;
   color: var(--primary);
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .mprice small {
   font-size: 0.72rem;
@@ -1574,7 +1620,7 @@ section {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), #ff7d83);
+  background: linear-gradient(135deg, var(--primary), #9b7fe8);
   border: none;
   color: #fff;
   font-size: 1rem;
@@ -1650,7 +1696,7 @@ section {
   min-width: 72px;
 }
 .cdnum {
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-size: 2.1rem;
   font-weight: 900;
   color: #fff;
@@ -1820,7 +1866,7 @@ section {
   padding: 13px 6px;
   text-align: center;
   cursor: pointer;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-weight: 700;
   font-size: 0.68rem;
   line-height: 1.35;
@@ -1838,7 +1884,7 @@ section {
 }
 .rmodebtn.active {
   border-color: var(--primary);
-  background: linear-gradient(135deg, var(--dark), #7d6fb0);
+  background: linear-gradient(135deg, var(--dark), #8b68e0);
   color: #fff;
 }
 .rmodedesc {
@@ -1948,9 +1994,9 @@ section {
   height: 76px;
   border-radius: 50%;
   border: 4px solid #fff;
-  background: linear-gradient(135deg, var(--primary), #ff7d83);
+  background: linear-gradient(135deg, var(--primary), #9b7fe8);
   color: #fff;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-weight: 800;
   font-size: 1rem;
   cursor: pointer;
@@ -2310,7 +2356,7 @@ section {
   right: 22px;
   font-size: 4.5rem;
   color: rgba(255, 153, 157, 0.07);
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   line-height: 1;
 }
 .tess {
@@ -2341,7 +2387,7 @@ section {
   font-size: 0.88rem;
   color: var(--dark);
   margin-bottom: 1px;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .tesrl {
   font-size: 0.73rem;
@@ -2377,7 +2423,7 @@ section {
   border: 2px solid #eee;
   border-radius: 13px;
   padding: 13px 16px;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-size: 0.88rem;
   outline: none;
   transition: 0.3s;
@@ -2519,7 +2565,7 @@ section {
 
 /* ===================== NEWSLETTER ===================== */
 #newsletter {
-  background: linear-gradient(135deg, var(--primary), #8b0000);
+  background: linear-gradient(135deg, var(--primary), var(--darkbg));
   position: relative;
   overflow: hidden;
   padding: 80px 0;
@@ -2554,7 +2600,7 @@ section {
   padding: 14px 22px;
   font-size: 0.9rem;
   outline: none;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   color: #333;
 }
 .nlbtn {
@@ -2569,7 +2615,7 @@ section {
   cursor: pointer;
   white-space: nowrap;
   transition: 0.3s;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .nlbtn:hover {
   transform: scale(1.05);
@@ -2634,7 +2680,7 @@ section {
   text-transform: uppercase;
   letter-spacing: 0.8px;
   margin-bottom: 1px;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .ctinfo span {
   color: #fff;
@@ -2667,7 +2713,7 @@ footer {
   padding: 68px 0 0;
 }
 .fnm {
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-size: 1.9rem;
   font-weight: 900;
   color: #fff;
@@ -2711,7 +2757,7 @@ footer {
   padding-bottom: 9px;
   border-bottom: 2px solid var(--primary);
   display: inline-block;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .flinks li {
   list-style: none;
@@ -2792,7 +2838,7 @@ footer {
   width: 44px;
   height: 44px;
   border-radius: 15px;
-  background: linear-gradient(135deg, var(--primary), #ff7d83);
+  background: linear-gradient(135deg, var(--primary), #9b7fe8);
   color: #fff;
   border: none;
   cursor: pointer;
@@ -2904,7 +2950,7 @@ footer {
   text-align: center;
   font-size: 1.5rem;
   margin-bottom: 26px;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .sovinput {
   display: flex;
@@ -2920,7 +2966,7 @@ footer {
   padding: 17px 24px;
   color: #fff;
   font-size: 1.05rem;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   outline: none;
 }
 .sovinput input::placeholder {
@@ -2936,7 +2982,7 @@ footer {
   transition: 0.3s;
 }
 .sovinput button:hover {
-  background: #ff7d83;
+  background: #9b7fe8;
 }
 .sovcats {
   display: flex;
@@ -2957,7 +3003,7 @@ footer {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .sovcat img {
   width: 26px;
@@ -3082,7 +3128,7 @@ footer {
   font-size: 1.7rem;
   font-weight: 900;
   margin-bottom: 9px;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   color: var(--dark);
 }
 #mpStars {
@@ -3101,7 +3147,7 @@ footer {
   font-weight: 900;
   color: var(--primary);
   margin-bottom: 14px;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 #mpPrice small {
   font-size: 0.95rem;
@@ -3178,7 +3224,7 @@ footer {
 }
 .mpaddcart {
   width: 100%;
-  background: linear-gradient(135deg, var(--primary), #ff7d83);
+  background: linear-gradient(135deg, var(--primary), #9b7fe8);
   color: #fff;
   border: none;
   border-radius: 16px;
@@ -3186,7 +3232,7 @@ footer {
   font-size: 0.96rem;
   font-weight: 700;
   cursor: pointer;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   transition: 0.3s;
   display: flex;
   align-items: center;
@@ -3272,7 +3318,7 @@ footer {
   padding: 7px 20px;
   cursor: pointer;
   font-size: 0.83rem;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   transition: 0.3s;
 }
 .gpnav button:hover {
@@ -3438,7 +3484,7 @@ footer {
   border-radius: 22px;
   cursor: pointer;
   transition: 0.25s;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .langbtn.active {
   background: var(--primary);
@@ -3534,7 +3580,7 @@ footer {
   border: 2px solid var(--primary);
   background: var(--surface);
   color: var(--primary);
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-weight: 700;
   font-size: 0.84rem;
   padding: 11px 14px;
@@ -3565,7 +3611,7 @@ footer {
   border: 2px solid var(--dark);
   background: var(--surface);
   color: var(--dark);
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-weight: 700;
   font-size: 0.78rem;
   padding: 7px 20px;
@@ -3645,7 +3691,7 @@ footer {
   padding: 16px 10px;
   text-align: center;
   cursor: pointer;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-weight: 600;
   font-size: 0.86rem;
   color: #555;
@@ -3676,7 +3722,7 @@ footer {
   color: #999;
   font-weight: 600;
   cursor: pointer;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .airesults {
   display: none;
@@ -3731,7 +3777,7 @@ footer {
   border: 2px dashed var(--secondary);
   color: var(--dark);
   font-weight: 700;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   padding: 10px 20px;
   border-radius: 20px;
   cursor: pointer;
@@ -3842,13 +3888,23 @@ footer {
   display: flex;
   gap: 10px;
   overflow-x: auto;
-  padding: 2px 2px 8px 4px;
+  padding: 2px 2px 14px 4px;
   align-self: flex-start;
   max-width: 100%;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
 }
+/* เดิมซ่อน scrollbar ไปเลย (scrollbar-width: none) ทำให้ดูไม่ออกว่าเลื่อนดูต่อได้ —
+   เปลี่ยนเป็น scrollbar บาง ๆ สีแบรนด์ ให้เห็นชัดว่ายังมีการ์ดอื่นอยู่ขวามือ */
 .chatcardrow::-webkit-scrollbar {
-  display: none;
+  height: 5px;
+}
+.chatcardrow::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chatcardrow::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 10px;
 }
 .chatcard {
   background: var(--surface);
@@ -3915,7 +3971,7 @@ footer {
   white-space: nowrap;
   cursor: pointer;
   flex-shrink: 0;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   transition: 0.2s;
 }
 .chatchip:hover {
@@ -3937,7 +3993,7 @@ footer {
   border-radius: 24px;
   padding: 13px 18px;
   font-size: 0.85rem;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   box-shadow: var(--shadow);
   color: var(--darkbg);
 }
@@ -3952,7 +4008,7 @@ footer {
   height: 46px;
   border-radius: 50%;
   border: none;
-  background: linear-gradient(135deg, var(--dark), #7d6fb0);
+  background: linear-gradient(135deg, var(--dark), #8b68e0);
   color: #fff;
   font-size: 1.05rem;
   cursor: pointer;
@@ -3982,6 +4038,17 @@ body.appshell {
   body.appshell {
     box-shadow: 0 0 60px rgba(0, 0, 0, 0.12);
     background: var(--surface);
+  }
+}
+/* จอเดสก์ท็อปจริง (≥1024px) — ขยายคอลัมน์เนื้อหาให้กว้างขึ้นแทนที่จะเป็นมือถือแคบ ๆ ลอยกลางจอเฉย ๆ
+   กว้างพอให้การ์ดร้าน/โพสต์ดูสมสัดส่วนกับพื้นที่หน้าจอมากขึ้น แต่ยังเป็นคอลัมน์เดียว ไม่ทำเลย์เอาต์
+   หลายคอลัมน์ใหม่ทั้งหมด (ความเสี่ยงต่ำกว่า ปลอดภัยกว่าสำหรับทุกหน้าที่มีอยู่) */
+@media (min-width: 1024px) {
+  body.appshell {
+    max-width: 640px;
+  }
+  .appnav {
+    max-width: 640px;
   }
 }
 
@@ -4024,7 +4091,7 @@ body.appshell {
   object-position: center top;
 }
 .apptop-logo .anm {
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-weight: 800;
   font-size: 1.1rem;
   color: var(--dark);
@@ -4059,14 +4126,14 @@ body.appshell {
   color: var(--darkbg);
 }
 #loginBtn.apptop-loginbtn {
-  background: linear-gradient(135deg, var(--dark), #7d6fb0);
+  background: linear-gradient(135deg, var(--dark), #8b68e0);
   border: none;
   color: #fff;
   border-radius: 30px;
   padding: 9px 18px;
   font-size: 0.8rem;
   font-weight: 700;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   cursor: pointer;
   box-shadow: 0 6px 16px rgba(143, 130, 184, 0.4);
   margin-left: 0;
@@ -4188,7 +4255,7 @@ body.appshell {
   color: #aaa;
   font-size: 0.85rem;
   width: 100%;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .homesearch i {
   color: var(--primary);
@@ -4198,7 +4265,7 @@ body.appshell {
   outline: none;
   flex: 1;
   font-size: 0.85rem;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   color: var(--darkbg);
   background: transparent;
 }
@@ -4346,7 +4413,7 @@ body.appshell {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: linear-gradient(135deg, var(--dark), #7d6fb0);
+  background: linear-gradient(135deg, var(--dark), #8b68e0);
   color: #fff;
   border-radius: 14px;
   padding: 12px 16px;
@@ -4743,7 +4810,7 @@ body.appshell {
   animation: dinobob 3s ease-in-out infinite;
 }
 .wellogo {
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-weight: 900;
   font-size: 2.5rem;
   color: var(--dark);
@@ -4776,7 +4843,7 @@ body.appshell {
   padding: 14px 32px;
   font-weight: 700;
   font-size: 0.93rem;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   cursor: pointer;
   transition: 0.3s;
   width: 100%;
@@ -4793,7 +4860,7 @@ body.appshell {
   cursor: pointer;
   background: none;
   border: none;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 
 /* =====================================================================
@@ -5000,7 +5067,8 @@ body.appshell {
 .rdheroback,
 .rdherosave,
 .rdheroshare,
-.rdheroreport {
+.rdheroreport,
+.rdherobookmark {
   position: absolute;
   top: 16px;
   width: 38px;
@@ -5020,6 +5088,9 @@ body.appshell {
   left: 16px;
 }
 .rdherosave {
+  right: 154px;
+}
+.rdherobookmark {
   right: 108px;
 }
 .rdheroreport {
@@ -5029,6 +5100,9 @@ body.appshell {
   right: 16px;
 }
 .rdherosave.saved {
+  color: var(--primary);
+}
+.rdherobookmark.saved {
   color: var(--primary);
 }
 .rdlikecount {
@@ -5105,7 +5179,7 @@ body.appshell {
   padding: 9px 20px;
   font-size: 0.8rem;
   font-weight: 700;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   cursor: pointer;
   transition: 0.25s;
   margin-bottom: 18px;
@@ -5203,7 +5277,7 @@ body.appshell {
   border-left: none;
   border-right: none;
   border-top: none;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .rdtab.active {
   color: var(--primary);
@@ -5233,7 +5307,7 @@ body.appshell {
   padding: 13px 20px;
   font-weight: 700;
   font-size: 0.88rem;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -5303,6 +5377,20 @@ body.appshell {
   font-size: 0.82rem;
   color: #777;
   line-height: 1.6;
+}
+.rdreviewimgs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-top: 8px;
+  padding-bottom: 2px;
+}
+.rdreviewimgs img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 12px;
+  flex-shrink: 0;
 }
 .rdempty {
   text-align: center;
@@ -5547,7 +5635,7 @@ body.appshell {
   border: none;
   background: var(--cream2);
   color: var(--darkbg);
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   font-size: 0.82rem;
   font-weight: 700;
   border-radius: 10px;
@@ -5578,7 +5666,7 @@ body.appshell {
   text-align: left;
   border: none;
   cursor: pointer;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
 }
 .profcardbtn .profcardtit {
   display: flex;
@@ -5664,7 +5752,7 @@ body.appshell {
   padding: 13px 20px;
   font-weight: 700;
   font-size: 0.88rem;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   cursor: pointer;
   transition: 0.25s;
 }
@@ -5878,7 +5966,7 @@ body.appshell {
   border-radius: 20px;
   padding: 10px 16px;
   font-size: 0.8rem;
-  font-family: "Prompt", sans-serif;
+  font-family: "Google Sans", "Prompt", sans-serif;
   color: var(--text);
 }
 .pvcommentform input::placeholder {
@@ -5889,7 +5977,7 @@ body.appshell {
   height: 38px;
   border-radius: 50%;
   border: none;
-  background: linear-gradient(135deg, var(--dark), #7d6fb0);
+  background: linear-gradient(135deg, var(--dark), #8b68e0);
   color: #fff;
   font-size: 0.9rem;
   cursor: pointer;

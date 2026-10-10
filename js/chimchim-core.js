@@ -94,17 +94,19 @@ function wireMultiImageUpload(fileInputId, onFilesAdded) {
 	});
 }
 
-var CHIMCHIM_CAT_EMOJI = {
-	"ข้าว": "🍚", "เส้น": "🍜", "ซุป": "🥣", "Fast Food": "🍔", "ญี่ปุ่น": "🍣", "ของหวาน": "🍰", "เผ็ด": "🌶️",
-	"อาหารเจ": "🥬", "อาหารฮาลาล": "🕌", "มังสวิรัติ": "🥗", "วีแกน": "🌱", "อาหารตามสั่ง": "🍳",
-	"ส้มตำ": "🥭", "ยำ": "🌶️", "หม่าล่า": "🍲", "ของทอด": "🍤", "ผลไม้": "🍉", "ของหวาน/เบเกอรี่": "🍰",
-	"ปิ้งย่าง": "🍖", "อาหารญี่ปุ่น": "🍣", "อาหารจีน": "🥟", "อาหารเกาหลี": "🍚", "เครื่องดื่ม": "🥤",
-	"สเต็ก": "🥩", "เบอร์เกอร์": "🍔", "เมนูเส้น": "🍜", "ก๋วยเตี๋ยว": "🍲", "อาหารอินเดีย": "🍛",
-	"อาหารเวียดนาม": "🍜", "พิซซ่า": "🍕", "อาหารใต้": "🌶️", "อีสาน": "🍢", "เหนือ": "🍛", "กลาง": "🍚",
-	"อาหารป่า": "🦌", "ข้าวแกง": "🍛"
+// ไอคอนหมวดอาหาร — เดิมเป็นอิโมจิดิบ เปลี่ยนเป็นคลาส Font Awesome แทน (ดูเป็นมืออาชีพขึ้น ไม่ขึ้นกับฟอนต์อิโมจิของแต่ละเครื่อง)
+// catEmoji() คืน HTML ของ <i> ไม่ใช่ตัวอักษรเฉย ๆ แล้ว — จุดที่เรียกใช้ต้องแปะด้วย innerHTML เท่านั้น ห้ามใช้ textContent
+var CHIMCHIM_CAT_ICON = {
+	"ข้าว": "bowl-rice", "เส้น": "utensils", "ซุป": "mug-hot", "Fast Food": "burger", "ญี่ปุ่น": "fish", "ของหวาน": "ice-cream", "เผ็ด": "pepper-hot",
+	"อาหารเจ": "leaf", "อาหารฮาลาล": "mosque", "มังสวิรัติ": "carrot", "วีแกน": "seedling", "อาหารตามสั่ง": "egg",
+	"ส้มตำ": "apple-whole", "ยำ": "pepper-hot", "หม่าล่า": "fire-flame-curved", "ของทอด": "shrimp", "ผลไม้": "apple-whole", "ของหวาน/เบเกอรี่": "ice-cream",
+	"ปิ้งย่าง": "drumstick-bite", "อาหารญี่ปุ่น": "fish", "อาหารจีน": "bread-slice", "อาหารเกาหลี": "bowl-rice", "เครื่องดื่ม": "mug-saucer",
+	"สเต็ก": "bacon", "เบอร์เกอร์": "burger", "เมนูเส้น": "utensils", "ก๋วยเตี๋ยว": "fire-flame-curved", "อาหารอินเดีย": "bowl-rice",
+	"อาหารเวียดนาม": "utensils", "พิซซ่า": "pizza-slice", "อาหารใต้": "pepper-hot", "อีสาน": "fire", "เหนือ": "bowl-rice", "กลาง": "bowl-rice",
+	"อาหารป่า": "drumstick-bite", "ข้าวแกง": "bowl-rice"
 };
 function catEmoji(cat) {
-	return CHIMCHIM_CAT_EMOJI[cat] || "🍽️";
+	return '<i class="fas fa-' + (CHIMCHIM_CAT_ICON[cat] || "utensils") + ' caticon"></i>';
 }
 
 // กันไม่ให้แถวรูปภาพ/วงล้อไหนก็ตามโชว์ร้านที่ใช้รูปซ้ำกันติดกัน — ใช้กับแถวที่เรียงตาม Match แล้ว
@@ -461,6 +463,10 @@ function createOrUpdateMyShop(data) {
 		existing.desc = data.desc;
 		existing.hours = data.hours;
 		existing.promo = data.promo;
+		if (typeof data.lat === "number" && typeof data.lng === "number") {
+			existing.lat = data.lat;
+			existing.lng = data.lng;
+		}
 	} else {
 		existing = {
 			numId: generateUniqueShopNumId(),
@@ -476,7 +482,9 @@ function createOrUpdateMyShop(data) {
 			uni: data.uni,
 			desc: data.desc,
 			hours: data.hours,
-			promo: data.promo
+			promo: data.promo,
+			lat: typeof data.lat === "number" ? data.lat : null,
+			lng: typeof data.lng === "number" ? data.lng : null
 		};
 		shops.push(existing);
 		logEvent("shop_posted", { shopId: existing.numId });
@@ -520,7 +528,11 @@ function shopToร้าน(shop) {
 		รส: รส,
 		ราคาต่ำ: shop.priceLow,
 		ราคาสูง: shop.priceHigh,
-		ระยะทาง: shop.distance,
+		// ถ้าร้านนี้มีพิกัดจริง (เจ้าของร้านกดใช้ตำแหน่งปัจจุบันตอนโพสต์) และผู้ชมหน้านี้แชร์ตำแหน่งตัวเองไว้แล้ว
+		// คำนวณระยะทางจริงสด ๆ แทนตัวเลขที่เจ้าของร้านกรอกเอง (แม่นกว่า เพราะอิงตำแหน่งจริงของทั้งสองฝั่ง)
+		ระยะทาง: (typeof shop.lat === "number" && typeof shop.lng === "number" && getUserLocation() && typeof getUserLocation().lat === "number")
+			? Math.round(ระยะทางฮาเวอร์ไซน์(getUserLocation().lat, getUserLocation().lng, shop.lat, shop.lng))
+			: shop.distance,
 		รูป: shop.img,
 		บัคเก็ต: ["foryou", "new"],
 		แท็ก: [shop.cat, "ชุมชนโพสต์"],
@@ -720,6 +732,7 @@ function updateReview(shopId, remoteId, patch) {
 			if (typeof patch.atmosphere === "number") list[i].atmosphere = patch.atmosphere;
 			if (typeof patch.service === "number") list[i].service = patch.service;
 			if (typeof patch.text === "string") list[i].text = patch.text;
+			if (Array.isArray(patch.images)) list[i].images = patch.images;
 			break;
 		}
 	}
@@ -741,9 +754,15 @@ function deleteReview(shopId, remoteId) {
 function getReviewByRemoteId(shopId, remoteId) {
 	return getReviews(shopId).filter(function(r) { return String(r.remoteId) === String(remoteId); })[0] || null;
 }
-// ผสานรีวิวจริงจาก Supabase (ของทุกคน ไม่ใช่แค่เครื่องนี้) เข้ากับรีวิวในเครื่องนี้ — กันซ้ำด้วย
-// คีย์ ผู้เขียน+เวลา+ข้อความ เดียวกัน (รีวิวจริงแทบเป็นไปไม่ได้ที่จะชนกันพอดีทั้ง 3 อย่าง)
-function ขีดรีวิว(r) { return (r.author || "") + "|" + (r.date || "") + "|" + (r.text || ""); }
+// ผสานรีวิวจริงจาก Supabase (ของทุกคน ไม่ใช่แค่เครื่องนี้) เข้ากับรีวิวในเครื่องนี้ — กันซ้ำด้วย remoteId
+// เป็นหลักถ้ามี (รีวิวของตัวเองที่เพิ่งโพสต์จะถูกแปะ remoteId ไว้แล้วจาก tagReviewRemoteId ตอน sync สำเร็จ)
+// เดิมใช้ ผู้เขียน+เวลา+ข้อความ เทียบกัน แต่ "เวลา" ฝั่ง local (ตอนกดโพสต์) กับฝั่ง Supabase (created_at
+// ที่ตั้งตอน insert จริง) ไม่ตรงกันเป๊ะเพราะมี network round-trip คั่น เลยไม่แมตช์กัน ทำให้รีวิวตัวเอง
+// โผล่ซ้ำ 2 ชุดหลัง sync กลับมา — ถ้ามี remoteId ให้ใช้แค่นั้นพอ ไม่ต้องเทียบเวลาเลย
+function ขีดรีวิว(r) {
+	if (r.remoteId) return "id:" + r.remoteId;
+	return (r.author || "") + "|" + (r.date || "") + "|" + (r.text || "");
+}
 function mergeRemoteReviewsIntoLocal(shopId, remoteReviews) {
 	var all;
 	try {
@@ -941,6 +960,37 @@ function getLikeCount(shopId) {
 function formatLikeCount(n) {
 	if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
 	return String(n);
+}
+
+/* =====================================================================
+   บันทึกร้านไว้ดูทีหลัง (Save) — แยกจาก Like โดยเจตนา (ชอบตอนเห็น ≠ อยากเก็บไว้ดูอีกที)
+   ก่อนหน้านี้ปุ่ม "บันทึก" บนหน้าร้านคือปุ่ม Like แปะป้ายใหม่เฉย ๆ ของจริงยังไม่มี อันนี้คือของจริง
+   ===================================================================== */
+var CHIMCHIM_SAVES_KEY = "chimchim_saved_shops";
+function getSavedShops() {
+	try {
+		return JSON.parse(localStorage.getItem(CHIMCHIM_SAVES_KEY)) || [];
+	} catch (e) {
+		return [];
+	}
+}
+function isShopSaved(shopId) {
+	return getSavedShops().indexOf(shopId) !== -1;
+}
+function toggleSaveShop(shopId) {
+	if (ต้องล็อกอินก่อนไหม()) return null;
+	var list = getSavedShops();
+	var idx = list.indexOf(shopId);
+	var nowSaved = idx === -1;
+	if (nowSaved) {
+		list.unshift(shopId);
+		logEvent("shop_saved", { shopId: shopId });
+	} else {
+		list.splice(idx, 1);
+	}
+	localStorage.setItem(CHIMCHIM_SAVES_KEY, JSON.stringify(list));
+	if (typeof sbSetShopSave === "function") sbSetShopSave(shopId, nowSaved);
+	return nowSaved;
 }
 // รวมคำขอนับไลก์จริงของหลายร้านที่โชว์บนหน้าเดียวกันให้เป็นคำขอ Supabase เดียว (debounce ด้วย setTimeout สั้น ๆ)
 // กันยิง query แยกทีละการ์ด ๆ ตอนหน้ามีการ์ดร้านเป็นสิบ ๆ ใบพร้อมกัน (แถวแนะนำ/ฟีด/ค้นหา/วงล้อ ฯลฯ)
@@ -1348,7 +1398,7 @@ function getFeedItems() {
 			date: p.date,
 			posterName: posterName,
 			posterAvatarUrl: shop ? shop.img : (p.userAvatar || null),
-			posterColor: shop ? "var(--cream2)" : "linear-gradient(135deg, var(--dark), #7d6fb0)",
+			posterColor: shop ? "var(--cream2)" : "linear-gradient(135deg, var(--dark), #8b68e0)",
 			posterLink: shop ? ("restaurant.html?id=" + shop.numId) : ("public-profile.html?u=" + p.userId),
 			cat: shop ? shop.cat : null
 		};

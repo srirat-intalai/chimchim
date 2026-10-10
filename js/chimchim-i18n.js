@@ -28,17 +28,33 @@ function setLang(lang) {
 	savePrefs({ lang: lang === "th" ? "th" : "en" });
 	applyI18n();
 }
+// ค่าที่ผู้ใช้เลือกไว้จริง ๆ: "light" / "dark" / "system" (ค่าเริ่มต้นคือ light เหมือนเดิม กันธีมเปลี่ยนเองโดยไม่ได้ตั้งใจ)
+function getThemeChoice() {
+	var theme = getPrefs().theme;
+	return theme === "dark" || theme === "system" ? theme : "light";
+}
+// ธีมที่ใช้จริงหลัง resolve "system" ตาม OS แล้ว (ใช้ตั้ง data-theme บน <html>)
 function getTheme() {
-	return getPrefs().theme === "dark" ? "dark" : "light";
+	var choice = getThemeChoice();
+	if (choice === "system") {
+		return (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+	}
+	return choice;
 }
 function setTheme(theme) {
-	savePrefs({ theme: theme === "dark" ? "dark" : "light" });
+	savePrefs({ theme: (theme === "dark" || theme === "system") ? theme : "light" });
 	applyThemeAttr();
 }
 function applyThemeAttr() {
 	document.documentElement.setAttribute("data-theme", getTheme());
 }
 applyThemeAttr();
+// โหมด system: ถ้า OS สลับธีมระหว่างใช้งาน (เช่นเข้าโหมดกลางคืนอัตโนมัติ) ให้ตามทันทีโดยไม่ต้องรีเฟรช
+if (window.matchMedia) {
+	window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function() {
+		if (getThemeChoice() === "system") applyThemeAttr();
+	});
+}
 document.documentElement.setAttribute("lang", getLang());
 
 /* =====================================================================
@@ -85,6 +101,9 @@ var CHIMCHIM_DICT = {
 		"shop.priceLow": "Price low (฿)",
 		"shop.priceHigh": "Price high (฿)",
 		"shop.distance": "Distance (m)",
+		"shop.useMyLocationForDistance": "Use my current location for accurate distance",
+		"shop.locationSavedHint": "Saved — other users will see a live distance calculated from your shop's real location.",
+		"shop.locationFailedHint": "Couldn't get your location — check your browser's location permission.",
 		"shop.nearUni": "Near which university",
 		"shop.shortDesc": "Short pitch",
 		"shop.hours": "Opening hours",
@@ -110,7 +129,7 @@ var CHIMCHIM_DICT = {
 		"feed.minsAgo": "m ago",
 		"feed.hoursAgo": "h ago",
 		"feed.daysAgo": "d ago",
-		"home.recommendedTitle": "🎯 Recommended For You",
+		"home.recommendedTitle": "Recommended For You",
 		"home.recommendedSub": "Only showing 70%+ Match, ranked highest first",
 		"home.matchHeroSub": "Matches your taste perfectly",
 		"home.fromYou": "from your location",
@@ -192,10 +211,13 @@ var CHIMCHIM_DICT = {
 		"settings.editProfile": "Edit Profile",
 		"settings.bio": "Bio",
 		"settings.bioPlaceholder": "Tell others a bit about yourself",
+		"settings.myUniversity": "Your university",
+		"settings.myUniversityNone": "Prefer not to say",
 		"settings.profileSavedToast": "Profile saved!",
 		"settings.appearance": "Appearance",
 		"settings.light": "Light",
 		"settings.dark": "Dark",
+		"settings.system": "System",
 		"settings.language": "Language",
 		"settings.english": "English",
 		"settings.thai": "ไทย (Thai)",
@@ -245,11 +267,11 @@ var CHIMCHIM_DICT = {
 		"roulette.modeLike": "Eat What I Like",
 		"roulette.modeOpposite": "Try My Opposite",
 		"roulette.modeMix": "Mix It Up",
-		"roulette.modeDescLike": "Spin for a higher chance of landing on dishes/shops that best match your Food DNA 🎯",
-		"roulette.modeDescOpposite": "Feeling adventurous? This mode leans toward the opposite of what you usually like 🙃",
-		"roulette.modeDescMix": "A mix of what you like and don't — fun, unpredictable results 🎲",
+		"roulette.modeDescLike": "Spin for a higher chance of landing on dishes/shops that best match your Food DNA",
+		"roulette.modeDescOpposite": "Feeling adventurous? This mode leans toward the opposite of what you usually like",
+		"roulette.modeDescMix": "A mix of what you like and don't — fun, unpredictable results",
 		"roulette.spinBtn": "Spin!",
-		"roulette.initialTag": "🎲 Ready to spin?",
+		"roulette.initialTag": "Ready to spin?",
 		"roulette.initialTitle": "Tap spin to get started",
 		"roulette.initialDesc": "ChimChim will pick one dish for you from a pool of 60+ menu items — great for those \"what should I eat\" days",
 		"roulette.spinAgain": "Spin Again",
@@ -268,8 +290,8 @@ var CHIMCHIM_DICT = {
 		"common.following": "Following",
 		"common.member": "Member",
 		"common.photoCount": "{n} photos",
-		"publicprofile.buShopLevel": "🏪 Shop near Bangkok University",
-		"publicprofile.pageLevel": "🏪 Restaurant Page",
+		"publicprofile.buShopLevel": "Shop near Bangkok University",
+		"publicprofile.pageLevel": "Restaurant Page",
 		"publicprofile.mapBtn": "Map",
 		"publicprofile.reviewsSuffix": " reviews",
 		"publicprofile.foodExplorerLevel": "🦖 Food Explorer Lv.",
@@ -290,10 +312,12 @@ var CHIMCHIM_DICT = {
 		"shop.pageSavedToast": "Saved page “{name}”! 🎉",
 		"shop.fillRequired": "Fill in the shop name, featured dish, photo, and prices first",
 		"shop.storageFullError": "Couldn't save — try a smaller photo and post again",
+		"shop.saveForLater": "Save for later",
+		"shop.savedForLater": "Saved",
 		"shop.priceOrderError": "The low price must be less than or equal to the high price",
 		"shop.postedToast": "Posted “{name}” to the community! 🎉",
 		"profile.logoutToast": "Logged out — see you again soon! 👋",
-		"profile.memberRole": "🧑‍🎓 ChimChim Member",
+		"profile.memberRole": "ChimChim Member",
 		"common.removePhoto": "Remove photo",
 		"profile.selectPhotoAndCaption": "Pick at least 1 photo and add a caption first",
 		"profile.storageFullError": "Couldn't save — try removing a photo or two and post again",
@@ -310,6 +334,8 @@ var CHIMCHIM_DICT = {
 		"restaurant.posts": "Posts",
 		"restaurant.noPostsYet": "This shop hasn't posted anything yet.",
 		"profile.followHistoryEmpty": "You haven't followed any shop yet.",
+		"profile.saveHistory": "Saved Shops",
+		"profile.saveHistoryEmpty": "You haven't saved any shop yet.",
 		"welcome.skip": "Explore the app — no sign up needed →",
 		"following.tapToView": "Tap a photo to view their profile and posts",
 		"profile.captionPlaceholder": "Say something about this meal...",
@@ -366,6 +392,7 @@ var CHIMCHIM_DICT = {
 		"review.atmosphere": "Atmosphere",
 		"review.service": "Service",
 		"review.tellExperience": "Tell us about your experience",
+		"review.addPhotos": "Add photos (optional)",
 		"review.textPlaceholder": "How was the food? Anything you'd like to share...",
 		"review.submit": "Submit Review",
 		"review.rateAllThree": "Please rate all 3 categories first",
@@ -413,6 +440,9 @@ var CHIMCHIM_DICT = {
 		"shop.priceLow": "ราคาต่ำ (฿)",
 		"shop.priceHigh": "ราคาสูง (฿)",
 		"shop.distance": "ระยะทาง (ม.)",
+		"shop.useMyLocationForDistance": "ใช้ตำแหน่งปัจจุบันของฉัน เพื่อระยะทางที่แม่นยำ",
+		"shop.locationSavedHint": "บันทึกแล้ว — คนอื่นจะเห็นระยะทางคำนวณสดจากตำแหน่งจริงของร้านคุณ",
+		"shop.locationFailedHint": "ขอตำแหน่งไม่สำเร็จ ลองเช็คการอนุญาตตำแหน่งของเบราว์เซอร์ดูนะ",
 		"shop.nearUni": "ใกล้มหาวิทยาลัยไหน",
 		"shop.shortDesc": "คำโปรยสั้น ๆ",
 		"shop.hours": "เวลาเปิด-ปิด",
@@ -438,7 +468,7 @@ var CHIMCHIM_DICT = {
 		"feed.minsAgo": " นาทีที่แล้ว",
 		"feed.hoursAgo": " ชม. ที่แล้ว",
 		"feed.daysAgo": " วันที่แล้ว",
-		"home.recommendedTitle": "🎯 แนะนำสำหรับคุณ",
+		"home.recommendedTitle": "แนะนำสำหรับคุณ",
 		"home.recommendedSub": "แสดงเฉพาะร้าน Match 70% ขึ้นไป เรียงจากมากไปน้อย",
 		"home.matchHeroSub": "ตรงรสนิยมคุณมาก",
 		"home.fromYou": "จากตำแหน่งคุณ",
@@ -520,10 +550,13 @@ var CHIMCHIM_DICT = {
 		"settings.editProfile": "แก้ไขโปรไฟล์",
 		"settings.bio": "แนะนำตัว (Bio)",
 		"settings.bioPlaceholder": "บอกอะไรเกี่ยวกับตัวคุณสั้น ๆ ให้คนอื่นรู้จักคุณมากขึ้น",
+		"settings.myUniversity": "มหาวิทยาลัยของคุณ",
+		"settings.myUniversityNone": "ไม่สะดวกระบุ",
 		"settings.profileSavedToast": "บันทึกโปรไฟล์แล้ว!",
 		"settings.appearance": "ธีมการแสดงผล",
 		"settings.light": "โหมดสว่าง",
 		"settings.dark": "โหมดมืด",
+		"settings.system": "ตามระบบ",
 		"settings.language": "ภาษา",
 		"settings.english": "English",
 		"settings.thai": "ไทย",
@@ -573,11 +606,11 @@ var CHIMCHIM_DICT = {
 		"roulette.modeLike": "กินตามใจชอบ",
 		"roulette.modeOpposite": "ลองสิ่งตรงข้าม",
 		"roulette.modeMix": "สุ่มมั่ว ๆ",
-		"roulette.modeDescLike": "หมุนแล้วมีโอกาสเจอเมนู/ร้านที่ตรงกับ Food DNA ของคุณมากที่สุด 🎯",
-		"roulette.modeDescOpposite": "อยากลองอะไรใหม่ไหม? โหมดนี้จะสุ่มเมนูที่ตรงข้ามกับที่คุณชอบเป็นพิเศษ 🙃",
-		"roulette.modeDescMix": "ผสมกันไปทั้งเมนูที่ชอบและไม่ชอบ ได้ผลลัพธ์สนุก ๆ คาดเดาไม่ได้ 🎲",
+		"roulette.modeDescLike": "หมุนแล้วมีโอกาสเจอเมนู/ร้านที่ตรงกับ Food DNA ของคุณมากที่สุด",
+		"roulette.modeDescOpposite": "อยากลองอะไรใหม่ไหม? โหมดนี้จะสุ่มเมนูที่ตรงข้ามกับที่คุณชอบเป็นพิเศษ",
+		"roulette.modeDescMix": "ผสมกันไปทั้งเมนูที่ชอบและไม่ชอบ ได้ผลลัพธ์สนุก ๆ คาดเดาไม่ได้",
 		"roulette.spinBtn": "หมุน!",
-		"roulette.initialTag": "🎲 พร้อมสุ่มหรือยัง?",
+		"roulette.initialTag": "พร้อมสุ่มหรือยัง?",
 		"roulette.initialTitle": "กดหมุนวงล้อได้เลย",
 		"roulette.initialDesc": "ChimChim จะช่วยเลือกเมนูให้ 1 อย่างจากฐานข้อมูลกว่า 60 เมนู เผื่อวันไหนคิดไม่ออกว่าจะกินอะไรดี",
 		"roulette.spinAgain": "หมุนอีกครั้ง",
@@ -596,8 +629,8 @@ var CHIMCHIM_DICT = {
 		"common.following": "Following",
 		"common.member": "สมาชิก",
 		"common.photoCount": "{n} รูป",
-		"publicprofile.buShopLevel": "🏪 ร้านอาหารใกล้ ม.กรุงเทพ",
-		"publicprofile.pageLevel": "🏪 เพจร้านอาหาร",
+		"publicprofile.buShopLevel": "ร้านอาหารใกล้ ม.กรุงเทพ",
+		"publicprofile.pageLevel": "เพจร้านอาหาร",
 		"publicprofile.mapBtn": "แผนที่",
 		"publicprofile.reviewsSuffix": " รีวิว",
 		"publicprofile.foodExplorerLevel": "🦖 Food Explorer Lv.",
@@ -618,10 +651,12 @@ var CHIMCHIM_DICT = {
 		"shop.pageSavedToast": "บันทึกเพจ “{name}” เรียบร้อยแล้ว! 🎉",
 		"shop.fillRequired": "กรอกชื่อร้าน เมนูเด่น รูป และราคาให้ครบก่อนนะ",
 		"shop.storageFullError": "บันทึกไม่สำเร็จ ลองใช้รูปที่เล็กลงแล้วโพสต์ใหม่นะ",
+		"shop.saveForLater": "บันทึกไว้ดูทีหลัง",
+		"shop.savedForLater": "บันทึกแล้ว",
 		"shop.priceOrderError": "ราคาต่ำต้องน้อยกว่าหรือเท่ากับราคาสูง",
 		"shop.postedToast": "โพสต์ร้าน “{name}” เข้าชุมชนเรียบร้อยแล้ว! 🎉",
 		"profile.logoutToast": "ออกจากระบบแล้ว แล้วเจอกันใหม่นะ 👋",
-		"profile.memberRole": "🧑‍🎓 สมาชิก ChimChim",
+		"profile.memberRole": "สมาชิก ChimChim",
 		"common.removePhoto": "ลบรูป",
 		"profile.selectPhotoAndCaption": "เลือกรูปอย่างน้อย 1 รูปและใส่แคปชั่นก่อนนะ",
 		"profile.storageFullError": "บันทึกไม่สำเร็จ ลองลดจำนวนรูปแล้วโพสต์ใหม่อีกครั้งนะ",
@@ -638,6 +673,8 @@ var CHIMCHIM_DICT = {
 		"restaurant.posts": "โพสต์",
 		"restaurant.noPostsYet": "ร้านนี้ยังไม่มีโพสต์เลย",
 		"profile.followHistoryEmpty": "ยังไม่ได้ติดตามร้านไหนเลย",
+		"profile.saveHistory": "ร้านที่บันทึกไว้",
+		"profile.saveHistoryEmpty": "ยังไม่ได้บันทึกร้านไหนไว้เลย",
 		"welcome.skip": "ดูแอปเลย ไม่ต้องสมัครก่อนก็ได้ →",
 		"following.tapToView": "กดรูปเพื่อดูโปรไฟล์และดูโพสต์ของแต่ละคนได้เลย",
 		"profile.captionPlaceholder": "เล่าอะไรสั้น ๆ เกี่ยวกับมื้อนี้...",
@@ -694,6 +731,7 @@ var CHIMCHIM_DICT = {
 		"review.atmosphere": "บรรยากาศร้าน",
 		"review.service": "การบริการ",
 		"review.tellExperience": "เล่าประสบการณ์ของคุณ",
+		"review.addPhotos": "แนบรูป (ถ้ามี)",
 		"review.textPlaceholder": "อาหารเป็นยังไงบ้าง อยากบอกอะไรคนอื่นไหม...",
 		"review.submit": "ส่งรีวิว",
 		"review.rateAllThree": "ให้คะแนนทั้ง 3 หัวข้อก่อนนะ",
@@ -771,8 +809,10 @@ function catGroupLabel(groupKey) {
 }
 
 // ข้อความป้าย Match % — เขียนให้ตรงกับโหมดภาษาที่เลือกจริง ๆ (ไม่ใช้คำอังกฤษปนไทยตายตัว)
+// คืน HTML (มีไอคอนนำหน้า) ไม่ใช่ข้อความดิบแล้ว — จุดที่เรียกใช้ต้องแปะด้วย innerHTML เท่านั้น ห้ามใช้ textContent
 function matchBadgeText(score) {
-	return getLang() === "th" ? ("🎯 ตรงใจ " + score + "%") : ("🎯 " + score + "% Match");
+	var icon = '<i class="fas fa-bullseye"></i> ';
+	return getLang() === "th" ? (icon + "ตรงใจ " + score + "%") : (icon + score + "% Match");
 }
 // หัวข้อสั้น ๆ ใช้ในการ์ดที่มีไอคอน 🎯 แยกอยู่แล้ว (ไม่ต้องมี emoji ซ้ำ)
 function matchHeadline(score) {
@@ -798,7 +838,9 @@ function applyI18n() {
 		var span = el.querySelector("span");
 		var filter = el.getAttribute("data-filter");
 		if (span && filter && filter !== "all") {
-			span.textContent = catEmojiSafe(filter) + " " + catLabel(filter);
+			// catLabel()/filter มาจากตาราง category คงที่ในโค้ด ไม่ใช่ข้อมูลผู้ใช้ ไม่ต้อง escapeHtml ก็ปลอดภัย
+			// (เลี่ยงไว้ด้วย เพราะไฟล์นี้โหลดก่อน chimchim-core.js ที่นิยาม escapeHtml — เรียกตอนนี้จะ error)
+			span.innerHTML = catEmojiSafe(filter) + " " + catLabel(filter);
 		}
 	});
 	// ตัวเลือกแบบทดสอบ Food DNA (obopt) — data-val เป็นคำไทยตรงกับ CHIMCHIM_CAT_LABEL อยู่แล้ว
@@ -814,9 +856,10 @@ function applyI18n() {
 	});
 	// dropdown หมวดอาหารตอนโพสต์ร้าน/สร้างเพจ (settings.html) — value ของแต่ละ option เป็นคำไทยตรงกับ
 	// CHIMCHIM_CAT_LABEL อยู่แล้ว เลยแปลผ่าน catLabel() ได้เหมือนกัน โดยคง emoji เดิมไว้ข้างหน้า
+	// <option> แสดง HTML/ไอคอนไม่ได้ (ข้อจำกัดของ <select> เอง) เลยโชว์แค่ชื่อหมวดเฉย ๆ ไม่มีไอคอนนำหน้า
 	document.querySelectorAll("#pageCat option[value], #shopCat option[value]").forEach(function(opt) {
 		if (!opt.value) return;
-		opt.textContent = catEmojiSafe(opt.value) + " " + catLabel(opt.value);
+		opt.textContent = catLabel(opt.value);
 	});
 	document.querySelectorAll("optgroup[data-group-key]").forEach(function(og) {
 		og.label = t(og.getAttribute("data-group-key"));
@@ -824,7 +867,7 @@ function applyI18n() {
 	// รีเฟรชป้าย Match % ทุกอันในหน้าให้ตรงภาษาปัจจุบัน (กันข้อความค้างภาษาเดิมตอนสลับ)
 	document.querySelectorAll("[data-match-score]").forEach(function(el) {
 		var score = parseInt(el.getAttribute("data-match-score"), 10);
-		if (!isNaN(score)) el.textContent = matchBadgeText(score);
+		if (!isNaN(score)) el.innerHTML = matchBadgeText(score);
 	});
 	// รีเฟรชการ์ดร้าน + Match Hero บนหน้าแรก (ถ้ามีอยู่บนหน้านั้น) ให้ตรงภาษาที่เพิ่งสลับ
 	if (typeof แสดงMatchในการ์ดทั้งหมด === "function") แสดงMatchในการ์ดทั้งหมด();
@@ -847,7 +890,7 @@ function setupQuickSettings() {
 	if (!btn || !panel) return;
 
 	function refreshQuickSettings() {
-		var theme = getTheme();
+		var theme = getThemeChoice();
 		panel.querySelectorAll("[data-theme-choice]").forEach(function(b) {
 			b.classList.toggle("active", b.getAttribute("data-theme-choice") === theme);
 		});

@@ -928,7 +928,7 @@ var นักรีวิวเด่น = [
 	{
 		id: "seed-noodle",
 		ชื่อ: "NoodleLover",
-		สี: "linear-gradient(135deg, var(--dark), #7d6fb0)",
+		สี: "linear-gradient(135deg, var(--dark), #8b68e0)",
 		ระดับ: 27,
 		รีวิว: 128,
 		bio: "รีวิวเส้นทุกชนิด บะหมี่ ราเมง ก๋วยเตี๋ยว ครบจบในที่เดียว",

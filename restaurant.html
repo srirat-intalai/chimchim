@@ -6,13 +6,16 @@
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="author" content="CHIMCHIM">
       <link rel="manifest" href="manifest.json">
-      <meta name="theme-color" content="#ff999d">
+      <meta name="theme-color" content="#6842b5">
       <meta name="apple-mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-status-bar-style" content="default">
       <meta name="apple-mobile-web-app-title" content="ChimChim">
       <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
       <meta name="description" content="ChimChim - รายละเอียดร้าน">
       <title>รายละเอียดร้าน - ChimChim</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
       <link rel="stylesheet" href="css/all.min.css"/>
       <link rel="stylesheet" href="css/style.css" />
@@ -22,6 +25,7 @@
          <img id="rdImg" src="" alt=""/>
          <a href="javascript:history.back()" class="rdheroback"><i class="fas fa-arrow-left"></i></a>
          <button class="rdherosave" id="rdSaveBtn"><i class="far fa-heart"></i><span class="rdlikecount" id="rdLikeCount"></span></button>
+         <button class="rdherobookmark" id="rdBookmarkBtn" aria-label="Save for later"><i class="far fa-bookmark"></i></button>
          <button class="rdheroshare" id="rdShareBtn"><i class="fas fa-share-nodes"></i></button>
          <button class="rdheroreport" id="rdReportBtn" hidden><i class="fas fa-flag"></i></button>
       </div>
@@ -131,13 +135,13 @@
       <div id="appToast"></div>
 
       <script src="js/chimchim-i18n.js"></script>
-      <script src="js/chimchim-data.js"></script>
-      <script src="js/chimchim-core.js"></script>
-      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-      <script src="js/chimchim-supabase-config.js"></script>
-      <script src="js/chimchim-supabase-client.js"></script>
-      <script src="js/chimchim-community.js"></script>
-      <script src="js/chimchim-restaurant.js"></script>
+      <script src="js/chimchim-data.js" defer></script>
+      <script src="js/chimchim-core.js" defer></script>
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
+      <script src="js/chimchim-supabase-config.js" defer></script>
+      <script src="js/chimchim-supabase-client.js" defer></script>
+      <script src="js/chimchim-community.js" defer></script>
+      <script src="js/chimchim-restaurant.js" defer></script>
          <script>
          if ("serviceWorker" in navigator) {
             window.addEventListener("load", function() {

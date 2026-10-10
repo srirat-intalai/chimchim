@@ -26,6 +26,28 @@ if (!revร้าน) {
 	}
 
 	var scores = { taste: 0, atmosphere: 0, service: 0 };
+	var chosenReviewImages = [];
+	var reviewImgList = document.getElementById("reviewImgList");
+	function renderChosenReviewImages() {
+		reviewImgList.innerHTML = "";
+		chosenReviewImages.forEach(function(src, idx) {
+			var thumb = document.createElement("div");
+			thumb.className = "postimgthumb";
+			thumb.innerHTML = '<img src="' + src + '" alt=""/><button type="button" title="' + t("common.removePhoto") + '"><i class="fas fa-times"></i></button>';
+			thumb.querySelector("button").addEventListener("click", function() {
+				chosenReviewImages.splice(idx, 1);
+				renderChosenReviewImages();
+			});
+			reviewImgList.appendChild(thumb);
+		});
+	}
+	wireMultiImageUpload("reviewImgFile", function(dataUrls) {
+		dataUrls.forEach(function(dataUrl) {
+			if (chosenReviewImages.length >= 6) return;
+			chosenReviewImages.push(dataUrl);
+		});
+		renderChosenReviewImages();
+	});
 
 	function setDinoScore(field, val) {
 		scores[field] = val;
@@ -58,6 +80,8 @@ if (!revร้าน) {
 		setDinoScore("atmosphere", revExisting.atmosphere);
 		setDinoScore("service", revExisting.service);
 		document.getElementById("reviewText").value = revExisting.text || "";
+		chosenReviewImages = (revExisting.images || []).slice();
+		renderChosenReviewImages();
 	}
 
 	document.getElementById("reviewForm").addEventListener("submit", function(e) {
@@ -76,7 +100,8 @@ if (!revร้าน) {
 				taste: scores.taste,
 				atmosphere: scores.atmosphere,
 				service: scores.service,
-				text: document.getElementById("reviewText").value.trim()
+				text: document.getElementById("reviewText").value.trim(),
+				images: chosenReviewImages
 			});
 			window.location.href = "restaurant.html?id=" + revร้าน.id;
 			return;
@@ -91,7 +116,8 @@ if (!revร้าน) {
 			text: document.getElementById("reviewText").value.trim(),
 			author: author,
 			userId: meSession ? meSession.id : null,
-			date: new Date().toISOString()
+			date: new Date().toISOString(),
+			images: chosenReviewImages
 		});
 
 		window.location.href = "home.html?reviewed=1";

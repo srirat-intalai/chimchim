@@ -5,6 +5,8 @@ var wheelDisc = document.getElementById("wheelDisc");
 var spinBtn = document.getElementById("spinBtn");
 var wheelSpinning = false;
 var wheelRotation = 0;
+// เก็บเมนูล่าสุดที่สุ่มได้ของแต่ละหมวด (key ของ วงล้อหมวดอาหาร) กันปัญหาสุ่มได้ซ้ำเมนูเดิมติดกัน
+var เมนูล่าสุดในหมวด = {};
 
 /* -----------------------------------------------------
    โหมดการสุ่ม 3 แบบ: กินตามใจชอบ / ลองสิ่งตรงข้าม / Mix It Up
@@ -90,7 +92,12 @@ function spinWheel() {
 var rresultDescKeyByMode = { like: "roulette.resultDescLike", opposite: "roulette.resultDescOpposite", mix: "roulette.resultDescMix" };
 function revealWheelResult(idx, baseScore) {
 	var cat = วงล้อหมวดอาหาร[idx];
-	var item = cat.pool[Math.floor(Math.random() * cat.pool.length)];
+	// ตัดเมนูที่เพิ่งออกไปรอบที่แล้วออกจากพูลก่อนสุ่ม (ถ้าหมวดนั้นมีแค่ตัวเดียวพอดี ก็ปล่อยให้ออกซ้ำได้ ไม่มีทางเลือกอื่น)
+	var ตัวเลือก = cat.pool.length > 1
+		? cat.pool.filter(function(p) { return p.name !== เมนูล่าสุดในหมวด[cat.key]; })
+		: cat.pool;
+	var item = ตัวเลือก[Math.floor(Math.random() * ตัวเลือก.length)];
+	เมนูล่าสุดในหมวด[cat.key] = item.name;
 
 	var จิตเตอร์ = Math.floor(Math.random() * 11) - 5;
 	var matchScore = baseScore + จิตเตอร์;
@@ -105,7 +112,7 @@ function revealWheelResult(idx, baseScore) {
 		imgEl.src = item.img;
 		imgEl.alt = item.name;
 	}
-	document.getElementById("wresultTag").textContent = cat.emoji + " " + catLabel(cat.label) + " • 🎯 " + matchScore + "% Match";
+	document.getElementById("wresultTag").innerHTML = cat.emoji + " " + catLabel(cat.label) + ' • <i class="fas fa-bullseye"></i> ' + matchScore + "% Match";
 	document.getElementById("wresultTitle").textContent = item.name;
 	document.getElementById("wresultDesc").textContent = มีร้านจริง
 		? t(rresultDescKeyByMode[currentRouletteMode] || rresultDescKeyByMode.mix)
@@ -146,10 +153,10 @@ function openShopDetailPopup(ร้าน) {
 	var คะแนน = คำนวณMatch(ร้าน, foodDNA);
 	document.getElementById("sdImg").src = ร้าน.รูป;
 	document.getElementById("sdImg").alt = ร้าน.เมนู;
-	document.getElementById("sdCat").textContent = catEmoji(ร้าน.หมวด) + " " + catLabel(ร้าน.หมวด);
+	document.getElementById("sdCat").innerHTML = catEmoji(ร้าน.หมวด) + " " + escapeHtml(catLabel(ร้าน.หมวด));
 	document.getElementById("sdTitle").textContent = ร้าน.เมนู;
 	document.getElementById("sdRestaurant").innerHTML = '<i class="fas fa-store"></i> ' + escapeHtml(ร้าน.ร้าน);
-	document.getElementById("sdMatchPct").textContent = matchBadgeText(คะแนน);
+	document.getElementById("sdMatchPct").innerHTML = matchBadgeText(คะแนน);
 	document.getElementById("sdMeta").textContent = "฿" + ร้าน.ราคาต่ำ + "–" + ร้าน.ราคาสูง + " · " + distanceText(ร้าน.ระยะทาง) + " · " + t("restaurant.near") + ร้าน.มหาลัย;
 	document.getElementById("sdDesc").textContent = สร้างเหตุผลmatch(ร้าน, foodDNA);
 	document.getElementById("sdFullLink").href = "restaurant.html?id=" + ร้าน.id;

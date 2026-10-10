@@ -275,11 +275,14 @@ document.addEventListener("keydown", function(e) {
 	document.getElementById("pvCommentForm").addEventListener("submit", function(e) {
 		e.preventDefault();
 		if (!currentPostId) return;
+		// ต้องล็อกอินก่อนคอมเมนต์ (เดิมปล่อยคอมเมนต์แบบไม่ล็อกอินได้ แต่ sbAddComment ต้องมี user ถึงจะ sync ขึ้น Supabase
+		// ได้จริง — คอมเมนต์ที่ยังไม่ sync เลยหายไปทันทีที่เปิดโพสต์นี้ใหม่แล้วดึงชุดจริงจาก Supabase มาทับของเดิม)
+		if (typeof ต้องล็อกอินก่อนไหม === "function" && ต้องล็อกอินก่อนไหม()) return;
 		var input = document.getElementById("pvCommentInput");
 		var text = input.value.trim();
 		if (!text) return;
 		var me = getSession();
-		addComment(currentPostId, me ? me.name : t("common.anonymousFoodie"), text);
+		addComment(currentPostId, me.name, text);
 		input.value = "";
 		renderPvComments();
 	});
@@ -312,7 +315,7 @@ document.addEventListener("keydown", function(e) {
 			avatarEl.style.background = "var(--cream2) center/cover no-repeat url('" + post.posterAvatarUrl + "')";
 			avatarEl.textContent = "";
 		} else {
-			avatarEl.style.background = post.posterColor || "linear-gradient(135deg, var(--dark), #7d6fb0)";
+			avatarEl.style.background = post.posterColor || "linear-gradient(135deg, var(--dark), #8b68e0)";
 			avatarEl.textContent = (post.posterName || "?").trim().charAt(0).toUpperCase();
 		}
 		document.getElementById("pvName").textContent = post.posterName || "";
@@ -347,6 +350,13 @@ function formatFeedTime(dateStr) {
 	var days = Math.floor(hrs / 24);
 	return days + t("feed.daysAgo");
 }
+// เวลาโพสต์เดิมคำนวณใหม่ตอน re-render เท่านั้น ถ้าเปิดหน้าค้างไว้เฉย ๆ (ไม่กดอะไรเลย) เวลาจะไม่ขยับเอง
+// ไทม์เมอร์นี้อัปเดตแค่ข้อความเวลาทุก 30 วิ โดยไม่ต้องสร้างการ์ดใหม่ทั้งฟีด (เบากว่า re-render เต็ม ๆ)
+setInterval(function() {
+	document.querySelectorAll("[data-feed-time]").forEach(function(el) {
+		el.textContent = formatFeedTime(el.getAttribute("data-feed-time"));
+	});
+}, 30000);
 
 /* --- ฟีดชุมชน: โชว์ 6 โพสต์แรก พอเลื่อนถึงล่างสุดค่อยเพิ่มทีละ 5 (ต่อท้ายในหน้าเดิม ไม่รีเฟรชหน้า) --- */
 var FEED_INITIAL_SIZE = 5;
@@ -403,8 +413,8 @@ function buildFeedItemEl(item) {
 			'<div class="feedhead">' +
 				avatarHtml +
 				'<div class="feednm">' +
-					'<div class="feedname">' + escapeHtml(item.posterName) + (item.kind === "mockup" ? ' <i class="fas fa-store feedstoreico" title="' + t("common.restaurantIcon") + '"></i>' : "") + "</div>" +
-					'<div class="feedtime">' + formatFeedTime(item.date) + "</div>" +
+					'<div class="feedname">' + escapeHtml(item.posterName) + ((item.kind === "mockup" || item.kind === "page") ? ' <i class="fas fa-store feedstoreico" title="' + t("common.restaurantIcon") + '"></i>' : "") + "</div>" +
+					'<div class="feedtime" data-feed-time="' + escapeHtml(item.date) + '">' + formatFeedTime(item.date) + "</div>" +
 				"</div>" +
 			"</div>" +
 			'<div class="feedimgs"><div class="feedimgstrip">' + imgsHtml + "</div>" + dotsHtml + "</div>" +

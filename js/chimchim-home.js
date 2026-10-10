@@ -269,7 +269,7 @@ renderRecommendedRow();
         // เลยค้นหาเพิ่มจาก Supabase จริงด้านล่างด้วย (ดู searchPeopleFromSupabase) ผลจะโผล่มาเพิ่มทีหลังแบบ progressive
         getUsers().forEach(function(u) {
             if (u.name && u.name.toLowerCase().indexOf(q) !== -1) {
-                people.push({ id: u.id, name: u.name, sub: "🧑‍🎓 " + t("common.member"), color: "linear-gradient(135deg, var(--dark), #7d6fb0)" });
+                people.push({ id: u.id, name: u.name, sub: '<i class="fas fa-graduation-cap"></i> ' + t("common.member"), color: "linear-gradient(135deg, var(--dark), #8b68e0)" });
             }
         });
 
@@ -316,7 +316,7 @@ renderRecommendedRow();
                 res.data.forEach(function(row) {
                     if (existingIds[row.id]) return;
                     existingIds[row.id] = true;
-                    people.push({ id: row.id, name: row.name, sub: "🧑‍🎓 " + t("common.member"), color: "linear-gradient(135deg, var(--dark), #7d6fb0)" });
+                    people.push({ id: row.id, name: row.name, sub: '<i class="fas fa-graduation-cap"></i> ' + t("common.member"), color: "linear-gradient(135deg, var(--dark), #8b68e0)" });
                 });
                 var groupEl = document.getElementById("spPeopleGroup");
                 if (groupEl) groupEl.innerHTML = buildGroup('search.people', buildPeopleHtml(people));

@@ -43,8 +43,8 @@ if (ppIsBuShop) {
 		ppAvatarBu.textContent = "";
 		ppAvatarBu.style.background = "var(--cream2) center/cover no-repeat url('" + buShop.avatar + "')";
 		document.getElementById("ppName").textContent = buShop.name;
-		document.getElementById("ppSub").textContent = catEmoji(buShop.cat) + " " + catLabel(buShop.cat);
-		document.getElementById("ppLevel").textContent = t("publicprofile.buShopLevel");
+		document.getElementById("ppSub").innerHTML = catEmoji(buShop.cat) + " " + escapeHtml(catLabel(buShop.cat));
+		document.getElementById("ppLevel").innerHTML = '<i class="fas fa-store"></i> ' + escapeHtml(t("publicprofile.buShopLevel"));
 		document.getElementById("ppBio").textContent = buShop.bio || "";
 
 		var followBtnBu = document.getElementById("ppFollowBtn");
@@ -81,8 +81,8 @@ if (ppIsBuShop) {
 		ppAvatarEl.textContent = "";
 		ppAvatarEl.style.background = "var(--cream2) center/cover no-repeat url('" + page.avatar + "')";
 		document.getElementById("ppName").textContent = page.name;
-		document.getElementById("ppSub").textContent = catEmoji(page.cat) + " " + catLabel(page.cat);
-		document.getElementById("ppLevel").textContent = t("publicprofile.pageLevel");
+		document.getElementById("ppSub").innerHTML = catEmoji(page.cat) + " " + escapeHtml(catLabel(page.cat));
+		document.getElementById("ppLevel").innerHTML = '<i class="fas fa-store"></i> ' + escapeHtml(t("publicprofile.pageLevel"));
 		document.getElementById("ppBio").textContent = page.bio || "";
 
 		var followBtnPage = document.getElementById("ppFollowBtn");
@@ -145,7 +145,7 @@ if (ppIsBuShop) {
 		}
 		document.getElementById("ppName").textContent = user.name;
 		document.getElementById("ppSub").textContent = t("publicprofile.chimchimUser");
-		document.getElementById("ppLevel").textContent = "🧑‍🎓 " + t("common.chimchimFoodie");
+		document.getElementById("ppLevel").innerHTML = '<i class="fas fa-graduation-cap"></i> ' + escapeHtml(t("common.chimchimFoodie"));
 		document.getElementById("ppBio").textContent = user.bio || t("publicprofile.defaultBio");
 
 		var followBtn2 = document.getElementById("ppFollowBtn");
@@ -167,7 +167,7 @@ if (ppIsBuShop) {
 			})();
 		}
 
-		ppRenderPosts(getPostsByUser(user.id), user.name, "linear-gradient(135deg, var(--dark), #7d6fb0)");
+		ppRenderPosts(getPostsByUser(user.id), user.name, "linear-gradient(135deg, var(--dark), #8b68e0)");
 	}
 	if (user) {
 		renderRealUserProfile(user);

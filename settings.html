@@ -6,13 +6,16 @@
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="author" content="CHIMCHIM">
       <link rel="manifest" href="manifest.json">
-      <meta name="theme-color" content="#ff999d">
+      <meta name="theme-color" content="#6842b5">
       <meta name="apple-mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-status-bar-style" content="default">
       <meta name="apple-mobile-web-app-title" content="ChimChim">
       <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
       <meta name="description" content="CHIMCHIM - App settings: appearance and language">
       <title>Settings - CHIMCHIM</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
       <link rel="stylesheet" href="css/all.min.css"/>
       <link rel="stylesheet" href="css/style.css" />
@@ -42,6 +45,10 @@
                <input class="fctrl" type="text" id="editProfileName" required/>
                <label class="flbl" data-i18n="settings.bio">Bio</label>
                <textarea class="fctrl" id="editProfileBio" rows="3" placeholder="บอกอะไรเกี่ยวกับตัวคุณสั้น ๆ ให้คนอื่นรู้จักคุณมากขึ้น" data-i18n-ph="settings.bioPlaceholder"></textarea>
+               <label class="flbl" data-i18n="settings.myUniversity">Your university</label>
+               <select class="fctrl" id="editProfileUni">
+                  <option value="" data-i18n="settings.myUniversityNone">Prefer not to say</option>
+               </select>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2" id="editProfileSubmitBtn"><i class="fas fa-floppy-disk"></i><span data-i18n="shop.saveChanges">Save changes</span></button>
             </form>
          </div>
@@ -51,6 +58,7 @@
             <div class="settoggle" id="themeToggle">
                <button type="button" class="settopt" data-theme-choice="light"><i class="fas fa-sun"></i><span data-i18n="settings.light">Light</span></button>
                <button type="button" class="settopt" data-theme-choice="dark"><i class="fas fa-moon"></i><span data-i18n="settings.dark">Dark</span></button>
+               <button type="button" class="settopt" data-theme-choice="system"><i class="fas fa-circle-half-stroke"></i><span data-i18n="settings.system">System</span></button>
             </div>
          </div>
 
@@ -155,6 +163,8 @@
                <input class="fctrl" type="number" id="shopPriceHigh" min="1" required/>
                <label class="flbl" data-i18n="shop.distance">Distance (m)</label>
                <input class="fctrl" type="number" id="shopDistance" min="0" required/>
+               <button type="button" class="rdghost" id="shopUseLocationBtn" style="width:100%;margin:-4px 0 2px;"><i class="fas fa-location-crosshairs me-1"></i><span data-i18n="shop.useMyLocationForDistance">Use my current location for accurate distance</span></button>
+               <p class="rowsub" id="shopLocationHint" style="margin-top:0;" hidden></p>
                <label class="flbl" data-i18n="shop.nearUni">Near which university</label>
                <select class="fctrl" id="shopUni" required></select>
                <label class="flbl" data-i18n="shop.shortDesc">Short pitch</label>
@@ -191,19 +201,26 @@
             <div id="settingsFollowsList"></div>
             <p id="settingsFollowsEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:10px 0;" hidden data-i18n="profile.followHistoryEmpty">You haven't followed any shop yet.</p>
          </div>
+
+         <!-- ร้านที่บันทึกไว้ดูทีหลัง (แยกจากถูกใจ) -->
+         <div class="profcard" id="savesHistoryCard" hidden>
+            <div class="profcardtit"><i class="fas fa-bookmark me-1"></i><span data-i18n="profile.saveHistory">Saved Shops</span></div>
+            <div id="settingsSavesList"></div>
+            <p id="settingsSavesEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:10px 0;" hidden data-i18n="profile.saveHistoryEmpty">You haven't saved any shop yet.</p>
+         </div>
       </div>
 
       <div id="appToast"></div>
 
       <script src="js/chimchim-i18n.js"></script>
-      <script src="js/chimchim-data.js"></script>
-      <script src="js/chimchim-core.js"></script>
-      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-      <script src="js/chimchim-supabase-config.js"></script>
-      <script src="js/chimchim-supabase-client.js"></script>
-      <script src="js/chimchim-community.js"></script>
-      <script src="js/chimchim-settings.js"></script>
-      <script src="js/chimchim-shop.js"></script>
+      <script src="js/chimchim-data.js" defer></script>
+      <script src="js/chimchim-core.js" defer></script>
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
+      <script src="js/chimchim-supabase-config.js" defer></script>
+      <script src="js/chimchim-supabase-client.js" defer></script>
+      <script src="js/chimchim-community.js" defer></script>
+      <script src="js/chimchim-settings.js" defer></script>
+      <script src="js/chimchim-shop.js" defer></script>
          <script>
          if ("serviceWorker" in navigator) {
             window.addEventListener("load", function() {

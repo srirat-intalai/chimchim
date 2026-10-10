@@ -6,13 +6,16 @@
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="author" content="CHIMCHIM">
       <link rel="manifest" href="manifest.json">
-      <meta name="theme-color" content="#ff999d">
+      <meta name="theme-color" content="#6842b5">
       <meta name="apple-mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-status-bar-style" content="default">
       <meta name="apple-mobile-web-app-title" content="ChimChim">
       <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
       <meta name="description" content="ChimChim - วงล้อสุ่มเมนู ตัดสินใจไม่ได้ว่าจะกินอะไร หมุนวงล้อแล้วให้ ChimChim สุ่มเมนูเด็ดให้เลย">
       <title>วงล้อสุ่มเมนู - ChimChim</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
       <link href="css/aos.css" rel="stylesheet"/>
       <link rel="stylesheet" href="css/all.min.css"/>
@@ -33,6 +36,7 @@
                      <div class="qstoggle">
                         <button type="button" data-theme-choice="light" title="Light"><i class="fas fa-sun"></i></button>
                         <button type="button" data-theme-choice="dark" title="Dark"><i class="fas fa-moon"></i></button>
+                        <button type="button" data-theme-choice="system" title="System"><i class="fas fa-circle-half-stroke"></i></button>
                      </div>
                   </div>
                   <div class="qsrow">
@@ -61,9 +65,9 @@
             </div>
 
             <div class="rmodes" id="rmodes" data-aos="fade-up">
-               <button type="button" class="rmodebtn active" data-mode="like"><span class="rmico">❤️</span><span data-i18n="roulette.modeLike">Eat What I Like</span></button>
-               <button type="button" class="rmodebtn" data-mode="opposite"><span class="rmico">🙃</span><span data-i18n="roulette.modeOpposite">Try My Opposite</span></button>
-               <button type="button" class="rmodebtn" data-mode="mix"><span class="rmico">🎲</span><span data-i18n="roulette.modeMix">Mix It Up</span></button>
+               <button type="button" class="rmodebtn active" data-mode="like"><span class="rmico"><i class="fas fa-heart"></i></span><span data-i18n="roulette.modeLike">Eat What I Like</span></button>
+               <button type="button" class="rmodebtn" data-mode="opposite"><span class="rmico"><i class="fas fa-shuffle"></i></span><span data-i18n="roulette.modeOpposite">Try My Opposite</span></button>
+               <button type="button" class="rmodebtn" data-mode="mix"><span class="rmico"><i class="fas fa-dice"></i></span><span data-i18n="roulette.modeMix">Mix It Up</span></button>
             </div>
             <p class="rmodedesc" id="rmodeDesc" data-aos="fade-up"></p>
 
@@ -90,7 +94,7 @@
             <div class="wresultcard" id="wresultcard" data-aos="fade-up">
                <img id="wresultImg" src="img/Dino/3.png" alt="รอผลการสุ่ม"/>
                <div class="wresultbody">
-                  <span class="wrtag" id="wresultTag" data-i18n="roulette.initialTag">🎲 พร้อมสุ่มหรือยัง?</span>
+                  <span class="wrtag" id="wresultTag" data-i18n="roulette.initialTag">พร้อมสุ่มหรือยัง?</span>
                   <h4 id="wresultTitle" data-i18n="roulette.initialTitle">กดหมุนวงล้อได้เลย</h4>
                   <p id="wresultDesc" data-i18n="roulette.initialDesc">ChimChim จะช่วยเลือกเมนูให้ 1 อย่างจากฐานข้อมูลกว่า 60 เมนู เผื่อวันไหนคิดไม่ออกว่าจะกินอะไรดี</p>
                   <div class="wresultbtns" id="wresultBtns" hidden>
@@ -183,16 +187,16 @@
 
       <div id="appToast"></div>
 
-      <script src="js/aos.js"></script>
+      <script src="js/aos.js" defer></script>
       <script src="js/chimchim-i18n.js"></script>
-      <script src="js/chimchim-data.js"></script>
-      <script src="js/chimchim-core.js"></script>
-      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-      <script src="js/chimchim-supabase-config.js"></script>
-      <script src="js/chimchim-supabase-client.js"></script>
-      <script src="js/chimchim-nav.js"></script>
-      <script src="js/chimchim-roulette.js"></script>
-      <script src="js/chimchim-community.js"></script>
+      <script src="js/chimchim-data.js" defer></script>
+      <script src="js/chimchim-core.js" defer></script>
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
+      <script src="js/chimchim-supabase-config.js" defer></script>
+      <script src="js/chimchim-supabase-client.js" defer></script>
+      <script src="js/chimchim-nav.js" defer></script>
+      <script src="js/chimchim-roulette.js" defer></script>
+      <script src="js/chimchim-community.js" defer></script>
          <script>
          if ("serviceWorker" in navigator) {
             window.addEventListener("load", function() {

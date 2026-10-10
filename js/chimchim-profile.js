@@ -77,7 +77,7 @@ if (!session) {
 	}
 	refreshProfileHeader(me);
 	document.getElementById("profEmail").textContent = session.email;
-	document.getElementById("profRole").textContent = t("profile.memberRole");
+	document.getElementById("profRole").innerHTML = '<i class="fas fa-graduation-cap"></i> ' + escapeHtml(t("profile.memberRole"));
 
 	/* --- Food DNA (ทุกบัญชี) — กดปุ่มเพื่อดูรายละเอียดเป็น popup --- */
 	var dnaCardBtn = document.getElementById("dnaCardBtn");

@@ -322,3 +322,39 @@ on conflict (id) do nothing;
 
 -- แก้ sequence ของ id ให้ต่อจาก 111 (กันร้านชุมชนที่โพสต์ทีหลังได้ id ชนกับร้านตั้งต้นพวกนี้)
 select setval(pg_get_serial_sequence('public.shops', 'id'), (select max(id) from public.shops));
+
+-- =====================================================================
+-- Phase 6 — มหาวิทยาลัยของผู้ใช้ทั่วไป + โพสต์/รีวิวหลายรูป + บันทึกร้านไว้ดูทีหลัง
+-- ใช้ IF NOT EXISTS / CREATE TABLE IF NOT EXISTS ทุกจุด รันซ้ำได้ปลอดภัย
+-- =====================================================================
+
+-- 6.1 มหาวิทยาลัยของผู้ใช้ทั่วไป (เดิมมีแค่ของร้าน ไม่มีของโปรไฟล์คน)
+alter table public.profiles add column if not exists university text;
+
+-- 6.2 รูปเพิ่มเติมของร้าน (นอกเหนือจาก image_url ที่เป็นรูปปกหลัก) — แกลเลอรีร้าน
+alter table public.shops add column if not exists images text[] default '{}';
+
+-- 6.3 รูปแนบในรีวิว (เดิมรีวิวไม่มีรูปเลย)
+alter table public.reviews add column if not exists images text[] default '{}';
+
+-- 6.3b พิกัดจริงของร้าน (ไม่บังคับ) — เจ้าของร้านกดใช้ตำแหน่งปัจจุบันตอนโพสต์ได้ ถ้ามีพิกัดจริง
+-- หน้าเว็บจะคำนวณระยะทางสดจากตำแหน่งจริงของผู้ชมแทนตัวเลขกะประมาณที่กรอกเอง (ดู shopToร้าน() ใน core.js)
+alter table public.shops add column if not exists lat double precision;
+alter table public.shops add column if not exists lng double precision;
+
+-- 6.4 บันทึกร้านไว้ดูทีหลัง — แยกจาก likes_shops โดยเจตนา (ถูกใจ ≠ บันทึกไว้ดูทีหลัง)
+create table if not exists public.saved_shops (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  shop_id bigint not null references public.shops(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, shop_id)
+);
+alter table public.saved_shops enable row level security;
+-- Postgres ไม่รองรับ "create policy if not exists" จริง ๆ (ไม่มี syntax นี้) ใช้ drop policy if exists นำหน้าแทน
+-- เพื่อให้สคริปต์นี้รันซ้ำได้ปลอดภัยเหมือนส่วนอื่นของไฟล์
+drop policy if exists "saved_shops_select_own" on public.saved_shops;
+create policy "saved_shops_select_own" on public.saved_shops for select using (auth.uid() = user_id);
+drop policy if exists "saved_shops_insert_own" on public.saved_shops;
+create policy "saved_shops_insert_own" on public.saved_shops for insert with check (auth.uid() = user_id);
+drop policy if exists "saved_shops_delete_own" on public.saved_shops;
+create policy "saved_shops_delete_own" on public.saved_shops for delete using (auth.uid() = user_id);

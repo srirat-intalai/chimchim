@@ -90,8 +90,16 @@ function sbShopRowToLocal(row) {
 		uni: row.university,
 		desc: row.description,
 		hours: row.hours,
-		promo: row.promo
+		promo: row.promo,
+		lat: typeof row.lat === "number" ? row.lat : null,
+		lng: typeof row.lng === "number" ? row.lng : null
 	};
+}
+// พิกัดจริงของร้าน — แยก query ต่างหากจาก sbSaveMyShop (เหตุผลเดียวกับ sbSaveMyUniversity/sbSetShopSave
+// เพราะคอลัมน์ shops.lat/lng เป็นของใหม่ SQL Phase 6 กันไม่ให้การบันทึกร้านหลักพังถ้ายังไม่ได้รัน SQL)
+function sbSaveMyShopLocation(shopNumId, lat, lng) {
+	if (!sbClient || typeof lat !== "number" || typeof lng !== "number") return Promise.resolve(null);
+	return Promise.resolve(sbClient.from("shops").update({ lat: lat, lng: lng }).eq("id", shopNumId)).catch(function() {});
 }
 function sbShopToRow(shop, vendorId) {
 	return {
@@ -215,11 +223,31 @@ function syncMyProfileWithSupabase(onUpdated) {
 	}).catch(function() {});
 }
 
+/* --- มหาวิทยาลัยของผู้ใช้ทั่วไป — แยก query ต่างหากจาก sbSaveMyProfile/syncMyProfileWithSupabase โดยตั้งใจ
+   เพราะคอลัมน์ profiles.university เป็นของใหม่ (SQL Phase 6) ถ้าใครยังไม่ได้รัน SQL อันนั้น query นี้จะ
+   error เฉย ๆ (จับด้วย catch) โดยไม่ทำให้การ sync ชื่อ/bio/avatar/food_dna ที่ทำงานอยู่แล้วพังไปด้วย --- */
+function sbSaveMyUniversity(university) {
+	var me = getMe();
+	if (!me || !sbClient || typeof university !== "string") return Promise.resolve(null);
+	return sbClient.from("profiles").update({ university: university || null }).eq("id", me.id).then(function(res) {
+		return res.error ? null : true;
+	}).catch(function() { return null; });
+}
+function syncMyUniversityWithSupabase(onUpdated) {
+	var me = getMe();
+	if (!me || !sbClient) return;
+	sbClient.from("profiles").select("university").eq("id", me.id).single().then(function(res) {
+		if (res.error || !res.data || !res.data.university) return;
+		updateMe({ university: res.data.university });
+		if (typeof onUpdated === "function") onUpdated();
+	}).catch(function() {});
+}
+
 /* =====================================================================
    รีวิวร้าน — ผลักขึ้นทันทีตอนส่ง + ดึงของคนอื่นมาผสานตอนเปิดดูร้าน (ดู mergeRemoteReviewsIntoLocal ใน core.js)
    ===================================================================== */
 function sbReviewRowToLocal(row) {
-	return { remoteId: row.id, taste: row.taste, atmosphere: row.atmosphere, service: row.service, text: row.text || "", author: row.author_name, userId: row.user_id, date: row.created_at };
+	return { remoteId: row.id, taste: row.taste, atmosphere: row.atmosphere, service: row.service, text: row.text || "", author: row.author_name, userId: row.user_id, date: row.created_at, images: row.images || [] };
 }
 function sbSubmitReview(shopId, review) {
 	if (!sbClient) return Promise.resolve(null);
@@ -236,6 +264,12 @@ function sbSubmitReview(shopId, review) {
 			console.error("[chimchim] sbSubmitReview error:", res.error.message);
 			return null;
 		}
+		// รูปแนบรีวิว — แยก query ต่างหากจากการ insert รีวิวหลักด้านบนโดยตั้งใจ เพราะคอลัมน์ reviews.images
+		// เป็นของใหม่ (SQL Phase 6) ถ้าใครยังไม่ได้รัน SQL อันนั้น การแนบรูปจะ error เฉย ๆ (จับด้วย catch)
+		// โดยไม่ทำให้การส่งรีวิวหลักที่ทำงานอยู่แล้วพังไปด้วย
+		if (review.images && review.images.length) {
+			Promise.resolve(sbClient.from("reviews").update({ images: review.images }).eq("id", res.data.id)).catch(function() {});
+		}
 		return sbReviewRowToLocal(res.data);
 	}).catch(function() { return null; });
 }
@@ -248,6 +282,11 @@ function sbUpdateReview(remoteId, patch) {
 	if (typeof patch.atmosphere === "number") row.atmosphere = patch.atmosphere;
 	if (typeof patch.service === "number") row.service = patch.service;
 	if (typeof patch.text === "string") row.text = patch.text;
+	// รูปแนบแยก query ต่างหาก (เหตุผลเดียวกับใน sbSubmitReview — คอลัมน์ images เป็นของใหม่ SQL Phase 6)
+	if (patch.images) {
+		Promise.resolve(sbClient.from("reviews").update({ images: patch.images }).eq("id", remoteId)).catch(function() {});
+	}
+	if (!Object.keys(row).length) return Promise.resolve(null);
 	return sbClient.from("reviews").update(row).eq("id", remoteId).then(function(res) {
 		if (res.error) console.error("[chimchim] sbUpdateReview error:", res.error.message);
 	}).catch(function() {});
@@ -282,6 +321,29 @@ function sbSetShopLike(shopId, liked) {
 		? sbClient.from("likes_shops").insert({ user_id: me.id, shop_id: shopId })
 		: sbClient.from("likes_shops").delete().eq("user_id", me.id).eq("shop_id", shopId);
 	return Promise.resolve(query).catch(function() {});
+}
+// บันทึกร้านไว้ดูทีหลัง — ตาราง saved_shops เป็นของใหม่ (SQL Phase 6) .catch() กันพังถ้ายังไม่ได้รัน SQL
+function sbSetShopSave(shopId, saved) {
+	var me = getMe();
+	if (!me || !sbClient) return Promise.resolve();
+	var query = saved
+		? sbClient.from("saved_shops").insert({ user_id: me.id, shop_id: shopId })
+		: sbClient.from("saved_shops").delete().eq("user_id", me.id).eq("shop_id", shopId);
+	return Promise.resolve(query).catch(function() {});
+}
+// ดึงร้านที่บันทึกไว้จาก Supabase มาผสานกับของเครื่องนี้ (รวมกัน ไม่ใช่แทนที่ กันของที่เพิ่งกดไว้ offline หาย)
+function syncSavedShopsWithSupabase(onUpdated) {
+	var me = getMe();
+	if (!me || !sbClient) return;
+	sbClient.from("saved_shops").select("shop_id").eq("user_id", me.id).then(function(res) {
+		if (res.error || !res.data) return;
+		var remote = res.data.map(function(r) { return r.shop_id; });
+		var local = getSavedShops();
+		var merged = local.slice();
+		remote.forEach(function(id) { if (merged.indexOf(id) === -1) merged.push(id); });
+		localStorage.setItem(CHIMCHIM_SAVES_KEY, JSON.stringify(merged));
+		if (typeof onUpdated === "function") onUpdated();
+	}).catch(function() {});
 }
 function sbSetPostLike(postId, liked) {
 	var me = getMe();

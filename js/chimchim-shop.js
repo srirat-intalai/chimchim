@@ -135,6 +135,11 @@
 			hours: hours,
 			promo: promo
 		});
+		if (!shop) {
+			errBox.textContent = t("shop.storageFullError");
+			errBox.classList.add("show");
+			return;
+		}
 		document.getElementById("shopSubmitBtn").innerHTML = '<i class="fas fa-floppy-disk"></i><span>' + t("shop.saveChanges") + "</span>";
 		refreshViewLink(shop);
 		refreshPersonaUI(shop);

@@ -42,7 +42,11 @@
 		var patch = { name: name, bio: document.getElementById("editProfileBio").value.trim() };
 		var avatar = document.getElementById("avatarUrl").value;
 		if (avatar) patch.avatar = avatar;
-		updateMe(patch);
+		if (!updateMe(patch)) {
+			errBox.textContent = t("shop.storageFullError");
+			errBox.classList.add("show");
+			return;
+		}
 		setSession(getMe());
 		if (typeof sbSaveMyProfile === "function") sbSaveMyProfile(patch);
 		if (typeof showToast === "function") showToast(t("settings.profileSavedToast"));

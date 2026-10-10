@@ -153,8 +153,14 @@ function getUsers() {
 		return [];
 	}
 }
+// คืน true/false — รูปโปรไฟล์เก็บเป็น base64 ในนี้ด้วย ถ้าที่เก็บในเบราว์เซอร์เต็มจะ throw ได้เหมือนโพสต์/ร้าน
 function saveUsers(list) {
-	localStorage.setItem(CHIMCHIM_USERS_KEY, JSON.stringify(list));
+	try {
+		localStorage.setItem(CHIMCHIM_USERS_KEY, JSON.stringify(list));
+		return true;
+	} catch (e) {
+		return false;
+	}
 }
 function getSession() {
 	try {
@@ -181,9 +187,10 @@ function getMe() {
 	}
 	return null;
 }
+// คืน true/false เหมือน saveUsers — ผู้เรียกควรเช็คก่อนบอกผู้ใช้ว่า "บันทึกแล้ว"
 function updateMe(patch) {
 	var session = getSession();
-	if (!session) return;
+	if (!session) return false;
 	var users = getUsers();
 	var i;
 	for (i = 0; i < users.length; i++) {
@@ -197,7 +204,7 @@ function updateMe(patch) {
 			break;
 		}
 	}
-	saveUsers(users);
+	return saveUsers(users);
 }
 
 /* --- ย้ายโพสต์/รีวิว/เพจ/ร้านที่เคยสร้างไว้ด้วยบัญชีเก่า (สมัยก่อนมี Supabase Auth เก็บ id แบบ
@@ -413,7 +420,12 @@ function getShops() {
 	}
 }
 function saveShops(list) {
-	localStorage.setItem(CHIMCHIM_SHOPS_KEY, JSON.stringify(list));
+	try {
+		localStorage.setItem(CHIMCHIM_SHOPS_KEY, JSON.stringify(list));
+		return true;
+	} catch (e) {
+		return false;
+	}
 }
 
 // ร้านของฉัน (ผูกกับ vendorId ของบัญชีที่ล็อกอินอยู่) — ใช้บอกว่าจะสร้างร้านใหม่ หรือแก้ไขร้านเดิม
@@ -469,7 +481,9 @@ function createOrUpdateMyShop(data) {
 		shops.push(existing);
 		logEvent("shop_posted", { shopId: existing.numId });
 	}
-	saveShops(shops);
+	// คืน null ถ้าบันทึกไม่สำเร็จ (ที่เก็บในเบราว์เซอร์เต็ม) — ผู้เรียกต้องเช็คก่อนบอกว่าโพสต์ร้านสำเร็จ
+	// (เจอบั๊กเดียวกับโพสต์ชุมชนมาก่อน: setItem() throw เงียบ ๆ แล้วฟอร์มไม่ปิด ดูเหมือนปุ่มกดไม่ติด)
+	if (!saveShops(shops)) return null;
 	return existing;
 }
 // ลบร้านของฉันทิ้งถาวร (กู้คืนไม่ได้) — ลบทั้งในเครื่องนี้และ Supabase จริง โพสต์ในนามร้านนี้ถูกลบตามไปด้วย

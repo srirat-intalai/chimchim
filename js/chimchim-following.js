@@ -55,17 +55,49 @@ function renderCreators() {
 	var searchEmptyMsg = document.getElementById('followingSearchEmpty');
 	var q = currentPeopleSearch.trim().toLowerCase();
 	var listBeforeSearch = list;
+
+	// มีคำค้นหา: ค้นหาคนจริงทุกคนด้วยเสมอ (ไม่ใช่แค่ร้านตัวอย่าง หรือแค่คนที่ติดตามอยู่แล้ว) กันปัญหา
+	// "หาคนไม่เจอทั้งที่ติดตามแล้วหรือยังไม่ได้ติดตาม" — getUsers() คือคนที่เครื่องนี้เคยเห็นมาก่อนเท่านั้น
+	// ส่วนคนที่เครื่องนี้ไม่เคยเห็นเลย ไปค้นหาเพิ่มจาก Supabase จริงด้านล่าง (โผล่มาทีหลังแบบ progressive)
 	if (q) {
+		var existingIds = {};
+		list.forEach(function(p) { existingIds[p.id] = true; });
+		getUsers().forEach(function(u) {
+			if (!u.name || existingIds[u.id]) return;
+			existingIds[u.id] = true;
+			list.push({ id: u.id, name: u.name, color: 'linear-gradient(135deg, var(--dark), #7d6fb0)', sub: '🧑‍🎓 ' + t("common.member") });
+		});
 		list = list.filter(function(p) { return p.name.toLowerCase().indexOf(q) !== -1; });
 	}
 
 	if (emptyMsg) emptyMsg.hidden = !(currentPeopleFilter === 'following' && listBeforeSearch.length === 0);
-	if (searchEmptyMsg) searchEmptyMsg.hidden = !(q && listBeforeSearch.length > 0 && list.length === 0);
+	if (searchEmptyMsg) searchEmptyMsg.hidden = !(q && list.length === 0);
 
 	list.forEach(function(person) {
 		grid.appendChild(buildPersonCard(person));
 	});
 
+	// ค้นหาคนจาก Supabase จริงด้วย (ครอบคลุมทุกคนที่สมัครจริง ไม่ใช่แค่คนที่เครื่องนี้เคยเห็นมาก่อน)
+	// ผลมาทีหลัง (async) เลยต้องเช็คว่าช่องค้นหายังเป็นคำเดิมอยู่ไหมก่อนเอามาต่อท้าย กันพิมพ์เปลี่ยนไปแล้วผลเก่าโผล่มาทับ
+	if (q && q.length >= 2 && typeof sbClient !== "undefined" && sbClient) {
+		var existingIdsForRemote = {};
+		list.forEach(function(p) { existingIdsForRemote[p.id] = true; });
+		sbClient.from("profiles").select("id, name").ilike("name", "%" + currentPeopleSearch.trim() + "%").limit(8).then(function(res) {
+			if (res.error || !res.data || !res.data.length) return;
+			if (currentPeopleSearch.trim().toLowerCase() !== q) return;
+			if (searchEmptyMsg) searchEmptyMsg.hidden = true;
+			res.data.forEach(function(row) {
+				if (existingIdsForRemote[row.id]) return;
+				existingIdsForRemote[row.id] = true;
+				grid.appendChild(buildPersonCard({ id: row.id, name: row.name, color: 'linear-gradient(135deg, var(--dark), #7d6fb0)', sub: '🧑‍🎓 ' + t("common.member") }));
+			});
+			wireFollowButtons();
+		}).catch(function() {});
+	}
+
+	wireFollowButtons();
+
+	function wireFollowButtons() {
 	document.querySelectorAll('.followbtn').forEach(function(btn) {
 		var uid = btn.getAttribute('data-uid');
 		if (isUserFollowed(uid)) {
@@ -81,6 +113,7 @@ function renderCreators() {
 			}
 		});
 	});
+}
 }
 renderCreators();
 // ดึงติดตามจริงจาก Supabase มาผสาน (เผื่อกดติดตามไว้จากเครื่องอื่น) แล้ว re-render ให้ปุ่ม/สถานะตรงของจริง

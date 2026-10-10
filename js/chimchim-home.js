@@ -265,14 +265,19 @@ renderRecommendedRow();
                 people.push({ id: คน.id, name: คน.ชื่อ, sub: t("publicprofile.foodExplorerLevel") + คน.ระดับ, color: คน.สี });
             }
         });
+        // getUsers() เป็นแค่ cache ในเครื่องนี้ (คนที่เคยเห็นมาก่อนเท่านั้น) ไม่ใช่ทุกคนที่สมัครจริง
+        // เลยค้นหาเพิ่มจาก Supabase จริงด้านล่างด้วย (ดู searchPeopleFromSupabase) ผลจะโผล่มาเพิ่มทีหลังแบบ progressive
         getUsers().forEach(function(u) {
             if (u.name && u.name.toLowerCase().indexOf(q) !== -1) {
                 people.push({ id: u.id, name: u.name, sub: "🧑‍🎓 " + t("common.member"), color: "linear-gradient(135deg, var(--dark), #7d6fb0)" });
             }
         });
-        var peopleHtml = people.slice(0, 4).map(function(p) {
-            return '<a class="spitem" href="public-profile.html?u=' + encodeURIComponent(p.id) + '"><div class="spavatar" style="background:' + p.color + ';">' + initials(p.name) + '</div><div><div class="sptit">' + escapeHtml(p.name) + '</div><div class="spsub">' + p.sub + '</div></div></a>';
-        }).join("");
+
+        function buildPeopleHtml(list) {
+            return list.slice(0, 5).map(function(p) {
+                return '<a class="spitem" href="public-profile.html?u=' + encodeURIComponent(p.id) + '"><div class="spavatar" style="background:' + p.color + ';">' + initials(p.name) + '</div><div><div class="sptit">' + escapeHtml(p.name) + '</div><div class="spsub">' + p.sub + '</div></div></a>';
+            }).join("");
+        }
 
         var locMatches = มหาวิทยาลัยทั้งหมด.filter(function(u) {
             return u.toLowerCase().indexOf(q) !== -1;
@@ -284,7 +289,7 @@ renderRecommendedRow();
         var html =
             buildGroup('search.food', foodHtml) +
             buildGroup('search.restaurants', shopHtml) +
-            buildGroup('search.people', peopleHtml) +
+            '<div id="spPeopleGroup">' + buildGroup('search.people', buildPeopleHtml(people)) + '</div>' +
             buildGroup('search.locations', locHtml);
 
         if (!html) {
@@ -299,6 +304,24 @@ renderRecommendedRow();
                 panel.hidden = true;
             });
         });
+
+        // ค้นหาคนจาก Supabase จริงด้วย (ครอบคลุมทุกคนที่สมัครจริง ไม่ใช่แค่คนที่เครื่องนี้เคยเห็นมาก่อน)
+        // ผลมาทีหลัง (async) เลยต้องเช็คว่าช่องค้นหายังเป็นคำเดิมอยู่ไหมก่อนเอามาผสาน กันพิมพ์เปลี่ยนไปแล้วผลเก่าโผล่มาทับ
+        if (typeof sbClient !== "undefined" && sbClient && q.length >= 2) {
+            sbClient.from("profiles").select("id, name").ilike("name", "%" + qRaw.trim() + "%").limit(6).then(function(res) {
+                if (res.error || !res.data || !res.data.length) return;
+                if (input.value.trim().toLowerCase() !== q) return;
+                var existingIds = {};
+                people.forEach(function(p) { existingIds[p.id] = true; });
+                res.data.forEach(function(row) {
+                    if (existingIds[row.id]) return;
+                    existingIds[row.id] = true;
+                    people.push({ id: row.id, name: row.name, sub: "🧑‍🎓 " + t("common.member"), color: "linear-gradient(135deg, var(--dark), #7d6fb0)" });
+                });
+                var groupEl = document.getElementById("spPeopleGroup");
+                if (groupEl) groupEl.innerHTML = buildGroup('search.people', buildPeopleHtml(people));
+            }).catch(function() {});
+        }
     }
 
     input.addEventListener('input', function() {

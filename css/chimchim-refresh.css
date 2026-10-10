@@ -1,0 +1,521 @@
+/* =====================================================================
+   CHIMCHIM REFRESH — ชั้นดีไซน์ใหม่ (คลีน มินิมอล มืออาชีพ แต่มีมิติ)
+   โหลดต่อจาก style.css เฉพาะหน้าแอป (body.appshell) จึง override ได้โดยไม่แตะไฟล์หลัก
+   ถ้าอยากย้อนกลับดีไซน์เดิม แค่ลบ <link> ไฟล์นี้ออกจาก HTML
+   ===================================================================== */
+:root {
+  --rf-bg: #f6f5fa;
+  --rf-surface: #ffffff;
+  --rf-fill: #efedf5; /* พื้นทึบอ่อนสำหรับช่องค้นหา/ปุ่มรอง */
+  --rf-line: rgba(30, 18, 60, 0.07); /* เส้นขอบบางมาก */
+  --rf-ink: #1c1826;
+  --rf-ink-2: #6f6a7b;
+  --rf-brand: #6842b5;
+  --rf-brand-grad: linear-gradient(135deg, #8a63ea 0%, #6842b5 55%, #4e2f97 100%);
+  --rf-brand-tint: #f0ebfc;
+  --rf-glass: rgba(255, 255, 255, 0.78);
+  --rf-radius: 22px;
+  /* เงาซ้อนสองชั้น — ชั้นใกล้คม ชั้นไกลฟุ้ง ให้การ์ดดู "ลอย" อย่างมีมิติแต่ไม่หนัก */
+  --rf-shadow-sm: 0 1px 2px rgba(28, 16, 56, 0.04), 0 4px 14px -6px rgba(60, 30, 120, 0.1);
+  --rf-shadow: 0 1px 2px rgba(28, 16, 56, 0.05), 0 12px 32px -12px rgba(60, 30, 120, 0.18);
+  --rf-shadow-lift: 0 2px 4px rgba(28, 16, 56, 0.06), 0 22px 44px -16px rgba(80, 40, 160, 0.3);
+  --rf-glow: 0 10px 24px -8px rgba(104, 66, 181, 0.55);
+}
+[data-theme="dark"] {
+  --rf-bg: #15131b;
+  --rf-surface: #1e1b26;
+  --rf-fill: #262230;
+  --rf-line: rgba(255, 255, 255, 0.07);
+  --rf-ink: #f5f2fa;
+  --rf-ink-2: #aaa3b8;
+  --rf-brand: #9a7aec;
+  --rf-brand-tint: #2a2440;
+  --rf-glass: rgba(30, 27, 38, 0.78);
+  --rf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px -6px rgba(0, 0, 0, 0.5);
+  --rf-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+  --rf-shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.4), 0 22px 44px -16px rgba(0, 0, 0, 0.7);
+}
+
+/* ---- พื้นหลัง: เทาม่วงอ่อน + แสงม่วงจาง ๆ ด้านบน ให้หน้ามีความลึก ---- */
+body.appshell,
+[data-theme="dark"] body.appshell {
+  background:
+    radial-gradient(120% 360px at 85% -60px, rgba(138, 99, 234, 0.16), transparent 70%),
+    radial-gradient(90% 280px at 0% -40px, rgba(104, 66, 181, 0.08), transparent 70%),
+    var(--rf-bg);
+  background-repeat: no-repeat;
+  color: var(--rf-ink);
+  -webkit-font-smoothing: antialiased;
+}
+@media (min-width: 481px) {
+  body.appshell {
+    background-color: var(--rf-bg);
+  }
+}
+
+/* ---- แถบบน: กระจกฝ้า ไม่มีเงาหนา ---- */
+.apptop,
+[data-theme="dark"] .apptop {
+  background: var(--rf-glass);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  backdrop-filter: saturate(180%) blur(18px);
+  box-shadow: none;
+  border-bottom: 1px solid var(--rf-line);
+  padding: 12px 18px;
+}
+.apptop-logo .aico {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--rf-brand-grad);
+  box-shadow: var(--rf-glow);
+}
+.apptop-logo .anm {
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  color: var(--rf-ink);
+}
+.apptop-logo .anm span {
+  color: var(--rf-brand);
+}
+.apptop-btn {
+  width: 38px;
+  height: 38px;
+  background: var(--rf-surface);
+  color: var(--rf-ink);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow-sm);
+}
+.apptop-btn:hover {
+  background: var(--rf-brand-tint);
+  color: var(--rf-brand);
+}
+#loginBtn.apptop-loginbtn {
+  background: var(--rf-brand-grad);
+  box-shadow: var(--rf-glow);
+  padding: 9px 16px;
+}
+.apptop-avatar {
+  background: var(--rf-brand-grad);
+  box-shadow: 0 0 0 2px var(--rf-surface), 0 0 0 3.5px rgba(104, 66, 181, 0.35);
+}
+
+/* ---- คำทักทายหน้าแรก ---- */
+.homegreet {
+  padding: 6px 2px 16px;
+}
+.homegreet-hi {
+  font-size: 0.85rem;
+  color: var(--rf-ink-2);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.homegreet-hi b {
+  color: var(--rf-brand);
+  font-weight: 700;
+}
+.homegreet-q {
+  font-family: "Google Sans", "Prompt", sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.22;
+  letter-spacing: -0.015em;
+  color: var(--rf-ink);
+  margin: 0;
+}
+.homegreet-q span:last-child {
+  display: block;
+  background: var(--rf-brand-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---- ช่องค้นหา: พื้นทึบอ่อน ไม่มีเงา โฟกัสแล้วค่อยลอยขึ้น ---- */
+.searchwrap,
+[data-theme="dark"] .searchwrap {
+  background: transparent;
+}
+.homesearch {
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  border-radius: 16px;
+  padding: 13px 16px;
+  box-shadow: var(--rf-shadow-sm);
+  color: var(--rf-ink-2);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.homesearch i {
+  color: var(--rf-brand);
+}
+.homesearch:focus-within {
+  border-color: rgba(104, 66, 181, 0.45);
+  box-shadow: 0 0 0 4px rgba(104, 66, 181, 0.12), var(--rf-shadow-sm);
+}
+
+/* ---- แถบหมวดหมู่: ไทล์สี่เหลี่ยมมุมโค้ง ตัวที่เลือกเติมม่วงไล่เฉด + เรืองแสง ---- */
+.trendcatstrip {
+  gap: 10px;
+  padding: 4px 2px 12px;
+}
+.trendcatchip {
+  width: 64px;
+}
+.trendcaticon {
+  width: 60px;
+  height: 60px;
+  border-radius: 20px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow-sm);
+  font-size: 1.55rem;
+  margin-bottom: 7px;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s, background 0.25s;
+}
+.trendcatchip:hover .trendcaticon {
+  transform: translateY(-2px);
+}
+.trendcatchip.active .trendcaticon {
+  background: var(--rf-brand-grad);
+  border-color: transparent;
+  box-shadow: var(--rf-glow);
+  transform: translateY(-2px);
+}
+.trendcatchip span {
+  color: var(--rf-ink-2);
+  font-weight: 600;
+}
+.trendcatchip.active span {
+  color: var(--rf-brand);
+  font-weight: 700;
+}
+
+/* ---- หัวข้อแต่ละส่วน: ใหญ่ หนา ไม่มีไอคอน คำอธิบายเบาลง ---- */
+.rowtitle,
+[data-theme="dark"] .rowtitle {
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--rf-ink);
+  margin-bottom: 4px;
+}
+.rowtitle > i {
+  display: none;
+}
+.rowsub,
+[data-theme="dark"] .rowsub {
+  font-size: 0.76rem;
+  color: var(--rf-ink-2);
+  margin-bottom: 14px;
+}
+
+/* ---- การ์ดร้าน ---- */
+.mcard {
+  background: var(--rf-surface);
+  border-radius: var(--rf-radius);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s;
+}
+.mcard:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--rf-shadow-lift);
+  border-color: var(--rf-line);
+}
+.mcard:hover .mimg img {
+  transform: scale(1.05);
+}
+.mimg {
+  background: var(--rf-fill);
+}
+/* ไล่เงาดำจาง ๆ ล่างภาพ ให้ภาพดูมีความลึกและป้ายบนภาพอ่านง่าย */
+.mimg::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 45%;
+  background: linear-gradient(to top, rgba(15, 8, 30, 0.28), transparent);
+  pointer-events: none;
+}
+.mbody {
+  padding: 14px 16px 16px;
+}
+.mcat {
+  color: var(--rf-ink-2);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.mrestaurant,
+[data-theme="dark"] .mrestaurant {
+  color: var(--rf-brand);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.mtit,
+[data-theme="dark"] .mtit {
+  color: var(--rf-ink);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+.mmeta,
+[data-theme="dark"] .mmeta {
+  color: var(--rf-ink-2);
+  font-size: 0.72rem;
+  margin: 6px 0 0;
+}
+.mmeta span i {
+  color: var(--rf-brand);
+}
+/* ป้าย Match% แบบกระจกฝ้าบนภาพ */
+.mmatch {
+  background: rgba(255, 255, 255, 0.88);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--rf-brand);
+  box-shadow: 0 4px 14px rgba(15, 8, 30, 0.18);
+  font-weight: 800;
+  padding: 5px 11px;
+}
+.mhrt {
+  background: rgba(255, 255, 255, 0.88);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: #8a8496;
+  box-shadow: 0 4px 14px rgba(15, 8, 30, 0.18);
+}
+.mhrt.liked,
+.mhrt:hover {
+  color: #e5487a;
+}
+
+/* ---- การ์ดขออนุญาตตำแหน่ง: โทนม่วงอ่อนให้เข้าพาเลต ---- */
+.locationprompt {
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow-sm);
+  border-radius: 18px;
+}
+.locationprompticon {
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: var(--rf-brand-grad);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  box-shadow: var(--rf-glow);
+}
+.locationprompttit {
+  color: var(--rf-ink);
+}
+.locationpromptdesc {
+  color: var(--rf-ink-2);
+}
+.locationpromptclose {
+  background: var(--rf-fill);
+  color: var(--rf-ink-2);
+}
+
+/* ---- ปุ่มหลัก ---- */
+.btn-red {
+  background: var(--rf-brand-grad);
+  background-size: 100% 100%;
+  box-shadow: var(--rf-glow);
+}
+.btn-red:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -8px rgba(104, 66, 181, 0.6);
+}
+
+/* ---- ฟีดชุมชน ---- */
+.feeditem {
+  background: var(--rf-surface);
+  border-radius: var(--rf-radius);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow);
+  margin-bottom: 18px;
+}
+.feedhead {
+  padding: 14px 16px;
+}
+.feedavatar {
+  box-shadow: 0 0 0 2px var(--rf-surface), 0 0 0 3.5px rgba(104, 66, 181, 0.3);
+}
+.feedname {
+  color: var(--rf-ink);
+  font-weight: 700;
+}
+.feedtime {
+  color: var(--rf-ink-2);
+}
+.feedimgs {
+  margin: 0 10px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.feedactions {
+  padding: 12px 16px 0;
+}
+.feedlikebtn,
+.feedcommentbtn {
+  color: var(--rf-ink-2);
+}
+.feedlikebtn.liked,
+.feedlikebtn.liked i {
+  color: #e5487a;
+}
+.feedcap {
+  padding: 6px 16px 16px;
+}
+.feedcap b {
+  color: var(--rf-ink);
+}
+
+/* ---- แถบล่าง: แคปซูลกระจกลอย ---- */
+.appnav,
+[data-theme="dark"] .appnav {
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  max-width: 456px;
+  padding: 8px 6px;
+  border-radius: 26px;
+  background: var(--rf-glass);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid var(--rf-line);
+  box-shadow: 0 2px 6px rgba(28, 16, 56, 0.06), 0 18px 40px -12px rgba(60, 30, 120, 0.28);
+  align-items: center;
+}
+@media (min-width: 1024px) {
+  .appnav {
+    max-width: 616px;
+  }
+}
+.anitem {
+  color: #a39eae;
+  font-weight: 600;
+  padding: 7px 4px;
+  position: relative;
+}
+.anitem i {
+  font-size: 1.12rem;
+}
+.anitem.active,
+.anitem:hover {
+  color: var(--rf-brand);
+}
+.anitem.active::before {
+  content: "";
+  position: absolute;
+  inset: 2px 14%;
+  border-radius: 14px;
+  background: var(--rf-brand-tint);
+  z-index: -1;
+}
+.ancenter {
+  width: 56px;
+  height: 56px;
+  margin-top: -30px;
+  background: var(--rf-brand-grad);
+  border: 4px solid var(--rf-bg);
+  box-shadow: var(--rf-glow);
+}
+#appToast {
+  bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ---- Match Hero: ตัดพื้นที่ว่างใต้วงกลมออก + ป้ายลอยแบบการ์ดเดียวกับทั้งแอป ---- */
+.matchhero {
+  height: 382px;
+}
+.mhring {
+  background: var(--rf-brand-grad);
+  opacity: 0.22;
+}
+.mhcirclewrap {
+  border: 5px solid var(--rf-surface);
+  box-shadow: var(--rf-shadow-lift);
+}
+.mhbadge {
+  background: var(--rf-glass);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow);
+}
+.mhicon {
+  background: var(--rf-brand-tint);
+}
+.mhbadge b {
+  color: var(--rf-ink);
+}
+
+/* ---- ตัวกรองแบบแคปซูล (หน้า ติดตาม ฯลฯ) ---- */
+.slbl {
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--rf-ink);
+}
+.filtbtn {
+  border: 1px solid var(--rf-line);
+  background: var(--rf-surface);
+  color: var(--rf-ink-2);
+  box-shadow: var(--rf-shadow-sm);
+  padding: 9px 20px;
+}
+.filtbtn.active,
+.filtbtn:hover {
+  background: var(--rf-brand-grad);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: var(--rf-glow);
+}
+
+/* ---- การ์ดร้าน/คน (หน้า ติดตาม) ---- */
+.chcard {
+  background: var(--rf-surface);
+  border-radius: var(--rf-radius);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s;
+}
+.chcard:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--rf-shadow-lift);
+}
+.chbody {
+  padding: 14px 12px 16px;
+}
+.chnm,
+[data-theme="dark"] .chnm {
+  font-size: 0.95rem;
+  color: var(--rf-ink);
+  letter-spacing: -0.005em;
+}
+.chlv {
+  color: var(--rf-ink-2);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.followbtn {
+  border: none;
+  background: var(--rf-brand-tint);
+  color: var(--rf-brand);
+  padding: 8px 20px;
+}
+.followbtn:hover {
+  background: var(--rf-brand-grad);
+  color: #fff;
+}
+.followbtn.following {
+  background: var(--rf-fill);
+  color: var(--rf-ink-2);
+}

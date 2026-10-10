@@ -8,6 +8,21 @@
    แบนเนอร์ขอตำแหน่งที่ตั้ง — โผล่ทันทีตอนเข้าหน้าแรก (แทนที่จะให้ต้องไปกดเองใน Settings)
    ถ้าเคยอนุญาต/เคยกดปิดไปแล้ว ไม่โผล่ซ้ำอีก ใช้ ขอตำแหน่งผู้ใช้() ตัวเดียวกับใน Settings เป๊ะ ๆ
 ----------------------------------------------------- */
+/* -----------------------------------------------------
+   คำทักทายบนสุดหน้าแรก — ล็อกอินแล้วทักด้วยชื่อ (เอาแค่ชื่อแรก) ไม่งั้นทักว่า "นักชิม"
+   ข้อความแปลภาษาอยู่ใน span ที่มี data-i18n อยู่แล้ว เปลี่ยนภาษากลางหน้าก็อัปเดตเองได้
+----------------------------------------------------- */
+(function setupHomeGreeting() {
+	var userEl = document.getElementById("homeGreetUser");
+	if (!userEl) return;
+	var session = getSession();
+	var name = session && session.name ? String(session.name).trim().split(/\s+/)[0] : "";
+	if (!name) return;
+	document.getElementById("homeGreetName").textContent = name;
+	document.getElementById("homeGreetGuest").hidden = true;
+	userEl.hidden = false;
+})();
+
 var CHIMCHIM_LOCATION_PROMPT_DISMISSED_KEY = "chimchim_location_prompt_dismissed";
 (function setupLocationPrompt() {
 	var banner = document.getElementById("locationPrompt");

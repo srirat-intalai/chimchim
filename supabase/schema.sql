@@ -358,3 +358,23 @@ drop policy if exists "saved_shops_insert_own" on public.saved_shops;
 create policy "saved_shops_insert_own" on public.saved_shops for insert with check (auth.uid() = user_id);
 drop policy if exists "saved_shops_delete_own" on public.saved_shops;
 create policy "saved_shops_delete_own" on public.saved_shops for delete using (auth.uid() = user_id);
+
+-- =====================================================================
+-- Phase 7 — แก้ไขคอมเมนต์ของตัวเอง (ลบได้อยู่แล้วจาก comments_delete_own ด้านบน)
+-- =====================================================================
+create policy "comments_update_own" on public.comments for update
+  using (auth.uid() = author_id) with check (auth.uid() = author_id);
+
+-- =====================================================================
+-- Phase 8 — รายงานละเอียดขึ้น: เหตุผลเพิ่ม + รายงานความคิดเห็นได้ + เก็บรายละเอียดที่ผู้ใช้เขียน (คอลัมน์ note มีอยู่แล้ว)
+-- (constraint เดิมตั้งชื่ออัตโนมัติตามรูปแบบ <table>_<column>_check ของ Postgres)
+-- =====================================================================
+alter table public.moderation_reports drop constraint if exists moderation_reports_target_type_check;
+alter table public.moderation_reports add constraint moderation_reports_target_type_check
+  check (target_type in ('post', 'shop', 'comment'));
+alter table public.moderation_reports drop constraint if exists moderation_reports_reason_check;
+alter table public.moderation_reports add constraint moderation_reports_reason_check
+  check (reason in ('spam', 'inappropriate', 'fake', 'harassment', 'hate', 'violence', 'copyright', 'wrong_info', 'other'));
+-- รายละเอียดยาวไม่เกิน 300 ตัวอักษร (เท่ากับที่ช่องเขียนในแอปจำกัดไว้)
+alter table public.moderation_reports drop constraint if exists moderation_reports_note_length;
+alter table public.moderation_reports add constraint moderation_reports_note_length check (char_length(note) <= 300);

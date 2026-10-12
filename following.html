@@ -63,11 +63,13 @@
             </label>
          </div>
          <div class="text-center mb-3 mt-3" data-aos="fade-up">
-            <span class="slbl" id="peopleSectionLbl" data-i18n="following.topReviewers">ร้านใกล้ ม.กรุงเทพ</span>
+            <span class="slbl" id="peopleSectionLbl" data-i18n="following.allTitle">ร้านและนักชิม</span>
          </div>
-         <div class="filtbtnrow text-center mb-3" data-aos="fade-up">
-            <button type="button" class="filtbtn active" id="peopleFilterAll" data-i18n="following.allPeople">ทั้งหมด</button>
-            <button type="button" class="filtbtn" id="peopleFilterFollowing" data-i18n="following.onlyFollowing">ที่ติดตามแล้ว</button>
+         <div class="filtbtnrow ffilterrow mb-3" data-aos="fade-up">
+            <button type="button" class="filtbtn active" data-filter="all" data-i18n="following.allPeople">ทั้งหมด</button>
+            <button type="button" class="filtbtn" data-filter="shops" data-i18n="following.restaurants">ร้านอาหาร</button>
+            <button type="button" class="filtbtn" data-filter="people" data-i18n="following.foodies">นักชิม</button>
+            <button type="button" class="filtbtn" data-filter="following" data-i18n="following.onlyFollowing">ที่ติดตามแล้ว</button>
          </div>
          <p class="sdesc text-center mb-3" style="font-size:.8rem;" data-i18n="following.tapToView">กดรูปเพื่อดูโปรไฟล์และดูโพสต์ของแต่ละคนได้เลย</p>
          <div class="row g-3" id="creatorGrid" data-aos="fade-up"></div>

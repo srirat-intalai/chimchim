@@ -298,6 +298,14 @@ function getActivePostingPage() {
 	return getMyShop();
 }
 
+function closeAllPostMenus() {
+	document.querySelectorAll("#myPostGrid .ppostmenu").forEach(function(m) { m.remove(); });
+	document.querySelectorAll("#myPostGrid .ppost.menuopen").forEach(function(el) { el.classList.remove("menuopen"); });
+}
+// แตะที่อื่นนอกเมนู ⋯ ของโพสต์ = ปิดเมนู
+document.addEventListener("click", function(e) {
+	if (!e.target.closest || !e.target.closest(".ppost")) closeAllPostMenus();
+});
 function renderMyPosts() {
 	var grid = document.getElementById("myPostGrid");
 	var emptyMsg = document.getElementById("myPostEmpty");
@@ -334,19 +342,49 @@ function renderMyPosts() {
 			'<img src="' + images[0] + '" alt=""/>' +
 			(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
 			'<div class="ppostcap">' + escapeHtml(p.caption) + '</div>' +
-			'<button class="ppostedit" data-id="' + p.id + '" title="' + t("common.editPost") + '"><i class="fas fa-pen"></i></button>' +
-			'<button class="ppostdel" data-id="' + p.id + '" title="' + t("common.deletePost") + '"><i class="fas fa-times"></i></button>';
+			// ปุ่ม ⋯ มุมขวาบนปุ่มเดียว รวม แก้ไข/ลบ ไว้ในเมนู (เดิมเป็นปุ่มดินสอ + ✕ แยกกัน และ ✕ ลบทันทีไม่ถามก่อน)
+			'<button type="button" class="ppostmore" aria-label="' + t("profile.postOptions") + '"><i class="fas fa-ellipsis"></i></button>';
 		el.addEventListener("click", function() {
-			openPostView({ id: p.id, images: images, caption: p.caption, posterName: posterName, posterColor: posterColor });
+			if (el.querySelector(".ppostmenu")) {
+				closeAllPostMenus();
+				return;
+			}
+			openPostView({ id: p.id, images: images, caption: p.caption, posterName: posterName, posterColor: posterColor, posterId: p.userId });
 		});
-		el.querySelector(".ppostedit").addEventListener("click", function(e) {
+		el.querySelector(".ppostmore").addEventListener("click", function(e) {
 			e.stopPropagation();
-			startEditingPost(p);
-		});
-		el.querySelector(".ppostdel").addEventListener("click", function(e) {
-			e.stopPropagation();
-			deletePost(this.getAttribute("data-id"));
-			renderMyPosts();
+			var open = el.querySelector(".ppostmenu");
+			closeAllPostMenus();
+			if (open) return;
+			var menu = document.createElement("div");
+			menu.className = "ppostmenu";
+			menu.innerHTML =
+				'<button type="button" data-act="edit"><i class="fas fa-pen"></i>' + t("common.editPost") + "</button>" +
+				'<button type="button" data-act="delete" class="danger"><i class="fas fa-trash-can"></i>' + t("common.deletePost") + "</button>";
+			menu.addEventListener("click", function(ev) {
+				ev.stopPropagation();
+				var btn = ev.target.closest("button");
+				if (!btn) return;
+				closeAllPostMenus();
+				if (btn.getAttribute("data-act") === "edit") {
+					startEditingPost(p);
+				} else {
+					// หน้าต่างยืนยันก่อนลบ — โชว์รูปปก + แคปชั่นของโพสต์นั้น ให้แน่ใจว่ากำลังลบโพสต์ที่ถูกอัน
+					showConfirmDialog({
+						title: t("profile.deletePostTitle"),
+						message: (p.caption ? "“" + p.caption + "” — " : "") + t("profile.confirmDeletePost"),
+						confirmText: t("common.deletePost"),
+						image: images[0]
+					}).then(function(yes) {
+						if (!yes) return;
+						deletePost(p.id);
+						renderMyPosts();
+						showToast(t("profile.postDeletedToast"));
+					});
+				}
+			});
+			el.appendChild(menu);
+			el.classList.add("menuopen");
 		});
 		grid.appendChild(el);
 	});

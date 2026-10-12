@@ -1431,6 +1431,7 @@ function getFeedItems() {
 			posterAvatarUrl: shop ? shop.img : (p.userAvatar || null),
 			posterColor: shop ? "var(--cream2)" : "linear-gradient(135deg, var(--dark), #8b68e0)",
 			posterLink: shop ? ("restaurant.html?id=" + shop.numId) : ("public-profile.html?u=" + p.userId),
+			userId: p.userId || null,
 			cat: shop ? shop.cat : null
 		};
 	});
@@ -1483,10 +1484,86 @@ function addComment(postId, author, text) {
 		all = {};
 	}
 	if (!all[postId]) all[postId] = [];
-	all[postId].push({ id: "cmt" + Date.now(), author: author, text: text, date: new Date().toISOString() });
+	// เก็บ userId ไว้ด้วยเพื่อรู้ว่าคอมเมนต์ไหนเป็นของเรา (โชว์เมนูแก้ไข/ลบ) และ pending = ยังไม่ได้ remoteId จาก Supabase
+	var session = getSession();
+	var localId = "cmtL" + Date.now() + Math.random().toString(36).slice(2, 6);
+	all[postId].push({ id: localId, author: author, text: text, date: new Date().toISOString(), userId: session ? session.id : null, pending: true });
 	localStorage.setItem(CHIMCHIM_COMMENTS_KEY, JSON.stringify(all));
 	// คอมเมนต์ได้จริงข้ามเครื่องเฉพาะโพสต์ที่ sync ขึ้น Supabase แล้ว (id เป็นตัวเลขจริง ไม่ใช่ "post"+timestamp ชั่วคราว)
-	if (typeof sbAddComment === "function") sbAddComment(postId, author, text);
+	if (typeof sbAddComment !== "function") return Promise.resolve(null);
+	return sbAddComment(postId, author, text).then(function(row) {
+		if (row) tagCommentRemoteId(postId, localId, row.id);
+		return row;
+	});
+}
+// คอมเมนต์ที่ผู้ใช้กดลบไปก่อน push ขึ้น Supabase เสร็จ — พอได้ id จริงกลับมาแล้วต้องตามไปลบแถวนั้นทิ้งด้วย
+var __deletedPendingComments = {};
+function tagCommentRemoteId(postId, localId, remoteId) {
+	if (__deletedPendingComments[localId]) {
+		delete __deletedPendingComments[localId];
+		if (typeof sbDeleteComment === "function") sbDeleteComment(remoteId);
+		return;
+	}
+	var all;
+	try {
+		all = JSON.parse(localStorage.getItem(CHIMCHIM_COMMENTS_KEY)) || {};
+	} catch (e) {
+		return;
+	}
+	(all[postId] || []).forEach(function(c) {
+		if (c.id === localId) {
+			c.id = "cmt" + remoteId;
+			c.remoteId = remoteId;
+			delete c.pending;
+		}
+	});
+	localStorage.setItem(CHIMCHIM_COMMENTS_KEY, JSON.stringify(all));
+}
+function saveCommentsOfPost(postId, list) {
+	var all;
+	try {
+		all = JSON.parse(localStorage.getItem(CHIMCHIM_COMMENTS_KEY)) || {};
+	} catch (e) {
+		all = {};
+	}
+	all[postId] = list;
+	localStorage.setItem(CHIMCHIM_COMMENTS_KEY, JSON.stringify(all));
+}
+// แก้ข้อความคอมเมนต์ของตัวเอง — อัปเดตในเครื่องทันที แล้วยืนยันกับ Supabase ถ้าไม่สำเร็จ (เช่น โดน RLS บล็อก)
+// คืนข้อความเดิมกลับให้ ไม่ปล่อยให้ผู้ใช้เข้าใจผิดว่าแก้แล้ว — คืน Promise<boolean>
+function updateComment(postId, commentId, newText) {
+	var list = getComments(postId);
+	var target = list.filter(function(c) { return c.id === commentId; })[0];
+	if (!target || !target.remoteId) return Promise.resolve(false);
+	var oldText = target.text;
+	target.text = newText;
+	saveCommentsOfPost(postId, list);
+	if (typeof sbUpdateComment !== "function") return Promise.resolve(true);
+	return sbUpdateComment(target.remoteId, newText).then(function(ok) {
+		if (!ok) {
+			var again = getComments(postId);
+			again.forEach(function(c) { if (c.id === commentId) c.text = oldText; });
+			saveCommentsOfPost(postId, again);
+		}
+		return ok;
+	});
+}
+// ลบคอมเมนต์ของตัวเอง — ถ้ายัง pending (ยังไม่ได้ id จริง) จดไว้ให้ tagCommentRemoteId ตามไปลบบน Supabase ทีหลัง
+// คืน Promise<boolean> (false = Supabase ไม่ยอมลบ ผู้เรียกควร sync ใหม่เพื่อดึงคอมเมนต์กลับมาแสดง)
+function deleteComment(postId, commentId) {
+	var list = getComments(postId);
+	var target = list.filter(function(c) { return c.id === commentId; })[0];
+	if (!target) return Promise.resolve(true);
+	saveCommentsOfPost(postId, list.filter(function(c) { return c.id !== commentId; }));
+	if (CHIMCHIM_REAL_COMMENT_COUNTS.hasOwnProperty(postId)) {
+		CHIMCHIM_REAL_COMMENT_COUNTS[postId] = Math.max(0, CHIMCHIM_REAL_COMMENT_COUNTS[postId] - 1);
+	}
+	if (!target.remoteId) {
+		__deletedPendingComments[commentId] = true;
+		return Promise.resolve(true);
+	}
+	if (typeof sbDeleteComment !== "function") return Promise.resolve(true);
+	return sbDeleteComment(target.remoteId);
 }
 // แทนที่คอมเมนต์ทั้งหมดของโพสต์นี้ด้วยของจริงจาก Supabase (เรียกหลัง sync — โพสต์ที่มี remoteId แล้วเท่านั้น
 // ที่คอมเมนต์ขึ้น Supabase ได้จริง ปลอดภัยที่จะแทนที่ทั้งชุดเพราะทุกคอมเมนต์ต้องผ่าน sbAddComment มาแล้วเสมอ)
@@ -1497,7 +1574,12 @@ function replaceLocalComments(postId, comments) {
 	} catch (e) {
 		all = {};
 	}
-	all[postId] = comments;
+	// คอมเมนต์ที่เพิ่งพิมพ์แต่ยัง push ไม่เสร็จ (pending) ยังไม่อยู่ในชุดจาก Supabase — เก็บไว้ต่อท้าย ไม่งั้นมันหายวูบ
+	// ข้ามอันที่ชุดจริงมีแล้ว (ผู้เขียน+ข้อความตรงกัน) กันโผล่ซ้ำ
+	var pending = (all[postId] || []).filter(function(c) {
+		return c.pending && !comments.some(function(r) { return r.userId === c.userId && r.text === c.text; });
+	});
+	all[postId] = comments.concat(pending);
 	localStorage.setItem(CHIMCHIM_COMMENTS_KEY, JSON.stringify(all));
 }
 
@@ -1564,7 +1646,9 @@ function getReports() {
 function saveReports(list) {
 	localStorage.setItem(CHIMCHIM_REPORTS_KEY, JSON.stringify(list));
 }
-function reportContent(targetType, targetId, reason) {
+// note = รายละเอียดที่ผู้ใช้พิมพ์เอง (บังคับเมื่อเลือก "อื่น ๆ" นอกนั้นไม่บังคับ)
+// remoteTargetId = id จริงบน Supabase (ใช้กับคอมเมนต์ ที่ id ในเครื่องเป็น "cmt123" ไม่ใช่ตัวเลข)
+function reportContent(targetType, targetId, reason, note, remoteTargetId) {
 	var session = getSession();
 	var reports = getReports();
 	reports.push({
@@ -1572,6 +1656,7 @@ function reportContent(targetType, targetId, reason) {
 		targetId: String(targetId),
 		reporterId: session ? session.id : null,
 		reason: reason,
+		note: note || "",
 		date: new Date().toISOString()
 	});
 	saveReports(reports);
@@ -1580,7 +1665,7 @@ function reportContent(targetType, targetId, reason) {
 	// (ไม่งั้นนับแค่รายงานในเครื่องนี้เครื่องเดียว ซึ่งแทบไม่มีทางถึงเกณฑ์จริง) ตาราง moderation_reports อ่านกลับไม่ได้
 	// (insert-only ตาม RLS) แต่ trigger check_report_threshold() ฝั่ง Supabase จะเซ็ต is_hidden ให้เองอัตโนมัติ
 	// แล้ว sbFetchCommunityShops/sbFetchAllPosts ที่กรอง is_hidden=false อยู่แล้วจะไม่ดึงเนื้อหานั้นมาอีกทุกเครื่อง
-	if (typeof sbReportContent === "function") sbReportContent(targetType, targetId, reason);
+	if (typeof sbReportContent === "function") sbReportContent(targetType, remoteTargetId != null ? remoteTargetId : targetId, reason, note || "");
 }
 function getReportCount(targetType, targetId) {
 	var id = String(targetId);
@@ -1596,60 +1681,140 @@ function hasUserReported(targetType, targetId) {
 	return getReports().some(function(r) { return r.targetType === targetType && r.targetId === id && r.reporterId === session.id; });
 }
 
-/* --- ป็อปอัพเลือกเหตุผลรายงาน ใช้ร่วมกันได้ทุกหน้า (สร้าง DOM เองเหมือน postViewModal) ---
-   เรียกใช้ผ่าน window.openReportPopup(targetType, targetId, onReported) --- */
+/* --- ป็อปอัพรายงาน ใช้ร่วมกันได้ทุกหน้า (สร้าง DOM เองเหมือน postViewModal) ---
+   เลือกเหตุผลจากการ์ดที่แตะง่าย + ช่องเขียนรายละเอียด (บังคับเฉพาะ "อื่น ๆ") แล้วกดส่ง
+   เรียกใช้ผ่าน window.openReportPopup(targetType, targetId, onReported, opts)
+   targetType: "post" | "comment" | "shop"   opts.remoteId: id จริงบน Supabase (ใช้กับคอมเมนต์) --- */
+var REPORT_REASONS = {
+	spam: { icon: "bullhorn", label: "report.reasonSpam" },
+	inappropriate: { icon: "eye-slash", label: "report.reasonInappropriate" },
+	fake: { icon: "circle-exclamation", label: "report.reasonFake" },
+	harassment: { icon: "hand", label: "report.reasonHarassment" },
+	hate: { icon: "comment-slash", label: "report.reasonHate" },
+	violence: { icon: "triangle-exclamation", label: "report.reasonViolence" },
+	copyright: { icon: "copyright", label: "report.reasonCopyright" },
+	wrong_info: { icon: "store-slash", label: "report.reasonWrongInfo" },
+	other: { icon: "pen", label: "report.reasonOther" }
+};
+// แต่ละประเภทเนื้อหามีชุดเหตุผลที่เข้ากับมัน (เช่น "ข้อมูลร้านไม่ถูกต้อง" มีแค่ตอนรายงานร้าน)
+var REPORT_REASONS_BY_TYPE = {
+	post: ["spam", "inappropriate", "fake", "harassment", "hate", "violence", "copyright", "other"],
+	comment: ["spam", "harassment", "hate", "inappropriate", "fake", "other"],
+	shop: ["wrong_info", "fake", "spam", "inappropriate", "copyright", "other"]
+};
+var REPORT_NOTE_MAX = 300;
 (function setupReportPopup() {
 	var modal = document.createElement("div");
 	modal.id = "reportPopModal";
-	var reasons = [
-		["spam", "report.reasonSpam"],
-		["inappropriate", "report.reasonInappropriate"],
-		["fake", "report.reasonFake"],
-		["other", "report.reasonOther"]
-	];
 	modal.innerHTML =
-		'<div class="apbox" style="max-width:340px;padding:26px 24px 22px;">' +
-			'<button class="apclose" id="reportPopClose"><i class="fas fa-times"></i></button>' +
-			'<h4 class="sptitle2">' + t("report.title") + '</h4>' +
-			'<p class="rowsub" style="margin:2px 0 14px;">' + t("report.hint") + '</p>' +
-			'<div class="reportreasonlist">' +
-				reasons.map(function(r) {
-					return '<button type="button" class="rdghost" style="width:100%;margin-bottom:8px;" data-reason="' + r[0] + '">' + t(r[1]) + '</button>';
-				}).join("") +
-			'</div>' +
-		'</div>';
+		'<div class="apbox rpbox">' +
+			'<button class="apclose" id="reportPopClose" type="button"><i class="fas fa-times"></i></button>' +
+			'<div class="rphead"><span class="rpheadicon"><i class="fas fa-flag"></i></span><h4 class="rptitle" id="reportPopTitle"></h4></div>' +
+			'<p class="rpsub" id="reportPopHint"></p>' +
+			'<div class="rpreasons" id="reportReasonList" role="radiogroup"></div>' +
+			'<label class="rpnotelbl" for="reportNote"><span id="reportNoteLbl"></span><span class="rpnotecount" id="reportNoteCount"></span></label>' +
+			'<textarea class="rpnote" id="reportNote" rows="3" maxlength="' + REPORT_NOTE_MAX + '"></textarea>' +
+			'<p class="rperr" id="reportErr" hidden></p>' +
+			'<button type="button" class="rpsubmit" id="reportSubmit" disabled><i class="fas fa-paper-plane"></i><span></span></button>' +
+		"</div>";
 	document.body.appendChild(modal);
 
+	var listEl = modal.querySelector("#reportReasonList");
+	var noteEl = modal.querySelector("#reportNote");
+	var noteLbl = modal.querySelector("#reportNoteLbl");
+	var noteCount = modal.querySelector("#reportNoteCount");
+	var submitBtn = modal.querySelector("#reportSubmit");
+	var errEl = modal.querySelector("#reportErr");
 	var currentTarget = null;
 	var currentCallback = null;
+	var selectedReason = null;
 
 	function closeReportPopup() {
 		modal.classList.remove("open");
 		document.body.style.overflow = "";
+		currentTarget = null;
+		currentCallback = null;
 	}
-	document.getElementById("reportPopClose").addEventListener("click", closeReportPopup);
+	// ปุ่มส่งกดได้เมื่อเลือกเหตุผลแล้ว (และถ้าเลือก "อื่น ๆ" ต้องเขียนรายละเอียดด้วย)
+	function refreshSubmitState() {
+		var needNote = selectedReason === "other";
+		var hasNote = noteEl.value.trim().length > 0;
+		submitBtn.disabled = !selectedReason || (needNote && !hasNote);
+		noteLbl.textContent = t(needNote ? "report.noteLabelRequired" : "report.noteLabel");
+		noteEl.placeholder = t(needNote ? "report.notePlaceholderOther" : "report.notePlaceholder");
+		noteCount.textContent = noteEl.value.length + "/" + REPORT_NOTE_MAX;
+		modal.classList.toggle("rp-needs-note", needNote);
+	}
+	function renderReasons(type) {
+		var keys = REPORT_REASONS_BY_TYPE[type] || REPORT_REASONS_BY_TYPE.post;
+		listEl.innerHTML = keys.map(function(key) {
+			var r = REPORT_REASONS[key];
+			return '<button type="button" class="rpreason" role="radio" aria-checked="false" data-reason="' + key + '">' +
+				'<i class="fas fa-' + r.icon + '"></i><span>' + t(r.label) + '</span></button>';
+		}).join("");
+	}
+	listEl.addEventListener("click", function(e) {
+		var btn = e.target.closest(".rpreason");
+		if (!btn) return;
+		selectedReason = btn.getAttribute("data-reason");
+		listEl.querySelectorAll(".rpreason").forEach(function(b) {
+			var on = b === btn;
+			b.classList.toggle("selected", on);
+			b.setAttribute("aria-checked", on ? "true" : "false");
+		});
+		errEl.hidden = true;
+		refreshSubmitState();
+		// เลือก "อื่น ๆ" แล้วพาไปที่ช่องเขียนเลย จะได้รู้ว่าต้องพิมพ์ต่อ
+		if (selectedReason === "other") noteEl.focus();
+	});
+	noteEl.addEventListener("input", function() {
+		errEl.hidden = true;
+		refreshSubmitState();
+	});
+	modal.querySelector("#reportPopClose").addEventListener("click", closeReportPopup);
 	modal.addEventListener("click", function(e) {
 		if (e.target === modal) closeReportPopup();
 	});
-	modal.querySelectorAll("[data-reason]").forEach(function(btn) {
-		btn.addEventListener("click", function() {
-			if (!currentTarget) return;
-			reportContent(currentTarget.type, currentTarget.id, this.getAttribute("data-reason"));
+	document.addEventListener("keydown", function(e) {
+		if (e.key === "Escape" && modal.classList.contains("open")) {
+			e.stopPropagation();
 			closeReportPopup();
-			if (typeof showToast === "function") showToast(t("report.thanks"));
-			if (currentCallback) currentCallback();
-			currentTarget = null;
-			currentCallback = null;
-		});
+		}
+	}, true);
+	submitBtn.addEventListener("click", function() {
+		if (!currentTarget || !selectedReason) return;
+		var note = noteEl.value.trim();
+		if (selectedReason === "other" && !note) {
+			errEl.textContent = t("report.noteRequiredErr");
+			errEl.hidden = false;
+			noteEl.focus();
+			return;
+		}
+		var target = currentTarget;
+		var cb = currentCallback;
+		reportContent(target.type, target.id, selectedReason, note, target.remoteId);
+		closeReportPopup();
+		if (typeof showToast === "function") showToast(t("report.thanks"));
+		if (cb) cb();
 	});
 
-	window.openReportPopup = function(targetType, targetId, onReported) {
+	window.openReportPopup = function(targetType, targetId, onReported, opts) {
+		// ต้องล็อกอินก่อน (รายงานบน Supabase ผูกกับผู้ใช้ — กันคนเดียวรายงานซ้ำ ๆ จนเนื้อหาโดนซ่อน)
+		if (typeof ต้องล็อกอินก่อนไหม === "function" && ต้องล็อกอินก่อนไหม()) return;
 		if (hasUserReported(targetType, targetId)) {
 			if (typeof showToast === "function") showToast(t("report.alreadyReported"));
 			return;
 		}
-		currentTarget = { type: targetType, id: targetId };
+		currentTarget = { type: targetType, id: targetId, remoteId: opts && opts.remoteId != null ? opts.remoteId : null };
 		currentCallback = onReported;
+		selectedReason = null;
+		noteEl.value = "";
+		errEl.hidden = true;
+		modal.querySelector("#reportPopTitle").textContent = t("report.title_" + targetType) || t("report.title");
+		modal.querySelector("#reportPopHint").textContent = t("report.hint");
+		modal.querySelector("#reportSubmit span").textContent = t("report.submit");
+		renderReasons(targetType);
+		refreshSubmitState();
 		modal.classList.add("open");
 		document.body.style.overflow = "hidden";
 	};

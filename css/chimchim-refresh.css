@@ -1204,6 +1204,622 @@ body.appshell,
   cursor: pointer;
 }
 
+/* ---- คอมเมนต์ใต้โพสต์: ปุ่ม ⋯ + เมนูแก้ไข/ลบ + ช่องแก้ไขในแถว (เฉพาะคอมเมนต์ของตัวเอง) ---- */
+.pvcommentrow {
+  margin-bottom: 6px;
+}
+.pvcommentmain {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  border-radius: 12px;
+  padding: 4px 6px;
+  margin: 0 -6px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.pvcommentrow:not(.mine) .pvcommentmain {
+  -webkit-user-select: text;
+  user-select: text;
+}
+.pvcommentrow.mine .pvcommentmain:active {
+  background: var(--rf-fill);
+}
+.pvcommenttxt {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+.pvcommentmore {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  margin: -3px -4px -3px 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--rf-ink-2);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pvcommentmore:hover {
+  background: var(--rf-fill);
+  color: var(--rf-ink);
+}
+.pvcommentmenu {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px 0 4px;
+  animation: pvMenuIn 0.16s ease;
+}
+@keyframes pvMenuIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+.pvcommentmenu button,
+.pvcommenteditbtns button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--rf-fill);
+  color: var(--rf-ink);
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-family: "Google Sans", "Prompt", sans-serif;
+  cursor: pointer;
+}
+.pvcommentmenu button.danger {
+  background: #fdecef;
+  color: #d23f5c;
+}
+[data-theme="dark"] .pvcommentmenu button.danger {
+  background: rgba(229, 72, 122, 0.16);
+  color: #ff8aa6;
+}
+.pvcommentedit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 0 6px;
+}
+.pvcommentedit input {
+  width: 100%;
+  border: 1px solid rgba(104, 66, 181, 0.35);
+  background: var(--rf-surface);
+  border-radius: 14px;
+  padding: 9px 12px;
+  font-size: 0.8rem;
+  font-family: "Google Sans", "Prompt", sans-serif;
+  color: var(--rf-ink);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(104, 66, 181, 0.1);
+}
+.pvcommenteditbtns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.pvcommenteditbtns button.primary {
+  background: var(--rf-brand-grad);
+  color: #fff;
+}
+.pvcommenteditbtns button:disabled {
+  opacity: 0.6;
+}
+
+/* ---- โพสต์ของฉันในหน้าโปรไฟล์: ปุ่ม ⋯ มุมขวาบน + เมนู แก้ไข/ลบ ---- */
+.ppostmulti {
+  right: auto;
+  left: 7px;
+  top: 7px;
+}
+.ppostmore {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 3;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(20, 12, 36, 0.45);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+/* ตอนเปิดเมนู ให้เมนูล้นออกนอกกรอบรูปได้ (ปกติ .ppost ตัดขอบไว้ เมนูเลยโดนตัดครึ่ง) แล้วลอยอยู่เหนือรูปข้าง ๆ */
+.ppost.menuopen {
+  overflow: visible;
+  z-index: 5;
+}
+.ppost.menuopen img {
+  border-radius: 2px;
+  transform: none;
+}
+.ppostmenu {
+  min-width: 130px;
+  left: auto !important;
+  position: absolute;
+  top: 38px;
+  right: 5px;
+  left: 5px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--rf-surface);
+  box-shadow: 0 10px 28px -6px rgba(15, 8, 30, 0.4);
+  animation: pvMenuIn 0.16s ease;
+  cursor: default;
+}
+.ppostmenu button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 8px 9px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--rf-ink);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: "Google Sans", "Prompt", sans-serif;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ppostmenu button:hover {
+  background: var(--rf-fill);
+}
+.ppostmenu button.danger {
+  color: #d23f5c;
+}
+[data-theme="dark"] .ppostmenu button.danger {
+  color: #ff8aa6;
+}
+
+/* ---- หน้าต่างยืนยันของแอป (showConfirmDialog) — ใช้ก่อนลบโพสต์/ความคิดเห็น/รีวิว ---- */
+.ccdialog {
+  position: fixed;
+  inset: 0;
+  z-index: 100001; /* เหนือหน้าดูโพสต์ (#postViewModal = 99999) เพราะลบความคิดเห็นจากในนั้น */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 8, 30, 0);
+  -webkit-backdrop-filter: blur(0);
+  backdrop-filter: blur(0);
+  transition: background 0.18s, backdrop-filter 0.18s;
+}
+.ccdialog.open {
+  background: rgba(15, 8, 30, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.ccdialog-box {
+  width: 100%;
+  max-width: 340px;
+  padding: 26px 22px 20px;
+  border-radius: 28px;
+  background: var(--rf-surface);
+  box-shadow: 0 30px 60px -18px rgba(15, 8, 30, 0.55);
+  text-align: center;
+  opacity: 0;
+  transform: translateY(14px) scale(0.96);
+  transition: opacity 0.18s, transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ccdialog.open .ccdialog-box {
+  opacity: 1;
+  transform: none;
+}
+.ccdialog-icon {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fdecef;
+  color: #d23f5c;
+  font-size: 1.4rem;
+}
+[data-theme="dark"] .ccdialog-icon {
+  background: rgba(229, 72, 122, 0.16);
+  color: #ff8aa6;
+}
+.ccdialog-thumb {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 16px;
+}
+.ccdialog-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 22px;
+  box-shadow: var(--rf-shadow);
+}
+.ccdialog-thumb span {
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e5487a;
+  color: #fff;
+  font-size: 0.85rem;
+  border: 3px solid var(--rf-surface);
+}
+.ccdialog-title {
+  font-family: "Google Sans", "Prompt", sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--rf-ink);
+  margin: 0 0 6px;
+}
+.ccdialog-msg {
+  font-size: 0.84rem;
+  color: var(--rf-ink-2);
+  line-height: 1.55;
+  margin: 0 0 20px;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ccdialog-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ccdialog-btns button {
+  height: 48px;
+  border: none;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-family: "Google Sans", "Prompt", sans-serif;
+  cursor: pointer;
+  transition: transform 0.15s, filter 0.15s;
+}
+.ccdialog-btns button:active {
+  transform: scale(0.97);
+}
+.ccdialog-ok {
+  background: linear-gradient(135deg, #f0607f, #d23f5c);
+  color: #fff;
+  box-shadow: 0 10px 22px -8px rgba(210, 63, 92, 0.6);
+}
+.ccdialog-ok:hover {
+  filter: brightness(1.05);
+}
+.ccdialog-cancel {
+  background: var(--rf-fill);
+  color: var(--rf-ink);
+}
+/* toast ต้องอยู่เหนือหน้าดูโพสต์/หน้าต่างยืนยัน ไม่งั้นข้อความ "ลบแล้ว" ที่เด้งจากในนั้นโดนบังมองไม่เห็น */
+#appToast {
+  z-index: 100002;
+}
+
+/* ---- หน้าติดตาม: ตัวกรอง 4 อันเลื่อนแนวนอนได้ + หัวข้อหมวด (นักชิม / ร้านอาหาร) ---- */
+.ffilterrow {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 10px;
+  scrollbar-width: none;
+  justify-content: flex-start;
+}
+.ffilterrow::-webkit-scrollbar {
+  display: none;
+}
+.ffilterrow .filtbtn {
+  flex-shrink: 0;
+  margin: 0;
+  white-space: nowrap;
+  padding: 8px 14px;
+  font-size: 0.8rem;
+}
+.fsechead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 2px -4px;
+}
+.fsechead span {
+  font-family: "Google Sans", "Prompt", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--rf-ink);
+}
+.fsechead b {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--rf-brand);
+  background: var(--rf-brand-tint);
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+.fsechead b:empty {
+  display: none;
+}
+.fgridnote {
+  margin: 0;
+  padding: 18px 12px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--rf-ink-2);
+  background: var(--rf-surface);
+  border: 1px dashed var(--rf-line);
+  border-radius: 18px;
+}
+.fseemore {
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--rf-line);
+  border-radius: 999px;
+  background: var(--rf-surface);
+  color: var(--rf-brand);
+  font-weight: 700;
+  font-size: 0.84rem;
+  font-family: "Google Sans", "Prompt", sans-serif;
+  box-shadow: var(--rf-shadow-sm);
+  cursor: pointer;
+}
+
+/* ---- หน้ารายงาน: การ์ดเหตุผลแตะง่าย + ช่องเขียนรายละเอียด + ปุ่มส่ง ---- */
+#reportPopModal .rpbox {
+  max-width: 380px;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: 24px 20px 20px;
+  border-radius: 28px;
+  background: var(--rf-surface);
+  text-align: left;
+}
+.rphead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  padding-right: 34px;
+}
+.rpheadicon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fdecef;
+  color: #d23f5c;
+  font-size: 0.9rem;
+}
+[data-theme="dark"] .rpheadicon {
+  background: rgba(229, 72, 122, 0.16);
+  color: #ff8aa6;
+}
+.rptitle {
+  font-family: "Google Sans", "Prompt", sans-serif;
+  font-size: 1.12rem;
+  font-weight: 800;
+  color: var(--rf-ink);
+  margin: 0;
+}
+.rpsub {
+  font-size: 0.8rem;
+  color: var(--rf-ink-2);
+  margin: 6px 0 14px;
+}
+.rpreasons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.rpreason {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1.5px solid var(--rf-line);
+  border-radius: 16px;
+  background: var(--rf-surface);
+  color: var(--rf-ink);
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.3;
+  font-family: "Google Sans", "Prompt", sans-serif;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.rpreason i {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rf-fill);
+  color: var(--rf-ink-2);
+  font-size: 0.78rem;
+}
+.rpreason:active {
+  transform: scale(0.97);
+}
+.rpreason.selected {
+  border-color: var(--rf-brand);
+  background: var(--rf-brand-tint);
+  color: var(--rf-brand);
+}
+.rpreason.selected i {
+  background: var(--rf-brand-grad);
+  color: #fff;
+}
+/* "อื่น ๆ" กินเต็มแถว ให้เห็นชัดว่าเลือกแล้วต้องเขียนเอง */
+.rpreason[data-reason="other"] {
+  grid-column: 1 / -1;
+}
+.rpnotelbl {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--rf-ink);
+  margin: 0 2px 6px;
+}
+.rpnotecount {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--rf-ink-2);
+}
+.rpnote {
+  width: 100%;
+  resize: none;
+  border: 1.5px solid var(--rf-line);
+  border-radius: 16px;
+  background: var(--rf-fill);
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  font-family: "Google Sans", "Prompt", sans-serif;
+  color: var(--rf-ink);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.rpnote:focus {
+  border-color: rgba(104, 66, 181, 0.45);
+  background: var(--rf-surface);
+  box-shadow: 0 0 0 4px rgba(104, 66, 181, 0.1);
+}
+#reportPopModal.rp-needs-note .rpnote {
+  border-color: rgba(104, 66, 181, 0.45);
+  background: var(--rf-surface);
+}
+.rperr {
+  font-size: 0.76rem;
+  color: #d23f5c;
+  margin: 6px 2px 0;
+}
+.rpsubmit {
+  width: 100%;
+  height: 48px;
+  margin-top: 14px;
+  border: none;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #f0607f, #d23f5c);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-family: "Google Sans", "Prompt", sans-serif;
+  box-shadow: 0 10px 22px -8px rgba(210, 63, 92, 0.6);
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.rpsubmit:disabled {
+  opacity: 0.4;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.rpsubmit:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+/* ---- ปุ่ม ⋯ บนหัวโพสต์ในฟีด + เมนู "รายงานโพสต์" ---- */
+.feedhead {
+  position: relative;
+}
+.feednm {
+  flex: 1;
+}
+.feedmore {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--rf-ink-2);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.feedmore:hover {
+  background: var(--rf-fill);
+  color: var(--rf-ink);
+}
+.feedmenu {
+  position: absolute;
+  top: 50px;
+  right: 12px;
+  z-index: 5;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--rf-surface);
+  box-shadow: 0 12px 30px -8px rgba(15, 8, 30, 0.35);
+  border: 1px solid var(--rf-line);
+  animation: pvMenuIn 0.16s ease;
+  cursor: default;
+}
+.feedmenu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: "Google Sans", "Prompt", sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.feedmenu button.danger {
+  color: #d23f5c;
+}
+[data-theme="dark"] .feedmenu button.danger {
+  color: #ff8aa6;
+}
+.feedmenu button:hover {
+  background: var(--rf-fill);
+}
+
 /* =====================================================================
    ทดลองสีส้ม — ใส่ data-accent="orange" บน <html> เพื่อดูตัวอย่าง (ยังไม่ได้เปิดใช้)
    ===================================================================== */

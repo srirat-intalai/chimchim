@@ -26,7 +26,7 @@ function ppRenderPosts(posts, posterName, posterColor) {
 			(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
 			'<div class="ppostcap">' + escapeHtml(p.caption || "") + "</div>";
 		el.addEventListener("click", function() {
-			openPostView({ id: p.id || (ppUid + "-post" + idx), images: images, caption: p.caption, posterName: posterName, posterColor: posterColor });
+			openPostView({ id: p.id || (ppUid + "-post" + idx), images: images, caption: p.caption, posterName: posterName, posterColor: posterColor, posterId: p.userId || null });
 		});
 		grid.appendChild(el);
 	});

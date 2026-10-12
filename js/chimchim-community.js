@@ -4,6 +4,67 @@
 // โหลดในทุกหน้า เพราะแถบบนสุด (apptop) กับป็อปอัพเข้าสู่ระบบใช้ร่วมกันทุกหน้า
 
 /* =====================================================================
+   หน้าต่างยืนยันของแอป (แทน confirm() ของเบราว์เซอร์ที่หน้าตาไม่เข้ากับแอป และบนมือถือโชว์ชื่อเว็บแปลก ๆ)
+   showConfirmDialog({ title, message, confirmText, cancelText, image, icon }) → Promise<boolean>
+   ปุ่มที่โฟกัสไว้ก่อนคือ "ยกเลิก" (กด Enter เผลอ ๆ จะไม่ลบ) / Esc หรือแตะพื้นหลัง = ยกเลิก
+   ===================================================================== */
+function showConfirmDialog(opts) {
+	opts = opts || {};
+	return new Promise(function(resolve) {
+		var overlay = document.createElement("div");
+		overlay.className = "ccdialog";
+		overlay.setAttribute("role", "alertdialog");
+		overlay.setAttribute("aria-modal", "true");
+		var visual = opts.image
+			? '<div class="ccdialog-thumb"><img src="' + opts.image + '" alt=""/><span><i class="fas fa-trash-can"></i></span></div>'
+			: '<div class="ccdialog-icon"><i class="fas fa-' + (opts.icon || "trash-can") + '"></i></div>';
+		overlay.innerHTML =
+			'<div class="ccdialog-box">' +
+				visual +
+				'<h3 class="ccdialog-title"></h3>' +
+				'<p class="ccdialog-msg"></p>' +
+				'<div class="ccdialog-btns">' +
+					'<button type="button" class="ccdialog-ok"></button>' +
+					'<button type="button" class="ccdialog-cancel"></button>' +
+				"</div>" +
+			"</div>";
+		// ข้อความใส่ด้วย textContent เสมอ (อาจมีชื่อ/แคปชั่นจากผู้ใช้ปนมา)
+		overlay.querySelector(".ccdialog-title").textContent = opts.title || "";
+		overlay.querySelector(".ccdialog-msg").textContent = opts.message || "";
+		overlay.querySelector(".ccdialog-msg").hidden = !opts.message;
+		var okBtn = overlay.querySelector(".ccdialog-ok");
+		var cancelBtn = overlay.querySelector(".ccdialog-cancel");
+		okBtn.textContent = opts.confirmText || t("common.delete");
+		cancelBtn.textContent = opts.cancelText || t("community.commentCancel");
+
+		var prevFocus = document.activeElement;
+		function close(result) {
+			document.removeEventListener("keydown", onKey, true);
+			overlay.classList.remove("open");
+			setTimeout(function() { overlay.remove(); }, 180);
+			if (prevFocus && prevFocus.focus) prevFocus.focus();
+			resolve(result);
+		}
+		function onKey(e) {
+			if (e.key === "Escape") {
+				// กันไม่ให้ Esc ไปปิดหน้าดูโพสต์ที่เปิดอยู่ข้างหลังด้วย
+				e.stopPropagation();
+				close(false);
+			}
+		}
+		okBtn.addEventListener("click", function() { close(true); });
+		cancelBtn.addEventListener("click", function() { close(false); });
+		overlay.addEventListener("click", function(e) {
+			if (e.target === overlay) close(false);
+		});
+		document.addEventListener("keydown", onKey, true);
+		document.body.appendChild(overlay);
+		requestAnimationFrame(function() { overlay.classList.add("open"); });
+		cancelBtn.focus();
+	});
+}
+
+/* =====================================================================
    TOAST แจ้งเตือนแบบลอยด้านล่าง (แทนมาสคอตลอยมุมจอเดิม)
    ===================================================================== */
 function showToast(msg) {
@@ -255,10 +316,159 @@ document.addEventListener("keydown", function(e) {
 			list.innerHTML = '<p class="pvcommentsempty">' + t("community.noCommentsYet") + '</p>';
 			return;
 		}
-		list.innerHTML = comments.map(function(c) {
-			return '<div class="pvcommentrow"><b>' + escapeHtml(c.author) + "</b> " + escapeHtml(c.text) + "</div>";
-		}).join("");
+		var me = getSession();
+		list.innerHTML = "";
+		comments.forEach(function(c) {
+			list.appendChild(buildCommentRow(c, !!(me && c.userId && c.userId === me.id)));
+		});
 		list.scrollTop = list.scrollHeight;
+	}
+
+	/* --- แถวคอมเมนต์ — ของตัวเองมีปุ่ม ⋯ (หรือกดค้างที่คอมเมนต์) เปิดเมนู แก้ไข / ลบ --- */
+	function buildCommentRow(c, mine) {
+		var row = document.createElement("div");
+		row.className = "pvcommentrow" + (mine ? " mine" : "");
+		row.innerHTML =
+			'<div class="pvcommentmain">' +
+				'<div class="pvcommenttxt"><b>' + escapeHtml(c.author) + "</b> " + escapeHtml(c.text) + "</div>" +
+				'<button type="button" class="pvcommentmore" aria-label="' + t("community.commentOptions") + '"><i class="fas fa-ellipsis"></i></button>' +
+			"</div>";
+		if (!mine) {
+			// ความคิดเห็นของคนอื่น: ⋯ มีแค่ "รายงานความคิดเห็น"
+			row.querySelector(".pvcommentmore").addEventListener("click", function(e) {
+				e.stopPropagation();
+				var open = row.querySelector(".pvcommentmenu");
+				document.querySelectorAll("#pvComments .pvcommentmenu").forEach(function(m) { m.remove(); });
+				if (open) return;
+				var menu = document.createElement("div");
+				menu.className = "pvcommentmenu";
+				menu.innerHTML =
+					'<button type="button" data-act="report" class="danger"><i class="fas fa-flag"></i>' + t("report.reportComment") + "</button>" +
+					'<button type="button" data-act="cancel">' + t("community.commentCancel") + "</button>";
+				menu.addEventListener("click", function(ev) {
+					var btn = ev.target.closest("button");
+					if (!btn) return;
+					menu.remove();
+					if (btn.getAttribute("data-act") === "report") {
+						openReportPopup("comment", c.id, null, { remoteId: c.remoteId });
+					}
+				});
+				row.appendChild(menu);
+			});
+			return row;
+		}
+
+		function openMenu() {
+			// ปิดเมนูของแถวอื่นที่เปิดค้างอยู่ก่อน ให้เปิดได้ทีละอัน
+			document.querySelectorAll("#pvComments .pvcommentmenu").forEach(function(m) { m.remove(); });
+			var menu = document.createElement("div");
+			menu.className = "pvcommentmenu";
+			// คอมเมนต์ที่เพิ่งส่งยังไม่ได้ id จริงจาก Supabase แก้ไม่ได้ (ไม่มีแถวให้อัปเดต) แต่ลบได้
+			menu.innerHTML =
+				(c.remoteId ? '<button type="button" data-act="edit"><i class="fas fa-pen"></i>' + t("community.commentEdit") + "</button>" : "") +
+				'<button type="button" data-act="delete" class="danger"><i class="fas fa-trash-can"></i>' + t("community.commentDelete") + "</button>" +
+				'<button type="button" data-act="cancel">' + t("community.commentCancel") + "</button>";
+			menu.addEventListener("click", function(e) {
+				var btn = e.target.closest("button");
+				if (!btn) return;
+				var act = btn.getAttribute("data-act");
+				menu.remove();
+				if (act === "edit") startEdit();
+				if (act === "delete") doDelete();
+			});
+			row.appendChild(menu);
+		}
+
+		function doDelete() {
+			showConfirmDialog({
+				title: t("community.commentDeleteTitle"),
+				message: t("community.commentConfirmDelete"),
+				confirmText: t("community.commentDeleteBtn")
+			}).then(function(yes) {
+				if (yes) reallyDelete();
+			});
+		}
+		function reallyDelete() {
+			var postId = currentPostId;
+			deleteComment(postId, c.id).then(function(ok) {
+				if (ok) {
+					showToast(t("community.commentDeleted"));
+					return;
+				}
+				showToast(t("community.commentDeleteFailed"));
+				// Supabase ไม่ยอมลบ — ดึงชุดจริงกลับมาแสดงใหม่ คอมเมนต์จะกลับมาให้เห็นตามความจริง
+				if (typeof syncCommentsWithSupabase === "function") {
+					syncCommentsWithSupabase(postId, function() { if (postId === currentPostId) renderPvComments(); });
+				}
+			});
+			renderPvComments();
+		}
+
+		function startEdit() {
+			var main = row.querySelector(".pvcommentmain");
+			main.hidden = true;
+			var form = document.createElement("form");
+			form.className = "pvcommentedit";
+			form.innerHTML =
+				'<input type="text" maxlength="500" autocomplete="off"/>' +
+				'<div class="pvcommenteditbtns">' +
+					'<button type="button" data-act="cancel">' + t("community.commentCancel") + "</button>" +
+					'<button type="submit" class="primary">' + t("community.commentSave") + "</button>" +
+				"</div>";
+			var input = form.querySelector("input");
+			input.value = c.text;
+			form.querySelector('[data-act="cancel"]').addEventListener("click", function() {
+				form.remove();
+				main.hidden = false;
+			});
+			input.addEventListener("keydown", function(e) {
+				if (e.key === "Escape") { e.stopPropagation(); form.remove(); main.hidden = false; }
+			});
+			form.addEventListener("submit", function(e) {
+				e.preventDefault();
+				var text = input.value.trim();
+				if (!text || text === c.text) { form.remove(); main.hidden = false; return; }
+				var postId = currentPostId;
+				form.querySelector('[type="submit"]').disabled = true;
+				updateComment(postId, c.id, text).then(function(ok) {
+					showToast(t(ok ? "community.commentUpdated" : "community.commentEditFailed"));
+					if (postId === currentPostId) renderPvComments();
+				});
+				// แสดงข้อความใหม่ไปก่อนเลย ถ้าบันทึกไม่สำเร็จ updateComment จะคืนข้อความเดิมแล้ววาดใหม่ให้เอง
+				renderPvComments();
+			});
+			row.appendChild(form);
+			input.focus();
+		}
+
+		row.querySelector(".pvcommentmore").addEventListener("click", function(e) {
+			e.stopPropagation();
+			if (row.querySelector(".pvcommentmenu")) {
+				row.querySelector(".pvcommentmenu").remove();
+			} else {
+				openMenu();
+			}
+		});
+		// กดค้าง ~0.5 วิ บนมือถือ (หรือคลิกขวาบนคอม) ก็เปิดเมนูเดียวกัน
+		var pressTimer = null;
+		var mainEl = row.querySelector(".pvcommentmain");
+		mainEl.addEventListener("touchstart", function() {
+			pressTimer = setTimeout(function() {
+				pressTimer = null;
+				if (navigator.vibrate) navigator.vibrate(15);
+				openMenu();
+			}, 500);
+		}, { passive: true });
+		["touchend", "touchmove", "touchcancel"].forEach(function(ev) {
+			mainEl.addEventListener(ev, function() {
+				if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+			}, { passive: true });
+		});
+		mainEl.addEventListener("contextmenu", function(e) {
+			e.preventDefault();
+			openMenu();
+		});
+		return row;
 	}
 
 	function closePostView() {
@@ -282,7 +492,11 @@ document.addEventListener("keydown", function(e) {
 		var text = input.value.trim();
 		if (!text) return;
 		var me = getSession();
-		addComment(currentPostId, me.name, text);
+		var postId = currentPostId;
+		addComment(postId, me.name, text).then(function() {
+			// ได้ id จริงจาก Supabase แล้ว วาดใหม่ให้เมนู "แก้ไข" ของคอมเมนต์นี้โผล่ได้
+			if (postId === currentPostId) renderPvComments();
+		});
 		input.value = "";
 		renderPvComments();
 	});
@@ -322,7 +536,10 @@ document.addEventListener("keydown", function(e) {
 		currentPostId = post.id || null;
 		// รายงานได้เฉพาะโพสต์จริงของผู้ใช้ (id เป็น "post"+timestamp ก่อน sync หรือตัวเลขจริงหลัง sync แล้ว)
 		// ไม่ใช่โพสต์ตัวอย่างของร้าน BU ตั้งต้นระบบ (id ขึ้นต้นด้วย "bu-")
-		document.getElementById("pvReportBtn").hidden = !(currentPostId && !/^bu-/.test(currentPostId));
+		// และไม่ให้รายงานโพสต์ของตัวเอง (posterId = เจ้าของโพสต์ ส่งมาจากจุดที่เปิดโพสต์)
+		var pvMe = getSession();
+		var isOwnPost = !!(pvMe && post.posterId && post.posterId === pvMe.id);
+		document.getElementById("pvReportBtn").hidden = !(currentPostId && !/^bu-/.test(currentPostId)) || isOwnPost;
 		renderPvComments();
 		refreshPvLike();
 		queuePvCounts();
@@ -394,6 +611,19 @@ function renderCommunityFeed(container, catFilter) {
 	wireFeedLoadMoreSentinel();
 }
 
+// รายงานได้เฉพาะโพสต์จริงของคนอื่น — ไม่ใช่โพสต์ตัวอย่างของร้าน BU และไม่ใช่โพสต์ของตัวเอง
+function canReportFeedItem(item) {
+	if (item.kind === "bushop" || /^bu-/.test(String(item.id))) return false;
+	var me = getSession();
+	return !(me && item.userId && item.userId === me.id);
+}
+// แตะที่อื่นแล้วปิดเมนู ⋯ ของโพสต์ในฟีด
+document.addEventListener("click", function(e) {
+	if (!e.target.closest || !e.target.closest(".feedmenu, .feedmore")) {
+		document.querySelectorAll(".feedmenu").forEach(function(m) { m.remove(); });
+	}
+});
+
 function buildFeedItemEl(item) {
 		var el = document.createElement("div");
 		el.className = "feeditem card-enter";
@@ -416,6 +646,7 @@ function buildFeedItemEl(item) {
 					'<div class="feedname">' + escapeHtml(item.posterName) + ((item.kind === "mockup" || item.kind === "page") ? ' <i class="fas fa-store feedstoreico" title="' + t("common.restaurantIcon") + '"></i>' : "") + "</div>" +
 					'<div class="feedtime" data-feed-time="' + escapeHtml(item.date) + '">' + formatFeedTime(item.date) + "</div>" +
 				"</div>" +
+				(canReportFeedItem(item) ? '<button type="button" class="feedmore" aria-label="' + t("report.postOptions") + '"><i class="fas fa-ellipsis"></i></button>' : "") +
 			"</div>" +
 			'<div class="feedimgs"><div class="feedimgstrip">' + imgsHtml + "</div>" + dotsHtml + "</div>" +
 			'<div class="feedactions">' +
@@ -427,8 +658,30 @@ function buildFeedItemEl(item) {
 		if (item.posterLink) {
 			var headEl = el.querySelector(".feedhead");
 			headEl.style.cursor = "pointer";
-			headEl.addEventListener("click", function() {
+			headEl.addEventListener("click", function(e) {
+				if (e.target.closest(".feedmore, .feedmenu")) return;
 				window.location.href = item.posterLink;
+			});
+		}
+		var moreBtn = el.querySelector(".feedmore");
+		if (moreBtn) {
+			moreBtn.addEventListener("click", function(e) {
+				e.stopPropagation();
+				var open = el.querySelector(".feedmenu");
+				document.querySelectorAll(".feedmenu").forEach(function(m) { m.remove(); });
+				if (open) return;
+				var menu = document.createElement("div");
+				menu.className = "feedmenu";
+				menu.innerHTML = '<button type="button" class="danger"><i class="fas fa-flag"></i>' + t("report.reportPost") + "</button>";
+				menu.querySelector("button").addEventListener("click", function(ev) {
+					ev.stopPropagation();
+					menu.remove();
+					openReportPopup("post", item.id, function() {
+						// ถ้ารายงานถึงเกณฑ์ซ่อนแล้ว เอาออกจากฟีดทันที (ซ่อนจริงทุกเครื่องเมื่อ Supabase นับครบ 3 รายงาน)
+						if (isContentHidden("post", item.id)) el.remove();
+					});
+				});
+				el.querySelector(".feedhead").appendChild(menu);
 			});
 		}
 
@@ -442,7 +695,7 @@ function buildFeedItemEl(item) {
 			});
 		}
 		strip.addEventListener("click", function() {
-			openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl });
+			openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl, posterId: item.userId });
 		});
 
 		var likeBtn = el.querySelector(".feedlikebtn");
@@ -466,7 +719,7 @@ function buildFeedItemEl(item) {
 	commentCountEl.textContent = getComments(item.id).length;
 	if (typeof queueCommentCountFetch === "function") queueCommentCountFetch(item.id, commentCountEl);
 	commentBtn.addEventListener("click", function() {
-		openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl });
+		openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl, posterId: item.userId });
 	});
 
 	return el;

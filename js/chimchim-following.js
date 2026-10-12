@@ -26,71 +26,179 @@ function buildPersonCard(person) {
 	return col;
 }
 
+/* --- รายชื่อนักชิม (ผู้ใช้จริง) — ดึงจากตาราง profiles ใน Supabase ครั้งเดียวแล้วเก็บไว้ใช้ทั้งหน้า
+   เดิมหน้านี้โชว์แต่ร้าน คนจะโผล่ก็ต่อเมื่อติดตามไว้แล้วหรือพิมพ์ค้นชื่อเอง เลยหาคนใหม่ ๆ ไปติดตามไม่ได้ --- */
+var peopleCache = null; // null = ยังไม่โหลด, [] = โหลดแล้ว
+var peopleLoading = false;
+function profileRowToPerson(row) {
+	return {
+		id: row.id,
+		name: row.name,
+		avatarImg: row.avatar_url || null,
+		color: 'linear-gradient(135deg, var(--dark), #8b68e0)',
+		sub: row.university
+			? '<i class="fas fa-graduation-cap"></i> ' + escapeHtml(row.university)
+			: '<i class="fas fa-user"></i> ' + t("following.foodie")
+	};
+}
+function loadPeople() {
+	if (peopleCache || peopleLoading) return;
+	var me = getSession();
+	var myId = me ? me.id : null;
+	// ไม่มี Supabase (ออฟไลน์/ยังไม่ตั้งค่า) — ใช้คนที่เครื่องนี้รู้จักไปก่อน
+	if (typeof sbClient === "undefined" || !sbClient) {
+		peopleCache = getUsers().filter(function(u) { return u.id !== myId && u.name; }).map(profileRowToPerson);
+		return;
+	}
+	peopleLoading = true;
+	// คอลัมน์ university มาจาก SQL Phase 6 ส่วน avatar_url มาจาก Phase 3 — ถ้ายังไม่ได้รันอันไหน query จะ error
+	// เลยถอยทีละขั้น (ตัด university ก่อน ยังขอรูปโปรไฟล์อยู่) ไม่ใช่ถอยไปขอแค่ชื่อทีเดียว ไม่งั้นรูปหายหมดทั้งที่มีจริง
+	function query(cols) {
+		return sbClient.from("profiles").select(cols).order("created_at", { ascending: false }).limit(60);
+	}
+	query("id, name, avatar_url, university").then(function(res) {
+		return res.error ? query("id, name, avatar_url") : res;
+	}).then(function(res) {
+		return res.error ? query("id, name") : res;
+	}).then(function(res) {
+		peopleCache = (res && !res.error && res.data ? res.data : [])
+			.filter(function(row) { return row.id !== myId && row.name; })
+			.map(profileRowToPerson);
+	}).catch(function() {
+		peopleCache = [];
+	}).then(function() {
+		peopleLoading = false;
+		renderCreators();
+	});
+}
+
+function buildSectionHead(title, count) {
+	var head = document.createElement('div');
+	head.className = 'col-12';
+	head.innerHTML = '<div class="fsechead"><span></span><b></b></div>';
+	head.querySelector('span').textContent = title;
+	head.querySelector('b').textContent = count;
+	return head;
+}
+function buildGridNote(text) {
+	var note = document.createElement('div');
+	note.className = 'col-12';
+	note.innerHTML = '<p class="fgridnote"></p>';
+	note.querySelector('p').textContent = text;
+	return note;
+}
+
+var PEOPLE_FILTER_LABEL = { all: 'following.allTitle', shops: 'following.topReviewers', people: 'following.peopleTitle', following: 'following.onlyFollowing' };
+
 function renderCreators() {
 	var grid = document.getElementById('creatorGrid');
 	var emptyMsg = document.getElementById('followedPeopleEmpty');
 	var lbl = document.getElementById('peopleSectionLbl');
 	if (!grid) return;
 	grid.innerHTML = '';
+	loadPeople();
 
-	var seedPeople = เพจร้านBU.map(function(shop) {
+	var shops = เพจร้านBU.map(function(shop) {
 		return { id: 'bu-' + shop.id, name: shop.name, color: 'linear-gradient(135deg, var(--primary), var(--secondary))', avatarImg: shop.avatar, sub: '<i class="fas fa-store"></i> ' + catEmoji(shop.cat) + ' ' + escapeHtml(catLabel(shop.cat)) };
 	});
-
-	var list;
-	if (currentPeopleFilter === 'following') {
-		var realPeople = getUsers().map(function(u) {
-			return { id: u.id, name: u.name, color: 'linear-gradient(135deg, var(--dark), #8b68e0)', sub: '<i class="fas fa-graduation-cap"></i> ' + t("common.member") };
-		});
-		var followedPages = getPages().map(function(p) {
-			return { id: p.id, linkId: 'page-' + p.id, name: p.name, color: 'var(--cream2)', avatarImg: p.avatar, sub: '<i class="fas fa-store"></i> ' + catEmoji(p.cat) + ' ' + escapeHtml(catLabel(p.cat)) };
-		});
-		list = seedPeople.concat(realPeople).concat(followedPages).filter(function(p) { return isUserFollowed(p.id); });
-		if (lbl) lbl.textContent = t('following.onlyFollowing');
-	} else {
-		list = seedPeople;
-		if (lbl) lbl.textContent = t('following.topReviewers');
-	}
+	var people = peopleCache || [];
+	var peopleStillLoading = peopleCache === null;
+	if (lbl) lbl.textContent = t(PEOPLE_FILTER_LABEL[currentPeopleFilter] || 'following.allTitle');
 
 	var searchEmptyMsg = document.getElementById('followingSearchEmpty');
 	var q = currentPeopleSearch.trim().toLowerCase();
-	var listBeforeSearch = list;
+	var me = getSession();
 
-	// มีคำค้นหา: ค้นหาคนจริงทุกคนด้วยเสมอ (ไม่ใช่แค่ร้านตัวอย่าง หรือแค่คนที่ติดตามอยู่แล้ว) กันปัญหา
-	// "หาคนไม่เจอทั้งที่ติดตามแล้วหรือยังไม่ได้ติดตาม" — getUsers() คือคนที่เครื่องนี้เคยเห็นมาก่อนเท่านั้น
-	// ส่วนคนที่เครื่องนี้ไม่เคยเห็นเลย ไปค้นหาเพิ่มจาก Supabase จริงด้านล่าง (โผล่มาทีหลังแบบ progressive)
-	if (q) {
-		var existingIds = {};
-		list.forEach(function(p) { existingIds[p.id] = true; });
-		getUsers().forEach(function(u) {
-			if (!u.name || existingIds[u.id]) return;
-			existingIds[u.id] = true;
-			list.push({ id: u.id, name: u.name, color: 'linear-gradient(135deg, var(--dark), #8b68e0)', sub: '<i class="fas fa-graduation-cap"></i> ' + t("common.member") });
+	// รวมทุกคน/ทุกร้านที่รู้จัก (ใช้ตอนค้นหา และตอนกรอง "ที่ติดตามแล้ว") กันซ้ำด้วย id
+	function everyone() {
+		var seen = {};
+		var all = [];
+		function add(p) {
+			if (!p || !p.name || seen[p.id] || (me && p.id === me.id)) return;
+			seen[p.id] = true;
+			all.push(p);
+		}
+		shops.forEach(add);
+		people.forEach(add);
+		getUsers().forEach(function(u) { add(profileRowToPerson(u)); });
+		getPages().forEach(function(pg) {
+			add({ id: pg.id, linkId: 'page-' + pg.id, name: pg.name, color: 'var(--cream2)', avatarImg: pg.avatar, sub: '<i class="fas fa-store"></i> ' + catEmoji(pg.cat) + ' ' + escapeHtml(catLabel(pg.cat)) });
 		});
-		list = list.filter(function(p) { return p.name.toLowerCase().indexOf(q) !== -1; });
+		return all;
 	}
 
-	if (emptyMsg) emptyMsg.hidden = !(currentPeopleFilter === 'following' && listBeforeSearch.length === 0);
-	if (searchEmptyMsg) searchEmptyMsg.hidden = !(q && list.length === 0);
+	var shownIds = {};
+	function appendCards(list) {
+		list.forEach(function(person) {
+			shownIds[person.id] = true;
+			grid.appendChild(buildPersonCard(person));
+		});
+	}
 
-	list.forEach(function(person) {
-		grid.appendChild(buildPersonCard(person));
-	});
+	if (emptyMsg) emptyMsg.hidden = true;
+	if (searchEmptyMsg) searchEmptyMsg.hidden = true;
 
-	// ค้นหาคนจาก Supabase จริงด้วย (ครอบคลุมทุกคนที่สมัครจริง ไม่ใช่แค่คนที่เครื่องนี้เคยเห็นมาก่อน)
+	if (q) {
+		// มีคำค้นหา: ค้นทั้งร้านและคนทุกคนที่รู้จัก ไม่สนตัวกรองที่เลือกอยู่
+		var found = everyone().filter(function(p) { return p.name.toLowerCase().indexOf(q) !== -1; });
+		appendCards(found);
+		if (searchEmptyMsg) searchEmptyMsg.hidden = found.length > 0;
+	} else if (currentPeopleFilter === 'following') {
+		var followed = everyone().filter(function(p) { return isUserFollowed(p.id); });
+		appendCards(followed);
+		if (emptyMsg) emptyMsg.hidden = followed.length > 0;
+	} else if (currentPeopleFilter === 'shops') {
+		appendCards(shops);
+	} else if (currentPeopleFilter === 'people') {
+		if (people.length) {
+			appendCards(people);
+		} else {
+			grid.appendChild(buildGridNote(t(peopleStillLoading ? 'following.peopleLoading' : 'following.peopleEmpty')));
+		}
+	} else {
+		// ทั้งหมด: แยกเป็น 2 หมวดมีหัวข้อ — ร้านอาหารก่อน แล้วตามด้วยนักชิม
+		grid.appendChild(buildSectionHead(t('following.topReviewers'), shops.length));
+		appendCards(shops);
+		grid.appendChild(buildSectionHead(t('following.peopleTitle'), peopleStillLoading ? '' : people.length));
+		if (people.length) {
+			appendCards(people.slice(0, 6));
+			if (people.length > 6) {
+				var more = document.createElement('div');
+				more.className = 'col-12';
+				more.innerHTML = '<button type="button" class="fseemore"></button>';
+				more.querySelector('button').textContent = t('following.seeAllPeople').replace('{n}', people.length);
+				more.querySelector('button').addEventListener('click', function() {
+					var btn = document.querySelector('.filtbtn[data-filter="people"]');
+					if (btn) btn.click();
+				});
+				grid.appendChild(more);
+			}
+		} else {
+			grid.appendChild(buildGridNote(t(peopleStillLoading ? 'following.peopleLoading' : 'following.peopleEmpty')));
+		}
+	}
+
+	// ค้นหาคนจาก Supabase จริงด้วย (ครอบคลุมทุกคนที่สมัครจริง ไม่ใช่แค่ 60 คนล่าสุดที่โหลดมา)
 	// ผลมาทีหลัง (async) เลยต้องเช็คว่าช่องค้นหายังเป็นคำเดิมอยู่ไหมก่อนเอามาต่อท้าย กันพิมพ์เปลี่ยนไปแล้วผลเก่าโผล่มาทับ
 	if (q && q.length >= 2 && typeof sbClient !== "undefined" && sbClient) {
-		var existingIdsForRemote = {};
-		list.forEach(function(p) { existingIdsForRemote[p.id] = true; });
-		sbClient.from("profiles").select("id, name").ilike("name", "%" + currentPeopleSearch.trim() + "%").limit(8).then(function(res) {
+		var term = "%" + currentPeopleSearch.trim() + "%";
+		function search(cols) {
+			return sbClient.from("profiles").select(cols).ilike("name", term).limit(8);
+		}
+		// ขอรูปโปรไฟล์มาด้วย ถ้าคอลัมน์ avatar_url ยังไม่มี (ยังไม่รัน SQL Phase 3) ค่อยถอยไปขอแค่ชื่อ
+		search("id, name, avatar_url").then(function(res) {
+			return res.error ? search("id, name") : res;
+		}).then(function(res) {
 			if (res.error || !res.data || !res.data.length) return;
 			if (currentPeopleSearch.trim().toLowerCase() !== q) return;
-			if (searchEmptyMsg) searchEmptyMsg.hidden = true;
+			var added = false;
 			res.data.forEach(function(row) {
-				if (existingIdsForRemote[row.id]) return;
-				existingIdsForRemote[row.id] = true;
-				grid.appendChild(buildPersonCard({ id: row.id, name: row.name, color: 'linear-gradient(135deg, var(--dark), #8b68e0)', sub: '<i class="fas fa-graduation-cap"></i> ' + t("common.member") }));
+				if (shownIds[row.id] || (me && row.id === me.id)) return;
+				shownIds[row.id] = true;
+				added = true;
+				grid.appendChild(buildPersonCard(profileRowToPerson(row)));
 			});
+			if (added && searchEmptyMsg) searchEmptyMsg.hidden = true;
 			wireFollowButtons();
 		}).catch(function() {});
 	}
@@ -98,7 +206,8 @@ function renderCreators() {
 	wireFollowButtons();
 
 	function wireFollowButtons() {
-	document.querySelectorAll('.followbtn').forEach(function(btn) {
+	document.querySelectorAll('.followbtn:not([data-wired])').forEach(function(btn) {
+		btn.setAttribute('data-wired', '1');
 		var uid = btn.getAttribute('data-uid');
 		if (isUserFollowed(uid)) {
 			btn.classList.add('following');
@@ -106,6 +215,7 @@ function renderCreators() {
 		}
 		btn.addEventListener('click', function() {
 			var nowFollowing = toggleFollowUser(uid);
+			if (nowFollowing === null) return; // ยังไม่ล็อกอิน — toggleFollowUser เปิดป็อปอัพเข้าสู่ระบบให้แล้ว
 			this.classList.toggle('following', nowFollowing);
 			this.textContent = nowFollowing ? ('✓ ' + t("common.following")) : ('+ ' + t("common.follow"));
 			if (currentPeopleFilter === 'following' && !nowFollowing) {
@@ -121,22 +231,15 @@ if (typeof syncLikesAndFollowsWithSupabase === "function") {
 	syncLikesAndFollowsWithSupabase(renderCreators);
 }
 
-var peopleFilterAllBtn = document.getElementById('peopleFilterAll');
-var peopleFilterFollowingBtn = document.getElementById('peopleFilterFollowing');
-if (peopleFilterAllBtn && peopleFilterFollowingBtn) {
-	peopleFilterAllBtn.addEventListener('click', function() {
-		currentPeopleFilter = 'all';
-		this.classList.add('active');
-		peopleFilterFollowingBtn.classList.remove('active');
+/* --- ตัวกรอง: ทั้งหมด / ร้านอาหาร / นักชิม / ที่ติดตามแล้ว (ปุ่มมี data-filter) --- */
+var peopleFilterBtns = document.querySelectorAll('.filtbtn[data-filter]');
+peopleFilterBtns.forEach(function(btn) {
+	btn.addEventListener('click', function() {
+		currentPeopleFilter = this.getAttribute('data-filter');
+		peopleFilterBtns.forEach(function(b) { b.classList.toggle('active', b === btn); });
 		renderCreators();
 	});
-	peopleFilterFollowingBtn.addEventListener('click', function() {
-		currentPeopleFilter = 'following';
-		this.classList.add('active');
-		peopleFilterAllBtn.classList.remove('active');
-		renderCreators();
-	});
-}
+});
 
 /* --- ค้นหาร้าน/คนในกริดนี้แบบสด ๆ พิมพ์แล้วกรองทันที --- */
 var followingSearchInput = document.getElementById('followingSearchInput');
@@ -150,7 +253,7 @@ if (followingSearchInput) {
 /* --- รองรับลิงก์ตรงจากหน้าโปรไฟล์: ?filter=following --- */
 (function applyFollowingQueryParams() {
 	var params = new URLSearchParams(window.location.search);
-	if (params.get('filter') === 'following' && peopleFilterFollowingBtn) {
-		peopleFilterFollowingBtn.click();
-	}
+	var filter = params.get('filter');
+	var btn = filter && document.querySelector('.filtbtn[data-filter="' + filter + '"]');
+	if (btn) btn.click();
 })();

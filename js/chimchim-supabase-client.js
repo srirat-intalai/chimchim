@@ -544,17 +544,27 @@ function sbLogEvent(eventType, userId, metadata) {
    ผลลัพธ์ที่เห็นได้คือ is_hidden ที่ trigger ฝั่ง Supabase เซ็ตให้เองเมื่อถึงเกณฑ์ 3 รายงาน)
    ใช้ได้เฉพาะร้าน/โพสต์ที่ sync ขึ้น Supabase แล้วเท่านั้น (id เป็นตัวเลขจริง ไม่ใช่ "post"+timestamp ชั่วคราว)
    ===================================================================== */
-function sbReportContent(targetType, targetId, reason) {
+// เหตุผลเดิมที่ตาราง moderation_reports รองรับตั้งแต่แรก (check constraint) — เหตุผลใหม่/รายงานคอมเมนต์
+// ต้องรัน SQL Phase 8 ก่อน ถ้ายังไม่รัน insert จะโดน constraint ปัด (code 23514) เลยส่งซ้ำเป็น "other"
+// แล้วแปะเหตุผลจริงไว้หน้ารายละเอียด รายงานจะได้ไม่หายไปเฉย ๆ
+var SB_LEGACY_REPORT_REASONS = ["spam", "inappropriate", "fake", "other"];
+function sbReportContent(targetType, targetId, reason, note) {
 	var me = getMe();
-	var numericId = parseInt(targetId, 10);
+	var numericId = parseInt(String(targetId).replace(/^cmt/, ""), 10);
 	if (!sbClient || !me || isNaN(numericId)) return Promise.resolve(null);
-	return sbClient.from("moderation_reports").insert({
-		target_type: targetType,
-		target_id: numericId,
-		reporter_id: me.id,
-		reason: reason
-	}).then(function(res) {
-		if (res.error) console.error("[chimchim] sbReportContent error:", res.error.message);
+	function insert(row) {
+		return sbClient.from("moderation_reports").insert(row);
+	}
+	var row = { target_type: targetType, target_id: numericId, reporter_id: me.id, reason: reason, note: note || "" };
+	return insert(row).then(function(res) {
+		if (!res.error) return;
+		var legacyOk = SB_LEGACY_REPORT_REASONS.indexOf(reason) !== -1;
+		if (res.error.code === "23514" && !legacyOk && targetType !== "comment") {
+			return insert({ target_type: targetType, target_id: numericId, reporter_id: me.id, reason: "other", note: "[" + reason + "] " + (note || "") }).then(function(res2) {
+				if (res2.error) console.error("[chimchim] sbReportContent error:", res2.error.message);
+			});
+		}
+		console.error("[chimchim] sbReportContent error:", res.error.message);
 	}).catch(function() {});
 }
 
@@ -573,6 +583,23 @@ function sbAddComment(postId, authorName, text) {
 		return res.data;
 	}).catch(function() { return null; });
 }
+// แก้/ลบคอมเมนต์ของตัวเอง — ขอแถวที่โดนแก้/ลบกลับมาด้วย (.select()) เพราะถ้าโดน RLS บล็อก Supabase จะไม่ error
+// แต่คืน 0 แถวเฉย ๆ ต้องเช็คจำนวนแถวถึงจะรู้ว่าสำเร็จจริง — คืน Promise<boolean>
+// (แก้ไขต้องรัน policy "comments_update_own" ใน schema.sql Phase 7 ก่อน ส่วนลบมี comments_delete_own อยู่แล้ว)
+function sbUpdateComment(remoteId, text) {
+	if (!sbClient) return Promise.resolve(false);
+	return Promise.resolve(sbClient.from("comments").update({ text: text }).eq("id", remoteId).select()).then(function(res) {
+		if (res.error) console.error("[chimchim] sbUpdateComment error:", res.error.message);
+		return !res.error && !!res.data && res.data.length > 0;
+	}).catch(function() { return false; });
+}
+function sbDeleteComment(remoteId) {
+	if (!sbClient) return Promise.resolve(false);
+	return Promise.resolve(sbClient.from("comments").delete().eq("id", remoteId).select()).then(function(res) {
+		if (res.error) console.error("[chimchim] sbDeleteComment error:", res.error.message);
+		return !res.error && !!res.data && res.data.length > 0;
+	}).catch(function() { return false; });
+}
 // จุดเรียกหลัก — เรียกตอนเปิดโพสต์ดูคอมเมนต์ ดึงคอมเมนต์จริงของทุกคนมาแทนที่ของในเครื่องนี้ทั้งชุด
 function syncCommentsWithSupabase(postId, onUpdated) {
 	var numericPostId = parseInt(postId, 10);
@@ -580,7 +607,7 @@ function syncCommentsWithSupabase(postId, onUpdated) {
 	sbClient.from("comments").select("*, profiles!author_id(name)").eq("post_id", numericPostId).order("created_at", { ascending: true }).then(function(res) {
 		if (res.error || !res.data) return;
 		var comments = res.data.map(function(row) {
-			return { id: "cmt" + row.id, author: (row.profiles && row.profiles.name) || t("common.chimchimFoodie"), text: row.text, date: row.created_at, userId: row.author_id };
+			return { id: "cmt" + row.id, remoteId: row.id, author: (row.profiles && row.profiles.name) || t("common.chimchimFoodie"), text: row.text, date: row.created_at, userId: row.author_id };
 		});
 		replaceLocalComments(postId, comments);
 		if (typeof onUpdated === "function") onUpdated();

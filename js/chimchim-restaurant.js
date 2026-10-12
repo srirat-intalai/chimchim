@@ -218,10 +218,16 @@ function renderShopDetail() {
 			}
 			if (isMine) {
 				row.querySelector(".rdreviewdel").addEventListener("click", function() {
-					if (!confirm(t("review.confirmDelete"))) return;
-					deleteReview(ร้านปัจจุบัน.id, r);
-					renderReviews();
-					if (typeof showToast === "function") showToast(t("review.deletedToast"));
+					showConfirmDialog({
+						title: t("review.deleteTitle"),
+						message: t("review.confirmDelete"),
+						confirmText: t("review.deleteBtn")
+					}).then(function(yes) {
+						if (!yes) return;
+						deleteReview(ร้านปัจจุบัน.id, r);
+						renderReviews();
+						if (typeof showToast === "function") showToast(t("review.deletedToast"));
+					});
 				});
 			}
 			listBox.appendChild(row);
@@ -256,7 +262,7 @@ function renderShopDetail() {
 				(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
 				'<div class="ppostcap">' + escapeHtml(p.caption) + '</div>';
 			el.addEventListener("click", function() {
-				openPostView({ id: p.id, images: images, caption: p.caption, posterName: ร้านปัจจุบัน.ร้าน, posterColor: "var(--cream2)" });
+				openPostView({ id: p.id, images: images, caption: p.caption, posterName: ร้านปัจจุบัน.ร้าน, posterColor: "var(--cream2)", posterId: p.userId || null });
 			});
 			postGrid.appendChild(el);
 		});

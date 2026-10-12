@@ -431,32 +431,6 @@ body.appshell,
   bottom: calc(100px + env(safe-area-inset-bottom, 0px));
 }
 
-/* ---- Match Hero: ตัดพื้นที่ว่างใต้วงกลมออก + ป้ายลอยแบบการ์ดเดียวกับทั้งแอป ---- */
-.matchhero {
-  height: 382px;
-}
-.mhring {
-  background: var(--rf-brand-grad);
-  opacity: 0.22;
-}
-.mhcirclewrap {
-  border: 5px solid var(--rf-surface);
-  box-shadow: var(--rf-shadow-lift);
-}
-.mhbadge {
-  background: var(--rf-glass);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-  border: 1px solid var(--rf-line);
-  box-shadow: var(--rf-shadow);
-}
-.mhicon {
-  background: var(--rf-brand-tint);
-}
-.mhbadge b {
-  color: var(--rf-ink);
-}
-
 /* ---- ตัวกรองแบบแคปซูล (หน้า ติดตาม ฯลฯ) ---- */
 .slbl {
   font-size: 1.18rem;
@@ -518,4 +492,735 @@ body.appshell,
 .followbtn.following {
   background: var(--rf-fill);
   color: var(--rf-ink-2);
+}
+
+/* =====================================================================
+   V2 — ตามภาพอ้างอิงชุดที่สอง: ชิปแคปซูล, การ์ดร้านกล่องข้อมูลลอย,
+   แถบล่างสีเข้มที่เมนูที่เลือกเป็นแคปซูลสี, การ์ดผู้ช่วย AI
+   ===================================================================== */
+:root {
+  --rf-ink-deep: #17131f; /* สีเข้มสำหรับแถบล่าง */
+}
+
+/* ---- Match Hero: คงวงกลมแบบเดิม แค่ตัดพื้นที่ว่างใต้วงกลม + ป้ายลอยเป็นกระจกฝ้า ---- */
+.matchhero {
+  height: 382px;
+}
+.mhring {
+  background: var(--rf-brand-grad);
+  opacity: 0.22;
+}
+.mhcirclewrap {
+  border: 5px solid var(--rf-surface);
+  box-shadow: var(--rf-shadow-lift);
+}
+.mhbadge {
+  background: var(--rf-glass);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow);
+}
+.mhicon {
+  background: var(--rf-brand-tint);
+}
+.mhbadge b {
+  color: var(--rf-ink);
+}
+
+/* ---- ชิปหมวดหมู่แบบแคปซูล (ไอคอนในวงกลม + ชื่อหมวด) ---- */
+.trendcatstrip {
+  gap: 8px;
+  padding: 4px 4px 18px;
+  margin-bottom: 10px !important;
+}
+.trendcatchip {
+  width: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 16px 5px 5px;
+  border-radius: 999px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow-sm);
+  transition: background 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+.trendcaticon,
+.trendcatchip.active .trendcaticon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  margin: 0;
+  font-size: 1.05rem;
+  background: var(--rf-fill);
+  border: none;
+  box-shadow: none;
+  transform: none;
+}
+.trendcatchip:hover .trendcaticon {
+  transform: none;
+}
+.trendcatchip span,
+.trendcatchip.active span {
+  font-size: 0.82rem;
+  white-space: nowrap;
+  color: var(--rf-ink);
+  font-weight: 600;
+}
+.trendcatchip.active {
+  background: var(--rf-brand-grad);
+  border-color: transparent;
+  box-shadow: var(--rf-glow);
+}
+.trendcatchip.active .trendcaticon {
+  background: rgba(255, 255, 255, 0.92);
+}
+.trendcatchip.active span {
+  color: #fff;
+}
+
+/* ---- การ์ดร้านแนวนอน: ภาพสูงมุมโค้ง + กล่องข้อมูลขาวลอยทับขอบล่างภาพ ---- */
+.hrowwrap {
+  gap: 12px;
+  padding: 2px 2px 22px;
+}
+.hrowwrap .mcard,
+.hrowwrap .mcard:hover {
+  min-width: 220px;
+  max-width: 220px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+}
+.hrowwrap .mimg {
+  height: 210px;
+  border-radius: 24px;
+  box-shadow: var(--rf-shadow);
+}
+.hrowwrap .mbody {
+  position: relative;
+  z-index: 2;
+  margin: -64px 10px 0;
+  background: var(--rf-surface);
+  border-radius: 18px;
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow);
+  padding: 12px 14px;
+}
+.hrowwrap .mcat,
+.hrowwrap .muni {
+  display: none;
+}
+.hrowwrap .mtit {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+.hrowwrap .mrestaurant {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hrowwrap .mhrt {
+  bottom: auto;
+  top: 12px;
+  left: 12px;
+  right: auto;
+}
+.hrowwrap .mhrtcount {
+  top: auto;
+  bottom: -16px;
+}
+
+/* ---- การ์ดผู้ช่วย AI บนหน้าแรก ---- */
+.aipromo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 22px;
+  background: var(--rf-brand-tint);
+  border: 1px solid rgba(104, 66, 181, 0.14);
+  text-decoration: none;
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.aipromo:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--rf-shadow);
+}
+.aipromo-dino {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: var(--rf-brand-grad);
+  object-fit: cover;
+  object-position: center top;
+  box-shadow: var(--rf-glow);
+  flex-shrink: 0;
+}
+.aipromo-text {
+  flex: 1;
+  min-width: 0;
+}
+.aipromo-tit {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--rf-ink);
+}
+.aipromo-sub {
+  font-size: 0.78rem;
+  color: var(--rf-ink-2);
+  margin-top: 2px;
+}
+.aipromo-go {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--rf-surface);
+  color: var(--rf-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+/* ---- ปุ่มวงกลมบนแถบบน: พื้นสีแบรนด์อ่อน ---- */
+.apptop-btn {
+  background: var(--rf-brand-tint);
+  color: var(--rf-brand);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* ---- แถบล่าง: แคปซูลสีเข้ม เมนูที่เลือกเป็นแคปซูลสีแบรนด์พร้อมชื่อ ---- */
+.appnav,
+[data-theme="dark"] .appnav {
+  background: var(--rf-ink-deep);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 18px 40px -12px rgba(12, 6, 24, 0.55);
+  padding: 8px;
+  gap: 2px;
+}
+/* โหมดมืด: ยกแถบล่างให้สว่างกว่าพื้นหลังนิดหนึ่ง ไม่งั้นกลืนหายไปกับหน้า */
+[data-theme="dark"] .appnav {
+  background: #2a2535;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.anitem {
+  flex-direction: row;
+  justify-content: center;
+  gap: 7px;
+  height: 46px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.78rem;
+  transition: flex-grow 0.3s, background 0.3s, color 0.3s;
+}
+.anitem span {
+  display: none;
+}
+.anitem:hover {
+  color: #fff;
+}
+.anitem.active,
+.anitem.active:hover {
+  flex-grow: 2.2;
+  background: var(--rf-brand-grad);
+  color: #fff;
+  box-shadow: var(--rf-glow);
+}
+.anitem.active span {
+  display: inline;
+  white-space: nowrap;
+}
+.anitem.active::before {
+  display: none;
+}
+.ancenter {
+  width: 46px;
+  height: 46px;
+  margin: 0 2px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+.ancenter img {
+  width: 30px;
+  height: 30px;
+}
+
+/* ---- หน้าร้าน: ภาพใหญ่ขึ้น แผ่นเนื้อหาโค้งซ้อน กล่อง Match เป็นโทนแบรนด์ ---- */
+.rdhero {
+  height: 340px;
+}
+.rdbody {
+  margin-top: -32px;
+  border-radius: 30px 30px 0 0;
+  background: var(--rf-surface);
+  padding-top: 26px;
+}
+.rdtitle,
+[data-theme="dark"] .rdtitle {
+  font-size: 1.55rem;
+  letter-spacing: -0.015em;
+  color: var(--rf-ink);
+}
+.rdmatchbox {
+  background: var(--rf-brand-tint);
+  border: 1px solid rgba(104, 66, 181, 0.14);
+  border-radius: 20px;
+}
+.rdmatchpct {
+  color: var(--rf-brand);
+}
+.rdmatchreason {
+  color: var(--rf-ink-2);
+}
+.rdpromobox {
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow-sm);
+  border-radius: 20px;
+}
+
+/* =====================================================================
+   V3 — หน้า AI แบบ "Ask anything" (ลูกแก้วเรืองแสง, คำถามแนะนำกลางจอ,
+   ช่องพิมพ์แคปซูลเดียว) + ปุ่มแก้ไข/ลบรีวิวที่มองเห็นชัด
+   ===================================================================== */
+
+/* ---- ลูกแก้วเรืองแสง (ใช้ทั้งหน้าแรกของแชทและส่วนหัวแบบย่อ) ---- */
+.aiorb {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 34%),
+    radial-gradient(circle at 70% 75%, rgba(126, 196, 255, 0.55) 0%, rgba(126, 196, 255, 0) 55%),
+    radial-gradient(circle at 50% 50%, #cdb8ff 0%, #8a63ea 62%, #6842b5 100%);
+  box-shadow:
+    inset 0 -10px 24px rgba(78, 47, 151, 0.45),
+    inset 0 8px 18px rgba(255, 255, 255, 0.6),
+    0 24px 50px -14px rgba(104, 66, 181, 0.55);
+  animation: aiOrbFloat 5s ease-in-out infinite;
+}
+.aiorb::after {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(138, 99, 234, 0.28), transparent 68%);
+  z-index: -1;
+}
+.aiorb img {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 10px rgba(40, 20, 90, 0.35));
+}
+.aiorb-sm {
+  width: 30px;
+  height: 30px;
+  animation: none;
+  box-shadow: inset 0 -3px 6px rgba(78, 47, 151, 0.45), 0 4px 10px -3px rgba(104, 66, 181, 0.5);
+}
+.aiorb-sm::after {
+  display: none;
+}
+@keyframes aiOrbFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* ---- โครงหน้าแชท ---- */
+.aichat-wrap {
+  min-height: calc(100vh - 150px);
+  min-height: calc(100dvh - 150px);
+  padding-top: 10px;
+}
+.aihero {
+  display: none;
+  text-align: center;
+  padding: 28px 10px 8px;
+  margin-top: auto;
+}
+.aihero .aiorb {
+  margin: 0 auto 26px;
+}
+.aihero-tit {
+  font-family: "Google Sans", "Prompt", sans-serif;
+  font-size: 1.65rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--rf-ink);
+  margin: 0 0 10px;
+}
+.aihero-grad {
+  background: var(--rf-brand-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.aihero-sub {
+  font-size: 0.85rem;
+  color: var(--rf-ink-2);
+  line-height: 1.55;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+/* ส่วนหัวแบบย่อตอนกำลังคุย: แคปซูลกลางจอ */
+.aichat-top {
+  justify-content: center;
+  padding: 0 0 14px;
+}
+.aichat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 16px 5px 5px;
+  border-radius: 999px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow-sm);
+}
+.aichat-pill .aichat-hi,
+[data-theme="dark"] .aichat-pill .aichat-hi {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--rf-ink);
+}
+
+/* สถานะยังไม่เริ่มคุย: ซ่อนห้องแชท/หัวแบบย่อ โชว์หน้าแรก + คำถามแนะนำเรียงแนวตั้งกลางจอ */
+.aichat-wrap.is-empty .aihero {
+  display: block;
+}
+.aichat-wrap.is-empty .aichat-top,
+.aichat-wrap.is-empty .aichat-body {
+  display: none;
+}
+.aichat-wrap.is-empty .aichat-suggestrow {
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  overflow: visible;
+  padding: 26px 0 0;
+  margin-bottom: auto;
+}
+
+/* ---- ฟองข้อความ ---- */
+.chatbubble {
+  border-radius: 22px;
+  padding: 12px 16px;
+  font-size: 0.86rem;
+}
+.chatbubble.bot,
+[data-theme="dark"] .chatbubble.bot {
+  background: var(--rf-surface);
+  color: var(--rf-ink);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow-sm);
+  border-bottom-left-radius: 6px;
+}
+.chatbubble.user {
+  background: var(--rf-brand-grad);
+  border-bottom-right-radius: 6px;
+  font-weight: 500;
+  box-shadow: var(--rf-glow);
+}
+.chattyping {
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow-sm);
+  border-radius: 22px;
+  border-bottom-left-radius: 6px;
+}
+.chattyping span {
+  background: var(--rf-brand);
+}
+
+/* ---- การ์ดร้านที่ AI แนะนำ: ภาพเต็มการ์ด + ข้อความทับภาพ ---- */
+.chatcardrow {
+  gap: 12px;
+  padding: 4px 2px 16px 2px;
+  scrollbar-width: none;
+}
+.chatcardrow::-webkit-scrollbar {
+  display: none;
+}
+.chatcard {
+  position: relative;
+  min-width: 200px;
+  max-width: 200px;
+  height: 230px;
+  border-radius: 24px;
+  border: none;
+  background: var(--rf-fill);
+  box-shadow: var(--rf-shadow);
+}
+.chatcard img {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+.chatcard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(12, 6, 24, 0.82) 0%, rgba(12, 6, 24, 0.2) 50%, transparent 70%);
+  pointer-events: none;
+}
+/* body คลุมทั้งการ์ด จัดข้อความชิดล่าง — ป้าย Match จึงวางมุมบนซ้ายของการ์ดได้ตรง ๆ */
+.chatcard-body {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 12px 14px 14px;
+}
+.chatcard-match {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--rf-brand);
+  font-size: 0.7rem;
+  padding: 4px 10px;
+}
+.chatcard-title,
+[data-theme="dark"] .chatcard-title {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.chatcard-meta,
+[data-theme="dark"] .chatcard-meta {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.7rem;
+}
+
+/* ---- คำถามแนะนำ: แคปซูลขาว + ไอคอนประกาย ---- */
+.chatchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  color: var(--rf-ink);
+  font-weight: 500;
+  font-size: 0.82rem;
+  padding: 9px 16px;
+  border-radius: 999px;
+  box-shadow: var(--rf-shadow-sm);
+}
+.chatchip i {
+  color: var(--rf-brand);
+  font-size: 0.78rem;
+}
+.chatchip:hover {
+  background: var(--rf-brand-tint);
+  transform: translateY(-2px);
+}
+
+/* ---- ช่องพิมพ์: แคปซูลเดียว ปุ่มส่งวงกลมอยู่ข้างใน ---- */
+.aichat-inputbar {
+  gap: 6px;
+  margin: 6px 0 14px;
+  padding: 6px 6px 6px 8px;
+  border-radius: 999px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.aichat-inputbar:focus-within {
+  border-color: rgba(104, 66, 181, 0.4);
+  box-shadow: 0 0 0 4px rgba(104, 66, 181, 0.1), var(--rf-shadow);
+}
+.aichat-inputbar input,
+[data-theme="dark"] .aichat-inputbar input {
+  background: transparent;
+  box-shadow: none;
+  padding: 10px 10px;
+  color: var(--rf-ink);
+}
+.aichat-inputbar input:focus {
+  outline: none;
+}
+.aichat-inputbar input::placeholder {
+  color: var(--rf-ink-2);
+  opacity: 0.75;
+}
+.aichat-inputbar button {
+  width: 42px;
+  height: 42px;
+  background: var(--rf-brand-grad);
+  box-shadow: var(--rf-glow);
+  font-size: 0.92rem;
+}
+
+/* ---- ปุ่มแก้ไข/ลบรีวิวของตัวเอง: มีข้อความกำกับ มองเห็นชัด ---- */
+.rdreviewactions {
+  gap: 6px;
+}
+.rdreviewactions button {
+  width: auto;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: "Google Sans", "Prompt", sans-serif;
+  background: var(--rf-fill);
+  color: var(--rf-ink-2);
+  transition: background 0.2s, color 0.2s;
+}
+.rdreviewactions .rdreviewdel {
+  background: #fdecef;
+  color: #d23f5c;
+}
+[data-theme="dark"] .rdreviewactions .rdreviewdel {
+  background: rgba(229, 72, 122, 0.16);
+  color: #ff8aa6;
+}
+.rdreviewactions .rdreviewdel:hover {
+  background: #e5487a;
+  color: #fff;
+}
+.rdreviewactions .rdreviewedit:hover {
+  background: var(--rf-brand);
+  color: #fff;
+}
+
+/* ---- ฟอร์มโพสต์หลายรูป: ตาราง 3 ช่อง ภาพย่อใหญ่ ป้าย "ปก" + ช่องเพิ่มรูป ---- */
+.postimghead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.postimgcount {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--rf-brand);
+  background: var(--rf-brand-tint);
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+.imguploadbox {
+  border: 1.5px dashed rgba(104, 66, 181, 0.3);
+  background: var(--rf-brand-tint);
+  border-radius: 18px;
+}
+.imguploadlbl {
+  color: var(--rf-brand);
+  font-weight: 600;
+  text-align: center;
+}
+.imguploadlbl i {
+  font-size: 1.6rem;
+}
+.postimglist {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+.postimgthumb,
+.postimgadd {
+  position: relative;
+  width: auto;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.postimgthumb {
+  cursor: pointer;
+  box-shadow: var(--rf-shadow-sm);
+}
+.postimgthumb.iscover {
+  cursor: default;
+  outline: 2.5px solid var(--rf-brand);
+  outline-offset: -2.5px;
+}
+.postimgthumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.postimgcover {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  background: var(--rf-brand-grad);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.postimgthumb button {
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  font-size: 0.7rem;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+/* profile.html ไม่ได้โหลด Bootstrap — คลาส w-100 บนปุ่มโพสต์เลยไม่มีผล ตั้งความกว้างเองตรงนี้ */
+#postSubmitBtn {
+  width: 100%;
+  justify-content: center;
+}
+.postimgadd {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  border: 1.5px dashed rgba(104, 66, 181, 0.3);
+  background: var(--rf-brand-tint);
+  color: var(--rf-brand);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* =====================================================================
+   ทดลองสีส้ม — ใส่ data-accent="orange" บน <html> เพื่อดูตัวอย่าง (ยังไม่ได้เปิดใช้)
+   ===================================================================== */
+[data-accent="orange"] {
+  --primary: #f2541b;
+  --secondary: #ff7a3d;
+  --dark: #c43d0e;
+  --cream: #fff1ea;
+  --rf-bg: #faf6f1;
+  --rf-brand: #f2541b;
+  --rf-brand-grad: linear-gradient(135deg, #ff8a4c 0%, #f2541b 55%, #d9420f 100%);
+  --rf-brand-tint: #fff0e8;
+  --rf-glow: 0 10px 24px -8px rgba(242, 84, 27, 0.55);
+}
+[data-accent="orange"] body.appshell {
+  background:
+    radial-gradient(120% 360px at 85% -60px, rgba(255, 138, 76, 0.16), transparent 70%),
+    var(--rf-bg);
+  background-repeat: no-repeat;
 }

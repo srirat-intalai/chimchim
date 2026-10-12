@@ -95,21 +95,29 @@ if (!revร้าน) {
 			return;
 		}
 
+		var submitBtn = document.querySelector(".revsubmitbtn");
+		if (submitBtn.disabled) return;
+		submitBtn.disabled = true;
+		submitBtn.querySelector("i").className = "fas fa-spinner fa-spin";
+		var savePromise;
+
 		if (revExisting) {
-			updateReview(revร้าน.id, revExisting.remoteId, {
+			savePromise = updateReview(revร้าน.id, revExisting.remoteId, {
 				taste: scores.taste,
 				atmosphere: scores.atmosphere,
 				service: scores.service,
 				text: document.getElementById("reviewText").value.trim(),
 				images: chosenReviewImages
 			});
-			window.location.href = "restaurant.html?id=" + revร้าน.id;
+			waitAtMost(savePromise, 8000).then(function() {
+				window.location.href = "restaurant.html?id=" + revร้าน.id;
+			});
 			return;
 		}
 
 		var author = meSession ? meSession.name : (document.getElementById("reviewAuthor").value.trim() || t("common.anonymousFoodie"));
 
-		addReview(revร้าน.id, {
+		savePromise = addReview(revร้าน.id, {
 			taste: scores.taste,
 			atmosphere: scores.atmosphere,
 			service: scores.service,
@@ -120,6 +128,8 @@ if (!revร้าน) {
 			images: chosenReviewImages
 		});
 
-		window.location.href = "home.html?reviewed=1";
+		waitAtMost(savePromise, 8000).then(function() {
+			window.location.href = "home.html?reviewed=1";
+		});
 	});
 }

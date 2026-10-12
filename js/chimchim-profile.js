@@ -159,6 +159,7 @@ if (!session) {
 
 /* --- โพสต์ของฉัน: ฟอร์มเพิ่มโพสต์ + แสดงกริดโพสต์ ---
    (เวอร์ชันย่อของฟีเจอร์คอมมูนิตี้ - ภาพ + แคปชั่นเท่านั้น ยังไม่รองรับสตอรี่/รีล/วิดีโอ) */
+var POST_MAX_IMAGES = 10;
 function initMyPosts() {
 	var toggle = document.getElementById("addPostToggle");
 	var form = document.getElementById("postForm");
@@ -167,18 +168,42 @@ function initMyPosts() {
 	var chosenImages = [];
 	var editingPostId = null; // null = กำลังสร้างโพสต์ใหม่, มีค่า = กำลังแก้ไขโพสต์เดิม
 
+	var uploadBox = document.getElementById("postImgUploadBox");
+	var countEl = document.getElementById("postImgCount");
 	function renderChosenImages() {
 		listBox.innerHTML = "";
 		chosenImages.forEach(function(src, idx) {
 			var thumb = document.createElement("div");
-			thumb.className = "postimgthumb";
-			thumb.innerHTML = '<img src="' + src + '" alt=""/><button type="button" title="' + t("common.removePhoto") + '"><i class="fas fa-times"></i></button>';
-			thumb.querySelector("button").addEventListener("click", function() {
+			thumb.className = "postimgthumb" + (idx === 0 ? " iscover" : "");
+			thumb.innerHTML = '<img src="' + src + '" alt=""/>' +
+				(idx === 0 ? '<span class="postimgcover">' + t("profile.coverPhoto") + '</span>' : "") +
+				'<button type="button" title="' + t("common.removePhoto") + '"><i class="fas fa-times"></i></button>';
+			thumb.querySelector("button").addEventListener("click", function(e) {
+				e.stopPropagation();
 				chosenImages.splice(idx, 1);
 				renderChosenImages();
 			});
+			// แตะรูปไหนก็ได้ = ตั้งเป็นรูปปก (ย้ายไปไว้รูปแรก ซึ่งเป็นรูปที่โชว์ในกริดโปรไฟล์/ฟีดก่อน)
+			if (idx > 0) {
+				thumb.title = t("profile.setAsCover");
+				thumb.addEventListener("click", function() {
+					chosenImages.unshift(chosenImages.splice(idx, 1)[0]);
+					renderChosenImages();
+				});
+			}
 			listBox.appendChild(thumb);
 		});
+		// ช่อง "+ เพิ่มรูป" ต่อท้ายตาราง แทนกล่องอัปโหลดใหญ่ (กล่องใหญ่โชว์เฉพาะตอนยังไม่มีรูปเลย)
+		if (chosenImages.length && chosenImages.length < POST_MAX_IMAGES) {
+			var addTile = document.createElement("label");
+			addTile.className = "postimgadd";
+			addTile.setAttribute("for", "postImgFile");
+			addTile.innerHTML = '<i class="fas fa-plus"></i><span>' + t("profile.addMorePhotos") + "</span>";
+			listBox.appendChild(addTile);
+		}
+		uploadBox.hidden = chosenImages.length > 0;
+		countEl.hidden = chosenImages.length === 0;
+		countEl.textContent = chosenImages.length + "/" + POST_MAX_IMAGES;
 	}
 
 	function resetFormToCreateMode() {
@@ -191,10 +216,12 @@ function initMyPosts() {
 
 	// อัปโหลดรูปจริงจากเครื่องผู้ใช้เอง (แทนดรอปดาวน์เลือกรูปสต็อกเดิม) เลือกได้หลายรูปพร้อมกัน สูงสุด 10 รูปต่อโพสต์
 	wireMultiImageUpload("postImgFile", function(dataUrls) {
+		var skipped = 0;
 		dataUrls.forEach(function(dataUrl) {
-			if (chosenImages.length >= 10) return;
+			if (chosenImages.length >= POST_MAX_IMAGES) { skipped++; return; }
 			chosenImages.push(dataUrl);
 		});
+		if (skipped) showToast(t("profile.maxPhotosToast").replace("{n}", POST_MAX_IMAGES));
 		renderChosenImages();
 		// บนมือถือ พอเลือกรูปแล้วฟอร์มจะยาวขึ้นเยอะ ปุ่มโพสต์อาจตกขอบจอไปโดยไม่รู้ตัวว่าต้องเลื่อนลงไปกด
 		// เลื่อนจอให้เห็นปุ่มเองเลย กันปัญหา "กดปุ่มไม่ติด" ทั้งที่จริง ๆ แค่มองไม่เห็นปุ่ม

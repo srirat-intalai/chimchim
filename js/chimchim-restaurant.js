@@ -190,8 +190,9 @@ function renderShopDetail() {
 		var me = getMe();
 		reviews.forEach(function(r) {
 			var avgScore = Math.round((r.taste + r.atmosphere + r.service) / 3 * 10) / 10;
-			// แก้ไข/ลบได้เฉพาะรีวิวของตัวเองที่ sync ขึ้น Supabase แล้วเท่านั้น (มี remoteId จริง)
-			var isMine = me && r.userId === me.id && r.remoteId;
+			// ลบได้ทุกรีวิวของตัวเอง (แม้ยังไม่ sync) แต่แก้ไขได้เฉพาะที่ sync ขึ้น Supabase แล้ว (มี remoteId จริง)
+			var isMine = !!(me && r.userId && r.userId === me.id);
+			var canEdit = isMine && !!r.remoteId;
 			var row = document.createElement("div");
 			row.className = "rdreviewrow";
 			var reviewImgsHtml = (r.images && r.images.length)
@@ -207,17 +208,20 @@ function renderShopDetail() {
 				"</div>" +
 				(isMine ?
 					'<div class="rdreviewactions">' +
-						'<button type="button" class="rdreviewedit" title="' + t("common.editPost") + '"><i class="fas fa-pen"></i></button>' +
-						'<button type="button" class="rdreviewdel" title="' + t("common.deletePost") + '"><i class="fas fa-times"></i></button>' +
+						(canEdit ? '<button type="button" class="rdreviewedit" aria-label="' + t("review.edit") + '"><i class="fas fa-pen"></i><span>' + t("review.edit") + '</span></button>' : "") +
+						'<button type="button" class="rdreviewdel" aria-label="' + t("review.delete") + '"><i class="fas fa-trash-can"></i><span>' + t("review.delete") + '</span></button>' +
 					"</div>" : "");
-			if (isMine) {
+			if (canEdit) {
 				row.querySelector(".rdreviewedit").addEventListener("click", function() {
 					window.location.href = "review.html?id=" + ร้านปัจจุบัน.id + "&editRemoteId=" + encodeURIComponent(r.remoteId);
 				});
+			}
+			if (isMine) {
 				row.querySelector(".rdreviewdel").addEventListener("click", function() {
 					if (!confirm(t("review.confirmDelete"))) return;
-					deleteReview(ร้านปัจจุบัน.id, r.remoteId);
+					deleteReview(ร้านปัจจุบัน.id, r);
 					renderReviews();
+					if (typeof showToast === "function") showToast(t("review.deletedToast"));
 				});
 			}
 			listBox.appendChild(row);

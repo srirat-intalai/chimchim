@@ -54,12 +54,19 @@
          </div>
       </header>
 
-      <div class="aichat-wrap">
+      <div class="aichat-wrap is-empty" id="aiChatWrap">
+         <!-- หน้าแรกตอนยังไม่เริ่มคุย: ลูกแก้วเรืองแสง + หัวข้อใหญ่ + คำถามแนะนำเรียงกลางจอ -->
+         <div class="aihero">
+            <div class="aiorb"><img src="img/Dino/7.png" alt="ChimChim AI"/></div>
+            <h1 class="aihero-tit"><span data-i18n="ai.heroTitle1">ไม่รู้จะกินอะไร?</span><span class="aihero-grad" data-i18n="ai.heroTitle2">ให้ชิมชิมช่วยคิด</span></h1>
+            <p class="aihero-sub" data-i18n="ai.greetingSub">คุยกับ ChimChim ได้เลย ถามอะไรก็ได้ ไม่ใช่แค่เรื่องกิน</p>
+         </div>
+
+         <!-- ส่วนหัวแบบย่อตอนกำลังคุย -->
          <div class="aichat-top">
-            <img src="img/Dino/7.png" alt="Dino คิด"/>
-            <div>
-               <div class="aichat-hi" data-i18n="ai.greetingTitle">สวัสดี 👋</div>
-               <div class="aichat-sub" data-i18n="ai.greetingSub">คุยกับ ChimChim ได้เลย ถามอะไรก็ได้ ไม่ใช่แค่เรื่องกิน</div>
+            <div class="aichat-pill">
+               <span class="aiorb aiorb-sm"><img src="img/Dino/7.png" alt=""/></span>
+               <span class="aichat-hi">ChimChim AI</span>
             </div>
          </div>
 

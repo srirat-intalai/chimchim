@@ -67,6 +67,8 @@ var CHIMCHIM_DICT = {
 		"nav.following": "Following",
 		"nav.profile": "Profile",
 		"ai.greetingTitle": "Hey there 👋",
+		"ai.heroTitle1": "No idea what to eat? ",
+		"ai.heroTitle2": "Let ChimChim decide",
 		"ai.greetingSub": "Chat with ChimChim about anything — not just food",
 		"ai.inputPlaceholder": "Type anything, e.g. something spicy under 150 baht",
 		"ai.startBubble": "Hungry? Tell ChimChim what you're craving — or just chat about anything else 🦖",
@@ -122,6 +124,8 @@ var CHIMCHIM_DICT = {
 		"home.greetHi": "Hello, ",
 		"home.greetQ1": "What would you like",
 		"home.greetQ2": "to eat today?",
+		"home.aiPromoTitle": "I'm ChimChim, your food assistant",
+		"home.aiPromoSub": "Hungry but can't decide? Just ask",
 		"home.feedTitle": "Community Feed",
 		"home.feedSub": "Posts from shops and foodies you follow, freshest first",
 		"home.feedEmpty": "No posts yet — be the first to post!",
@@ -202,6 +206,11 @@ var CHIMCHIM_DICT = {
 		"profile.myPosts": "My Posts",
 		"profile.addPost": "Add New Post",
 		"profile.pickPhotos": "Pick photos",
+		"profile.pickPhotosHint": "Tap to choose photos — pick several at once, up to 10",
+		"profile.addMorePhotos": "Add",
+		"profile.coverPhoto": "Cover",
+		"profile.setAsCover": "Tap to make this the cover photo",
+		"profile.maxPhotosToast": "Up to {n} photos per post",
 		"profile.captionLbl": "Caption",
 		"profile.postBtn": "Post",
 		"profile.settings": "Settings",
@@ -402,7 +411,10 @@ var CHIMCHIM_DICT = {
 		"review.rateAllThree": "Please rate all 3 categories first",
 		"review.editPageTitle": "Edit Review",
 		"review.saveChanges": "Save Changes",
-		"review.confirmDelete": "Delete this review? This can't be undone."
+		"review.confirmDelete": "Delete this review? This can't be undone.",
+		"review.delete": "Delete",
+		"review.edit": "Edit",
+		"review.deletedToast": "Review deleted"
 	},
 	th: {
 		"nav.trending": "เทรนด์",
@@ -410,6 +422,8 @@ var CHIMCHIM_DICT = {
 		"nav.following": "ติดตาม",
 		"nav.profile": "โปรไฟล์",
 		"ai.greetingTitle": "สวัสดี 👋",
+		"ai.heroTitle1": "ไม่รู้จะกินอะไร? ",
+		"ai.heroTitle2": "ให้ชิมชิมช่วยคิด",
 		"ai.greetingSub": "คุยกับ ChimChim ได้เลย ถามอะไรก็ได้ ไม่ใช่แค่เรื่องกิน",
 		"ai.inputPlaceholder": "พิมพ์อะไรก็ได้ เช่น อยากกินเผ็ด ๆ งบไม่เกิน 150 บาท",
 		"ai.startBubble": "อยากกินอะไรวันนี้ บอก ChimChim ได้เลย หรือจะคุยเรื่องอื่นก็ได้นะ 🦖",
@@ -465,6 +479,8 @@ var CHIMCHIM_DICT = {
 		"home.greetHi": "สวัสดี ",
 		"home.greetQ1": "วันนี้อยาก",
 		"home.greetQ2": "กินอะไรดี?",
+		"home.aiPromoTitle": "ฉันคือชิมชิม ผู้ช่วยหาของกินของคุณ",
+		"home.aiPromoSub": "หิวแต่คิดไม่ออก? ถามได้เลย",
 		"home.feedTitle": "ฟีดชุมชน",
 		"home.feedSub": "โพสต์จากร้านและเพื่อนนักชิมที่คุณติดตาม อัปเดตล่าสุดก่อนเสมอ",
 		"home.feedEmpty": "ยังไม่มีโพสต์ในฟีด ลองเป็นคนแรกที่โพสต์สิ!",
@@ -545,6 +561,11 @@ var CHIMCHIM_DICT = {
 		"profile.myPosts": "โพสต์ของฉัน",
 		"profile.addPost": "เพิ่มโพสต์ใหม่",
 		"profile.pickPhotos": "เลือกรูป",
+		"profile.pickPhotosHint": "แตะเพื่อเลือกรูป — เลือกได้หลายรูปพร้อมกัน สูงสุด 10 รูป",
+		"profile.addMorePhotos": "เพิ่มรูป",
+		"profile.coverPhoto": "ปก",
+		"profile.setAsCover": "แตะเพื่อตั้งเป็นรูปปก",
+		"profile.maxPhotosToast": "โพสต์หนึ่งใส่ได้สูงสุด {n} รูป",
 		"profile.captionLbl": "แคปชั่น",
 		"profile.postBtn": "โพสต์",
 		"profile.settings": "ตั้งค่า",
@@ -745,7 +766,10 @@ var CHIMCHIM_DICT = {
 		"review.rateAllThree": "ให้คะแนนทั้ง 3 หัวข้อก่อนนะ",
 		"review.editPageTitle": "แก้ไขรีวิว",
 		"review.saveChanges": "บันทึกการแก้ไข",
-		"review.confirmDelete": "ลบรีวิวนี้เลยไหม? กู้คืนไม่ได้นะ"
+		"review.confirmDelete": "ลบรีวิวนี้เลยไหม? กู้คืนไม่ได้นะ",
+		"review.delete": "ลบ",
+		"review.edit": "แก้ไข",
+		"review.deletedToast": "ลบรีวิวแล้ว"
 	}
 };
 

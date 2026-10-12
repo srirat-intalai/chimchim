@@ -695,11 +695,20 @@ function addReview(shopId, review) {
 	all[shopId].unshift(review);
 	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
 	logEvent("review_submitted", { shopId: shopId });
-	if (typeof sbSubmitReview === "function") {
-		sbSubmitReview(shopId, review).then(function(saved) {
-			if (saved && saved.remoteId) tagReviewRemoteId(shopId, localId, saved.remoteId);
-		});
-	}
+	// คืน Promise ให้ผู้เรียกรอจน push ขึ้น Supabase เสร็จก่อนเปลี่ยนหน้า — ถ้าเปลี่ยนหน้าทันที request จะโดนยกเลิก
+	// กลางทาง รีวิวไม่ขึ้นเครื่องอื่น และไม่เคยได้ remoteId (ปุ่มแก้ไขรีวิวเลยไม่โผล่)
+	if (typeof sbSubmitReview !== "function") return Promise.resolve(null);
+	return sbSubmitReview(shopId, review).then(function(saved) {
+		if (saved && saved.remoteId) tagReviewRemoteId(shopId, localId, saved.remoteId);
+		return saved;
+	});
+}
+// รอ promise ไม่เกิน ms มิลลิวินาที — กันเน็ตช้า/ค้างจนผู้ใช้ติดอยู่หน้าเดิมไม่ได้ไปไหน
+function waitAtMost(promise, ms) {
+	return Promise.race([
+		Promise.resolve(promise).catch(function() {}),
+		new Promise(function(resolve) { setTimeout(resolve, ms); })
+	]);
 }
 function tagReviewRemoteId(shopId, localId, remoteId) {
 	var all;
@@ -709,9 +718,15 @@ function tagReviewRemoteId(shopId, localId, remoteId) {
 		return;
 	}
 	var list = all[shopId] || [];
+	var found = false;
 	var i;
 	for (i = 0; i < list.length; i++) {
-		if (list[i].localId === localId) { list[i].remoteId = remoteId; break; }
+		if (list[i].localId === localId) { list[i].remoteId = remoteId; found = true; break; }
+	}
+	// ผู้ใช้กดลบรีวิวไปก่อนที่ push ขึ้น Supabase จะเสร็จ — ลบแถวที่เพิ่งขึ้นไปทิ้งด้วย ไม่งั้นมันจะโผล่กลับมาตอน sync
+	if (!found) {
+		if (typeof sbDeleteReview === "function") sbDeleteReview(remoteId);
+		return;
 	}
 	all[shopId] = list;
 	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
@@ -738,18 +753,25 @@ function updateReview(shopId, remoteId, patch) {
 	}
 	all[shopId] = list;
 	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
-	if (typeof sbUpdateReview === "function") sbUpdateReview(remoteId, patch);
+	if (typeof sbUpdateReview !== "function") return Promise.resolve(null);
+	return sbUpdateReview(remoteId, patch);
 }
-function deleteReview(shopId, remoteId) {
+// ลบรีวิวของตัวเอง — ระบุตัวด้วย remoteId ถ้า sync ขึ้น Supabase แล้ว ไม่งั้นใช้ localId (รีวิวที่ยังค้างอยู่ในเครื่องนี้
+// ก็ลบได้เหมือนกัน ถ้า push ขึ้นไปเสร็จทีหลัง tagReviewRemoteId จะตามไปลบแถวบน Supabase ให้เอง)
+function deleteReview(shopId, review) {
 	var all;
 	try {
 		all = JSON.parse(localStorage.getItem(CHIMCHIM_REVIEWS_KEY)) || {};
 	} catch (e) {
 		all = {};
 	}
-	all[shopId] = (all[shopId] || []).filter(function(r) { return String(r.remoteId) !== String(remoteId); });
+	all[shopId] = (all[shopId] || []).filter(function(r) {
+		if (review.remoteId) return String(r.remoteId) !== String(review.remoteId);
+		return r.localId !== review.localId;
+	});
 	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
-	if (typeof sbDeleteReview === "function") sbDeleteReview(remoteId);
+	if (review.remoteId && typeof sbDeleteReview === "function") return sbDeleteReview(review.remoteId);
+	return Promise.resolve(null);
 }
 function getReviewByRemoteId(shopId, remoteId) {
 	return getReviews(shopId).filter(function(r) { return String(r.remoteId) === String(remoteId); })[0] || null;
@@ -775,10 +797,19 @@ function mergeRemoteReviewsIntoLocal(shopId, remoteReviews) {
 	local.forEach(function(r) { existingKeys[ขีดรีวิว(r)] = true; });
 	remoteReviews.forEach(function(r) {
 		var k = ขีดรีวิว(r);
-		if (!existingKeys[k]) {
+		if (existingKeys[k]) return;
+		// รีวิวของตัวเองในเครื่องที่ยังไม่มี remoteId (push สำเร็จแต่เปลี่ยนหน้าก่อนแปะ id) — จับคู่ด้วย ผู้เขียน+ข้อความ
+		// +เวลาห่างกันไม่เกิน 5 นาที แล้วแปะ remoteId ให้แทน ไม่งั้นรีวิวเดียวกันจะโผล่ซ้ำ 2 อัน
+		var pending = local.filter(function(l) {
+			return !l.remoteId && l.userId && l.userId === r.userId && (l.text || "") === (r.text || "") &&
+				Math.abs(new Date(l.date) - new Date(r.date)) < 5 * 60 * 1000;
+		})[0];
+		if (pending) {
+			pending.remoteId = r.remoteId;
+		} else {
 			local.push(r);
-			existingKeys[k] = true;
 		}
+		existingKeys[k] = true;
 	});
 	local.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
 	all[shopId] = local;

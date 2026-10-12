@@ -6,6 +6,13 @@ var aiChatBody = document.getElementById("aiChatBody");
 var aiSuggestRow = document.getElementById("aiSuggestRow");
 var aiChatForm = document.getElementById("aiChatForm");
 var aiChatInput = document.getElementById("aiChatInput");
+var aiChatWrap = document.getElementById("aiChatWrap");
+
+// ยังไม่มีข้อความจากผู้ใช้เลย = โชว์หน้าแรกแบบ "Ask anything" (ลูกแก้ว + คำถามแนะนำกลางจอ) แทนห้องแชท
+function อัปเดตสถานะแชทว่าง() {
+	if (!aiChatWrap) return;
+	aiChatWrap.classList.toggle("is-empty", !aiChatBody.querySelector(".chatbubble.user"));
+}
 
 /* -----------------------------------------------------
    คลังคำแนะนำเริ่มบทสนทนา (Quick Suggestions) — สุ่มใหม่ทุกครั้ง ไม่ตายตัว
@@ -52,6 +59,7 @@ function renderQuickSuggestions() {
 		chip.type = "button";
 		chip.className = "chatchip";
 		chip.textContent = s.text;
+		chip.insertAdjacentHTML("beforeend", '<i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>');
 		chip.addEventListener("click", function() {
 			ส่งข้อความ(s.text);
 		});
@@ -97,6 +105,7 @@ function addUserBubble(text) {
 	el.className = "chatbubble user";
 	el.textContent = text;
 	aiChatBody.appendChild(el);
+	อัปเดตสถานะแชทว่าง();
 	เลื่อนแชทลงล่าง();
 	จดบันทึกลงแชท({ type: "user", text: text });
 }
@@ -334,6 +343,7 @@ if (บทสนทนาที่บันทึกไว้.length) {
 } else {
 	addBotBubble(t("ai.startBubble"));
 }
+อัปเดตสถานะแชทว่าง();
 renderQuickSuggestions();
 
 // ดึงร้านที่คนอื่นโพสต์ไว้ใน Supabase จริงมาผสานกับ รายการร้าน เงียบ ๆ กันชิมชิมแนะนำร้านไม่ครบ

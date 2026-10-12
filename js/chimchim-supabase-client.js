@@ -267,10 +267,14 @@ function sbSubmitReview(shopId, review) {
 		// รูปแนบรีวิว — แยก query ต่างหากจากการ insert รีวิวหลักด้านบนโดยตั้งใจ เพราะคอลัมน์ reviews.images
 		// เป็นของใหม่ (SQL Phase 6) ถ้าใครยังไม่ได้รัน SQL อันนั้น การแนบรูปจะ error เฉย ๆ (จับด้วย catch)
 		// โดยไม่ทำให้การส่งรีวิวหลักที่ทำงานอยู่แล้วพังไปด้วย
+		var saved = sbReviewRowToLocal(res.data);
 		if (review.images && review.images.length) {
-			Promise.resolve(sbClient.from("reviews").update({ images: review.images }).eq("id", res.data.id)).catch(function() {});
+			// รอให้อัปเดตรูปเสร็จด้วย (ผู้เรียกรอ promise นี้ก่อนเปลี่ยนหน้า) แต่ถ้าพังก็ยังคืนรีวิวที่บันทึกแล้ว
+			return Promise.resolve(sbClient.from("reviews").update({ images: review.images }).eq("id", res.data.id))
+				.catch(function() {})
+				.then(function() { return saved; });
 		}
-		return sbReviewRowToLocal(res.data);
+		return saved;
 	}).catch(function() { return null; });
 }
 // แก้ไข/ลบรีวิวที่เคย sync ขึ้น Supabase แล้วเท่านั้น (ต้องมี remoteId จริง) ต้องรัน migration "Phase 4"
@@ -283,13 +287,14 @@ function sbUpdateReview(remoteId, patch) {
 	if (typeof patch.service === "number") row.service = patch.service;
 	if (typeof patch.text === "string") row.text = patch.text;
 	// รูปแนบแยก query ต่างหาก (เหตุผลเดียวกับใน sbSubmitReview — คอลัมน์ images เป็นของใหม่ SQL Phase 6)
-	if (patch.images) {
-		Promise.resolve(sbClient.from("reviews").update({ images: patch.images }).eq("id", remoteId)).catch(function() {});
-	}
-	if (!Object.keys(row).length) return Promise.resolve(null);
-	return sbClient.from("reviews").update(row).eq("id", remoteId).then(function(res) {
+	var imagesPromise = patch.images
+		? Promise.resolve(sbClient.from("reviews").update({ images: patch.images }).eq("id", remoteId)).catch(function() {})
+		: Promise.resolve(null);
+	if (!Object.keys(row).length) return imagesPromise;
+	var rowPromise = Promise.resolve(sbClient.from("reviews").update(row).eq("id", remoteId)).then(function(res) {
 		if (res.error) console.error("[chimchim] sbUpdateReview error:", res.error.message);
 	}).catch(function() {});
+	return Promise.all([imagesPromise, rowPromise]);
 }
 function sbDeleteReview(remoteId) {
 	if (!sbClient) return Promise.resolve(null);

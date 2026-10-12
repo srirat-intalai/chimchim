@@ -99,9 +99,9 @@
             <div class="addpostbox" id="addPostToggle"><i class="fas fa-plus fa-lg"></i><span data-i18n="profile.addPost">เพิ่มโพสต์ใหม่</span></div>
             <form id="postForm" class="apform" style="display:none;margin-bottom:14px;">
                <div class="aperr" id="postErr"></div>
-               <label class="flbl" data-i18n="profile.pickPhotos">เลือกรูป</label>
+               <label class="flbl postimghead"><span data-i18n="profile.pickPhotos">เลือกรูป</span><span class="postimgcount" id="postImgCount" hidden></span></label>
                <div class="imguploadbox" id="postImgUploadBox">
-                  <label class="imguploadlbl" for="postImgFile"><i class="fas fa-camera"></i><span data-i18n="shop.uploadPhoto">Upload a photo</span></label>
+                  <label class="imguploadlbl" for="postImgFile"><i class="fas fa-images"></i><span data-i18n="profile.pickPhotosHint">แตะเพื่อเลือกรูป — เลือกได้หลายรูป สูงสุด 10 รูป</span></label>
                </div>
                <input type="file" id="postImgFile" accept="image/*" multiple hidden/>
                <div class="postimglist" id="postImgList"></div>

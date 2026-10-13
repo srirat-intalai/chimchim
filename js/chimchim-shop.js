@@ -78,10 +78,20 @@
 	}
 	if (deleteBtn) {
 		deleteBtn.addEventListener("click", function() {
-			if (!confirm(t("shop.confirmDelete"))) return;
-			deleteMyShop();
-			showToast(t("shop.deletedToast"));
-			setTimeout(function() { window.location.reload(); }, 400);
+			// หน้าต่างยืนยันของแอป (แบบเดียวกับลบโพสต์/คอมเมนต์/รีวิว) — โชว์รูปร้านให้แน่ใจว่าลบร้านที่ถูก
+			var shop = typeof getMyShop === "function" ? getMyShop() : null;
+			showConfirmDialog({
+				title: t("shop.deleteTitle"),
+				message: (shop && shop.name ? "“" + shop.name + "” — " : "") + t("shop.confirmDelete"),
+				confirmText: t("shop.deleteMyShop"),
+				image: shop && shop.img ? shop.img : null,
+				icon: "store-slash"
+			}).then(function(yes) {
+				if (!yes) return;
+				deleteMyShop();
+				showToast(t("shop.deletedToast"));
+				setTimeout(function() { window.location.reload(); }, 400);
+			});
 		});
 	}
 

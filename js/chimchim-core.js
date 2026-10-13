@@ -360,6 +360,46 @@ function inferDnaFromBehavior() {
    (ไม่มีพิกัด GPS จริงของร้านแต่ละร้าน มีแค่ระยะทางประมาณจากมหาลัยที่ใส่ไว้ตอนโพสต์ร้าน
    เลยใช้ "มหาลัยที่ใกล้คุณที่สุด" แทนการเทียบระยะทางร้านทีละร้านตรงๆ เพื่อไม่ต้องเดาพิกัดร้านที่ไม่มีข้อมูลจริง) --- */
 var CHIMCHIM_LOCATION_KEY = "chimchim_user_location";
+/* =====================================================================
+   พื้นที่ที่เลือกดูอาหาร (มหาวิทยาลัย) — ปุ่มบนแถบบนทุกหน้า เลือกแล้วทั้งแอปโชว์ร้านแถวนั้น
+   "" = ทุกพื้นที่ / ยังไม่เคยเลือก → ใช้มหาลัยที่ตั้งไว้ในโปรไฟล์ (ถ้ามี) ไม่งั้นทุกพื้นที่
+   พื้นที่ที่ยังไม่มีร้าน → โชว์แค่ไม่กี่ร้านที่ใกล้ที่สุด (วัดจากพิกัดมหาลัย) พร้อมบอกว่ายังไม่มีร้านแถวนี้
+   ===================================================================== */
+var CHIMCHIM_AREA_KEY = "chimchim_area";
+var CHIMCHIM_AREA_FALLBACK_MAX = 3;
+var CHIMCHIM_AREA_SHORT = { "มหาวิทยาลัยกรุงเทพ": "ม.กรุงเทพ", "เกษตรศาสตร์": "ม.เกษตร", "ธรรมศาสตร์ รังสิต": "มธ. รังสิต" };
+function getSelectedArea() {
+	var v = null;
+	try { v = localStorage.getItem(CHIMCHIM_AREA_KEY); } catch (e) {}
+	if (v !== null) return (typeof มหาวิทยาลัยพิกัด !== "undefined" && มหาวิทยาลัยพิกัด[v]) ? v : "";
+	var me = typeof getMe === "function" ? getMe() : null;
+	return me && me.university && typeof มหาวิทยาลัยพิกัด !== "undefined" && มหาวิทยาลัยพิกัด[me.university] ? me.university : "";
+}
+function setSelectedArea(area) {
+	try { localStorage.setItem(CHIMCHIM_AREA_KEY, area || ""); } catch (e) {}
+}
+function areaShortName(area) {
+	if (!area) return t("area.all");
+	return getLang() === "th" ? (CHIMCHIM_AREA_SHORT[area] || area) : area;
+}
+// กรองร้านตามพื้นที่ที่เลือก คืน { list, area, fallback, km }
+// fallback = พื้นที่นี้ยังไม่มีร้าน list คือร้านที่ใกล้ที่สุดไม่กี่ร้าน / km = ระยะโดยประมาณถึงร้านที่ใกล้ที่สุด
+function กรองร้านตามพื้นที่(list) {
+	var area = getSelectedArea();
+	if (!area) return { list: list, area: "", fallback: false, km: null };
+	var here = list.filter(function(r) { return r.มหาลัย === area; });
+	if (here.length) return { list: here, area: area, fallback: false, km: null };
+	var c = มหาวิทยาลัยพิกัด[area];
+	var near = list.map(function(r) {
+		var u = มหาวิทยาลัยพิกัด[r.มหาลัย];
+		return u ? { r: r, d: ระยะทางฮาเวอร์ไซน์(c.lat, c.lng, u.lat, u.lng) + (r.ระยะทาง || 0) } : null;
+	}).filter(Boolean).sort(function(a, b) { return a.d - b.d; }).slice(0, CHIMCHIM_AREA_FALLBACK_MAX);
+	return { list: near.map(function(x) { return x.r; }), area: area, fallback: true, km: near.length ? Math.max(1, Math.round(near[0].d / 1000)) : null };
+}
+function ร้านในพื้นที่() {
+	return กรองร้านตามพื้นที่(typeof รายการร้าน !== "undefined" ? รายการร้าน : []).list;
+}
+
 function getUserLocation() {
 	try {
 		return JSON.parse(localStorage.getItem(CHIMCHIM_LOCATION_KEY));
@@ -815,6 +855,70 @@ function mergeRemoteReviewsIntoLocal(shopId, remoteReviews) {
 	all[shopId] = local;
 	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
 }
+/* =====================================================================
+   เลเวลนักชิม — XP คิดจากกิจกรรมจริงของผู้ใช้ในแอป (ไม่มีตัวเลขสมมติ)
+   รีวิว 30 · โพสต์ 20 · ทำ Food DNA 20 (ครั้งเดียว) · ความคิดเห็น 5 · ถูกใจ/บันทึก/ติดตาม 2 ต่อครั้ง
+   ===================================================================== */
+var CHIMCHIM_XP_RULES = [
+	{ key: "reviews", xp: 30, icon: "pen", label: "level.srcReviews" },
+	{ key: "posts", xp: 20, icon: "image", label: "level.srcPosts" },
+	{ key: "dna", xp: 20, icon: "dna", label: "level.srcDna" },
+	{ key: "comments", xp: 5, icon: "comment", label: "level.srcComments" },
+	{ key: "social", xp: 2, icon: "heart", label: "level.srcSocial" }
+];
+var CHIMCHIM_LEVELS = [
+	{ min: 0, name: "level.l1" },
+	{ min: 50, name: "level.l2" },
+	{ min: 150, name: "level.l3" },
+	{ min: 300, name: "level.l4" },
+	{ min: 500, name: "level.l5" },
+	{ min: 800, name: "level.l6" },
+	{ min: 1200, name: "level.l7" }
+];
+function นับคอมเมนต์ของฉัน(userId) {
+	var all;
+	try {
+		all = JSON.parse(localStorage.getItem(CHIMCHIM_COMMENTS_KEY)) || {};
+	} catch (e) {
+		return 0;
+	}
+	var n = 0;
+	Object.keys(all).forEach(function(postId) {
+		(all[postId] || []).forEach(function(c) { if (c.userId === userId) n++; });
+	});
+	return n;
+}
+// คืน { xp, counts: { reviews, posts, dna, comments, social } }
+function คำนวณXP(userId) {
+	var me = getUsers().filter(function(u) { return u.id === userId; })[0];
+	var counts = {
+		reviews: countReviewsByUser(userId),
+		posts: getPostsByUser(userId).length,
+		dna: me && me.foodDNA ? 1 : 0,
+		comments: นับคอมเมนต์ของฉัน(userId),
+		social: getLikedShops().length + getLikedPosts().length + getSavedShops().length + getFollowedShops().length + getFollowedUsers().length
+	};
+	var xp = 0;
+	CHIMCHIM_XP_RULES.forEach(function(r) { xp += (counts[r.key] || 0) * r.xp; });
+	return { xp: xp, counts: counts };
+}
+// คืน { level (1-7), name, xp, min, next (null = ระดับสูงสุด), nextName, progress 0-1 }
+function เลเวลจากXP(xp) {
+	var i = 0;
+	while (i + 1 < CHIMCHIM_LEVELS.length && xp >= CHIMCHIM_LEVELS[i + 1].min) i++;
+	var cur = CHIMCHIM_LEVELS[i];
+	var nxt = CHIMCHIM_LEVELS[i + 1] || null;
+	return {
+		level: i + 1,
+		name: t(cur.name),
+		xp: xp,
+		min: cur.min,
+		next: nxt ? nxt.min : null,
+		nextName: nxt ? t(nxt.name) : null,
+		progress: nxt ? Math.max(0, Math.min(1, (xp - cur.min) / (nxt.min - cur.min))) : 1
+	};
+}
+
 // นับจำนวนรีวิวทั้งหมดที่ผู้ใช้คนนี้เคยเขียนไว้ (ใช้คำนวณ XP) — รีวิวต้องมี userId ติดไว้ตอนบันทึกถึงจะนับได้
 function countReviewsByUser(userId) {
 	var all;
@@ -985,6 +1089,14 @@ function toggleLikeShop(shopId) {
 // ยอดไลก์จริงจาก Supabase (นับแถวจริงในตาราง likes_shops ไม่ใช่เลขสุ่มมั่ว ๆ อีกต่อไป)
 // เริ่มที่ 0 จนกว่าจะดึงของจริงมาได้ (ดู queueShopLikeCountFetch ด้านล่าง — ผูกอัตโนมัติจาก initLikeUI ทุกจุด)
 var CHIMCHIM_REAL_SHOP_LIKE_COUNTS = {};
+// ยอดจากเซิร์ฟเวอร์ยังไม่รวมการกดของเราที่ค้างส่งอยู่ (คิวรอส่งใน supabase-client.js) — บวก/ลบให้ตรงกับที่ผู้ใช้เห็นว่ากดไว้
+function ยอดรวมที่ค้างส่ง(kind, id, count) {
+	if (typeof sbPendingState !== "function") return count;
+	var st = sbPendingState(kind, id);
+	if (st === true) return count + 1;
+	if (st === false) return Math.max(0, count - 1);
+	return count;
+}
 function getLikeCount(shopId) {
 	return CHIMCHIM_REAL_SHOP_LIKE_COUNTS.hasOwnProperty(shopId) ? CHIMCHIM_REAL_SHOP_LIKE_COUNTS[shopId] : 0;
 }
@@ -1043,7 +1155,7 @@ function queueShopLikeCountFetch(shopId, countEl) {
 		if (typeof sbFetchShopLikeCounts !== "function") return;
 		sbFetchShopLikeCounts(ids).then(function(counts) {
 			ids.forEach(function(id) {
-				var count = counts[id] || 0;
+				var count = ยอดรวมที่ค้างส่ง("likeShop", id, counts[id] || 0);
 				CHIMCHIM_REAL_SHOP_LIKE_COUNTS[id] = count;
 				(elsMap[id] || []).forEach(function(el) { el.textContent = formatLikeCount(count); });
 			});
@@ -1107,14 +1219,17 @@ function togglePostLike(postId) {
 // ยอดไลก์จริงจาก Supabase (นับแถวจริงในตาราง likes_posts) เหมือนร้าน — ดู queueShopLikeCountFetch ด้านบน
 var CHIMCHIM_REAL_POST_LIKE_COUNTS = {};
 function getPostLikeCount(postId) {
-	return CHIMCHIM_REAL_POST_LIKE_COUNTS.hasOwnProperty(postId) ? CHIMCHIM_REAL_POST_LIKE_COUNTS[postId] : 0;
+	if (CHIMCHIM_REAL_POST_LIKE_COUNTS.hasOwnProperty(postId)) return CHIMCHIM_REAL_POST_LIKE_COUNTS[postId];
+	// ยังไม่ได้ยอดจริงจากเซิร์ฟเวอร์ → อย่างน้อยนับไลก์ของเราเอง ไม่โชว์ 0 ทั้งที่เพิ่งกดถูกใจ
+	return isPostLiked(postId) ? 1 : 0;
 }
 var __pendingPostLikeIds = [];
 var __pendingPostLikeEls = {};
 var __postLikeFlushScheduled = false;
-function queuePostLikeCountFetch(postId, countEl) {
+// target = element (ใส่ตัวเลขให้) หรือ function(count) (ผู้เรียกจัดการแสดงผลเอง)
+function queuePostLikeCountFetch(postId, target) {
 	if (!__pendingPostLikeEls[postId]) __pendingPostLikeEls[postId] = [];
-	__pendingPostLikeEls[postId].push(countEl);
+	__pendingPostLikeEls[postId].push(target);
 	if (__pendingPostLikeIds.indexOf(postId) === -1) __pendingPostLikeIds.push(postId);
 	if (__postLikeFlushScheduled) return;
 	__postLikeFlushScheduled = true;
@@ -1127,9 +1242,14 @@ function queuePostLikeCountFetch(postId, countEl) {
 		if (typeof sbFetchPostLikeCounts !== "function") return;
 		sbFetchPostLikeCounts(ids).then(function(counts) {
 			ids.forEach(function(id) {
-				var count = counts[id] || 0;
+				// ดึงไม่ได้ (เช่น ตารางไลก์โพสต์ตัวอย่างยังไม่มี) → ไม่ทับยอดเดิมด้วย 0
+				if (!counts.hasOwnProperty(id)) return;
+				var count = ยอดรวมที่ค้างส่ง("likePost", String(id), counts[id]);
 				CHIMCHIM_REAL_POST_LIKE_COUNTS[id] = count;
-				(elsMap[id] || []).forEach(function(el) { el.textContent = formatLikeCount(count); });
+				(elsMap[id] || []).forEach(function(target) {
+					if (typeof target === "function") target(count);
+					else target.textContent = formatLikeCount(count);
+				});
 			});
 		});
 	}, 40);
@@ -1142,9 +1262,10 @@ function getCommentCount(postId) {
 var __pendingCommentCountIds = [];
 var __pendingCommentCountEls = {};
 var __commentCountFlushScheduled = false;
-function queueCommentCountFetch(postId, countEl) {
+// target = element (ใส่จำนวนให้) หรือ function(summary) — summary = { count, latest: [{ author, text }] }
+function queueCommentCountFetch(postId, target) {
 	if (!__pendingCommentCountEls[postId]) __pendingCommentCountEls[postId] = [];
-	__pendingCommentCountEls[postId].push(countEl);
+	__pendingCommentCountEls[postId].push(target);
 	if (__pendingCommentCountIds.indexOf(postId) === -1) __pendingCommentCountIds.push(postId);
 	if (__commentCountFlushScheduled) return;
 	__commentCountFlushScheduled = true;
@@ -1154,12 +1275,15 @@ function queueCommentCountFetch(postId, countEl) {
 		__pendingCommentCountIds = [];
 		__pendingCommentCountEls = {};
 		__commentCountFlushScheduled = false;
-		if (typeof sbFetchCommentCounts !== "function") return;
-		sbFetchCommentCounts(ids).then(function(counts) {
+		if (typeof sbFetchCommentSummaries !== "function") return;
+		sbFetchCommentSummaries(ids).then(function(sums) {
 			ids.forEach(function(id) {
-				if (!counts.hasOwnProperty(id)) return;
-				CHIMCHIM_REAL_COMMENT_COUNTS[id] = counts[id];
-				(elsMap[id] || []).forEach(function(el) { el.textContent = counts[id]; });
+				if (!sums.hasOwnProperty(id)) return;
+				CHIMCHIM_REAL_COMMENT_COUNTS[id] = sums[id].count;
+				(elsMap[id] || []).forEach(function(target) {
+					if (typeof target === "function") target(sums[id]);
+					else target.textContent = sums[id].count;
+				});
 			});
 		});
 	}, 40);
@@ -1429,9 +1553,10 @@ function getFeedItems() {
 			date: p.date,
 			posterName: posterName,
 			posterAvatarUrl: shop ? shop.img : (p.userAvatar || null),
-			posterColor: shop ? "var(--cream2)" : "linear-gradient(135deg, var(--dark), #8b68e0)",
+			posterColor: shop ? "var(--cream2)" : "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))",
 			posterLink: shop ? ("restaurant.html?id=" + shop.numId) : ("public-profile.html?u=" + p.userId),
 			userId: p.userId || null,
+			uni: shop ? (shop.uni || null) : null,
 			cat: shop ? shop.cat : null
 		};
 	});
@@ -1451,8 +1576,9 @@ function getFeedItems() {
 				date: d.toISOString(),
 				posterName: shop.name,
 				posterAvatarUrl: shop.avatar,
-				posterColor: "linear-gradient(135deg, var(--primary), var(--secondary))",
+				posterColor: "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))",
 				posterLink: "public-profile.html?u=bu-" + shop.id,
+				uni: (function() { var m = หาร้านจากId(shop.menuId); return m ? m.มหาลัย : null; })(),
 				cat: shop.cat
 			});
 		});
@@ -1665,7 +1791,9 @@ function reportContent(targetType, targetId, reason, note, remoteTargetId) {
 	// (ไม่งั้นนับแค่รายงานในเครื่องนี้เครื่องเดียว ซึ่งแทบไม่มีทางถึงเกณฑ์จริง) ตาราง moderation_reports อ่านกลับไม่ได้
 	// (insert-only ตาม RLS) แต่ trigger check_report_threshold() ฝั่ง Supabase จะเซ็ต is_hidden ให้เองอัตโนมัติ
 	// แล้ว sbFetchCommunityShops/sbFetchAllPosts ที่กรอง is_hidden=false อยู่แล้วจะไม่ดึงเนื้อหานั้นมาอีกทุกเครื่อง
-	if (typeof sbReportContent === "function") sbReportContent(targetType, remoteTargetId != null ? remoteTargetId : targetId, reason, note || "");
+	// คืน Promise ของการบันทึกรายงานบน Supabase (คอมเมนต์ต้องรอให้รายงานขึ้นก่อน ค่อยเรียก AI ตรวจ)
+	if (typeof sbReportContent === "function") return sbReportContent(targetType, remoteTargetId != null ? remoteTargetId : targetId, reason, note || "");
+	return Promise.resolve(null);
 }
 function getReportCount(targetType, targetId) {
 	var id = String(targetId);
@@ -1792,10 +1920,10 @@ var REPORT_NOTE_MAX = 300;
 		}
 		var target = currentTarget;
 		var cb = currentCallback;
-		reportContent(target.type, target.id, selectedReason, note, target.remoteId);
+		var saved = reportContent(target.type, target.id, selectedReason, note, target.remoteId);
 		closeReportPopup();
-		if (typeof showToast === "function") showToast(t("report.thanks"));
-		if (cb) cb();
+		if (typeof showToast === "function") showToast(t(target.type === "comment" && target.remoteId ? "report.aiChecking" : "report.thanks"));
+		if (cb) cb(saved);
 	});
 
 	window.openReportPopup = function(targetType, targetId, onReported, opts) {

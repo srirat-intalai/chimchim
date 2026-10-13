@@ -123,7 +123,7 @@ function renderMatchHero() {
     var slidesEl = document.getElementById('mhSlides');
     if (!wrap || !slidesEl) return;
 
-    var mhPool = รายการร้าน.filter(function(r) { return ร้านอยู่ในหมวดที่เลือก(r.หมวด, currentTrendCat); });
+    var mhPool = ร้านในพื้นที่().filter(function(r) { return ร้านอยู่ในหมวดที่เลือก(r.หมวด, currentTrendCat); });
     var mhDeduped = กรองรูปไม่ซ้ำ(
         mhPool
             .map(function(r) { return { r: r, m: คำนวณMatch(r, foodDNA) }; })
@@ -203,7 +203,7 @@ function renderRecommendedRow() {
     var row = document.getElementById('recommendedRow');
     if (!row) return;
     row.innerHTML = '';
-    var recPool = รายการร้าน.filter(function(r) { return ร้านอยู่ในหมวดที่เลือก(r.หมวด, currentTrendCat); });
+    var recPool = ร้านในพื้นที่().filter(function(r) { return ร้านอยู่ในหมวดที่เลือก(r.หมวด, currentTrendCat); });
     var recDeduped = กรองรูปไม่ซ้ำ(
         recPool
             .map(function(r) { return { r: r, m: คำนวณMatch(r, foodDNA) }; })
@@ -284,7 +284,7 @@ renderRecommendedRow();
         // เลยค้นหาเพิ่มจาก Supabase จริงด้านล่างด้วย (ดู searchPeopleFromSupabase) ผลจะโผล่มาเพิ่มทีหลังแบบ progressive
         getUsers().forEach(function(u) {
             if (u.name && u.name.toLowerCase().indexOf(q) !== -1) {
-                people.push({ id: u.id, name: u.name, sub: '<i class="fas fa-graduation-cap"></i> ' + t("common.member"), color: "linear-gradient(135deg, var(--dark), #8b68e0)" });
+                people.push({ id: u.id, name: u.name, sub: '<i class="fas fa-graduation-cap"></i> ' + t("common.member"), color: "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))" });
             }
         });
 
@@ -331,7 +331,7 @@ renderRecommendedRow();
                 res.data.forEach(function(row) {
                     if (existingIds[row.id]) return;
                     existingIds[row.id] = true;
-                    people.push({ id: row.id, name: row.name, sub: '<i class="fas fa-graduation-cap"></i> ' + t("common.member"), color: "linear-gradient(135deg, var(--dark), #8b68e0)" });
+                    people.push({ id: row.id, name: row.name, sub: '<i class="fas fa-graduation-cap"></i> ' + t("common.member"), color: "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))" });
                 });
                 var groupEl = document.getElementById("spPeopleGroup");
                 if (groupEl) groupEl.innerHTML = buildGroup('search.people', buildPeopleHtml(people));
@@ -393,3 +393,16 @@ window.addEventListener('load', function() {
         showToast(t('home.reviewThanksToast'));
     }
 });
+
+
+/* --- พื้นที่ที่เลือก (ปุ่มบนแถบบน) ยังไม่มีร้าน → บอกตรง ๆ ว่ายังไม่มี และที่โชว์คือร้านที่ใกล้ที่สุด --- */
+(function showAreaNotice() {
+	var box = document.getElementById("areaNotice");
+	if (!box || typeof กรองร้านตามพื้นที่ !== "function") return;
+	var info = กรองร้านตามพื้นที่(รายการร้าน);
+	if (!info.area || !info.fallback) return;
+	box.querySelector("span").textContent = info.list.length
+		? t("area.noneNearestHint").replace("{area}", areaShortName(info.area)).replace("{km}", info.km)
+		: t("area.noneAtAll").replace("{area}", areaShortName(info.area));
+	box.hidden = false;
+})();

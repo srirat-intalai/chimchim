@@ -319,13 +319,59 @@ function syncReviewsWithSupabase(shopId, onUpdated) {
    แล้วดึงของตัวเองจาก Supabase มา union กับเครื่องนี้ตอนล็อกอิน/เข้าแอป กันหายตอนเปลี่ยนเครื่อง
    พร้อม "ย้อนผลัก" ของที่มีอยู่แล้วแค่ในเครื่องนี้ (ทำไว้ก่อนมี sync/ทำตอนออฟไลน์) ขึ้น Supabase ให้ครบ
    ===================================================================== */
-function sbSetShopLike(shopId, liked) {
+/* =====================================================================
+   คิวรอส่ง (ไลก์/ติดตาม) — กดแล้ว "ติดจริง" เสมอ
+   เดิม: กดแล้วส่งขึ้น Supabase แบบไม่สนผล ถ้าส่งไม่ผ่าน (ร้านยังไม่มีในตาราง shops / ไม่ได้ล็อกอิน Supabase / เน็ตหลุด)
+   พอเปิดหน้าใหม่ sync จะเอาของจากเซิร์ฟเวอร์ (ที่ไม่มีรายการนั้น) มาเขียนทับในเครื่อง → ที่เพิ่งกดหายไปเฉย ๆ
+   ตอนนี้: ทุกการกดจดลงคิวก่อน ส่งสำเร็จค่อยลบออก ไม่สำเร็จเก็บไว้ส่งซ้ำตอน sync รอบถัดไป
+   และตอนรวมกับของจากเซิร์ฟเวอร์ "สิ่งที่ค้างในคิวชนะเสมอ" — ผู้ใช้ไม่มีทางเห็นสิ่งที่ตัวเองกดหายไป
+   kind: "likeShop" | "likePost" | "follow:shop" | "follow:profile"
+   ===================================================================== */
+var CHIMCHIM_PENDING_SOCIAL_KEY = "chimchim_pending_social_v1";
+function sbPendingList() {
+	try {
+		return JSON.parse(localStorage.getItem(CHIMCHIM_PENDING_SOCIAL_KEY)) || [];
+	} catch (e) {
+		return [];
+	}
+}
+function sbPendingSave(list) {
+	localStorage.setItem(CHIMCHIM_PENDING_SOCIAL_KEY, JSON.stringify(list));
+}
+function sbSameItem(x, kind, id) {
+	return x.kind === kind && String(x.id) === String(id);
+}
+function sbMarkPending(kind, id, on) {
+	var list = sbPendingList().filter(function(x) { return !sbSameItem(x, kind, id); });
+	list.push({ kind: kind, id: id, on: !!on });
+	sbPendingSave(list);
+}
+function sbClearPending(kind, id, on) {
+	sbPendingSave(sbPendingList().filter(function(x) { return !(sbSameItem(x, kind, id) && x.on === !!on); }));
+}
+// true = กดไว้แต่ยังส่งไม่ขึ้น / false = เลิกกดไว้แต่ยังส่งไม่ขึ้น / undefined = ไม่มีค้าง
+function sbPendingState(kind, id) {
+	var hit = sbPendingList().filter(function(x) { return sbSameItem(x, kind, id); })[0];
+	return hit ? hit.on : undefined;
+}
+// ส่งจริง + จัดการคิว: สำเร็จ (หรือมีอยู่แล้ว 23505) → ลบออกจากคิว / ไม่สำเร็จ → ค้างไว้ส่งซ้ำ คืน Promise<boolean>
+function sbRunSocialWrite(kind, id, on, makeQuery) {
+	sbMarkPending(kind, id, on);
 	var me = getMe();
-	if (!me || !sbClient) return Promise.resolve();
-	var query = liked
-		? sbClient.from("likes_shops").insert({ user_id: me.id, shop_id: shopId })
-		: sbClient.from("likes_shops").delete().eq("user_id", me.id).eq("shop_id", shopId);
-	return Promise.resolve(query).catch(function() {});
+	if (!me || !sbClient) return Promise.resolve(false);
+	return Promise.resolve(makeQuery(me)).then(function(res) {
+		var ok = !res.error || res.error.code === "23505";
+		if (ok) sbClearPending(kind, id, on);
+		else console.warn("[chimchim] ส่ง " + kind + " ไม่สำเร็จ จะลองใหม่ภายหลัง:", res.error.message);
+		return ok;
+	}).catch(function() { return false; });
+}
+function sbSetShopLike(shopId, liked) {
+	return sbRunSocialWrite("likeShop", shopId, liked, function(me) {
+		return liked
+			? sbClient.from("likes_shops").insert({ user_id: me.id, shop_id: shopId })
+			: sbClient.from("likes_shops").delete().eq("user_id", me.id).eq("shop_id", shopId);
+	});
 }
 // บันทึกร้านไว้ดูทีหลัง — ตาราง saved_shops เป็นของใหม่ (SQL Phase 6) .catch() กันพังถ้ายังไม่ได้รัน SQL
 function sbSetShopSave(shopId, saved) {
@@ -350,81 +396,141 @@ function syncSavedShopsWithSupabase(onUpdated) {
 		if (typeof onUpdated === "function") onUpdated();
 	}).catch(function() {});
 }
+/* --- โพสต์มี 2 แบบ: โพสต์จริงในตาราง posts (id ตัวเลข) กับโพสต์ตัวอย่างของร้านตั้งต้นในระบบ ที่ฝังอยู่ในโค้ด
+   (id แบบ "bu-yammamuang-post0" ไม่มีแถวในตาราง posts) — เดิมไลก์/คอมเมนต์ของโพสต์แบบหลังไม่เคยขึ้น Supabase เลย
+   คนอื่นเลยไม่เห็น ตอนนี้แบบหลังเก็บด้วย post_key (ต้องรัน SQL Phase 9 ใน schema.sql ก่อน) --- */
+function sbIsSeedPostId(id) {
+	// id ร้านตั้งต้นเป็นตัวอักษร เช่น "bu-yammamuang-post0" / "bu-kinteaw-banmae-post1"
+	return /^bu-[a-z0-9-]+-post\d+$/.test(String(id));
+}
+function sbSplitPostIds(ids) {
+	var numeric = [];
+	var keys = [];
+	ids.forEach(function(id) {
+		var s = String(id);
+		if (/^\d+$/.test(s)) numeric.push(parseInt(s, 10));
+		else if (sbIsSeedPostId(s)) keys.push(s);
+	});
+	return { numeric: numeric, keys: keys };
+}
 function sbSetPostLike(postId, liked) {
-	var me = getMe();
-	var numericId = parseInt(postId, 10);
-	if (!me || !sbClient || isNaN(numericId)) return Promise.resolve();
-	var query = liked
-		? sbClient.from("likes_posts").insert({ user_id: me.id, post_id: numericId })
-		: sbClient.from("likes_posts").delete().eq("user_id", me.id).eq("post_id", numericId);
-	return Promise.resolve(query).catch(function() {});
+	// โพสต์ใหม่ที่ยังไม่ได้ id จริง ("post123…") ยังไม่มีแถวให้ผูก — เก็บไว้ในเครื่องก่อน
+	if (!sbIsSeedPostId(postId) && !/^\d+$/.test(String(postId))) return Promise.resolve(false);
+	return sbRunSocialWrite("likePost", String(postId), liked, function(me) {
+		if (sbIsSeedPostId(postId)) {
+			return liked
+				? sbClient.from("likes_seed_posts").insert({ user_id: me.id, post_key: String(postId) })
+				: sbClient.from("likes_seed_posts").delete().eq("user_id", me.id).eq("post_key", String(postId));
+		}
+		var numericId = parseInt(postId, 10);
+		return liked
+			? sbClient.from("likes_posts").insert({ user_id: me.id, post_id: numericId })
+			: sbClient.from("likes_posts").delete().eq("user_id", me.id).eq("post_id", numericId);
+	});
 }
 function sbSetFollow(targetType, targetId, following) {
-	var me = getMe();
-	if (!me || !sbClient) return Promise.resolve();
-	var query = following
-		? sbClient.from("follows").insert({ follower_id: me.id, target_type: targetType, target_id: String(targetId) })
-		: sbClient.from("follows").delete().eq("follower_id", me.id).eq("target_type", targetType).eq("target_id", String(targetId));
-	return Promise.resolve(query).catch(function() {});
+	return sbRunSocialWrite("follow:" + targetType, targetId, following, function(me) {
+		return following
+			? sbClient.from("follows").insert({ follower_id: me.id, target_type: targetType, target_id: String(targetId) })
+			: sbClient.from("follows").delete().eq("follower_id", me.id).eq("target_type", targetType).eq("target_id", String(targetId));
+	});
+}
+// นับแถวแบบไม่ดึงข้อมูลจริง (head + count exact) — ใช้นับผู้ติดตาม/กำลังติดตาม/รีวิว คืน Promise<number|null>
+function sbCountRows(table, eqs) {
+	if (!sbClient) return Promise.resolve(null);
+	var q = sbClient.from(table).select("*", { count: "exact", head: true });
+	Object.keys(eqs).forEach(function(k) { q = q.eq(k, eqs[k]); });
+	return Promise.resolve(q).then(function(res) {
+		return res.error ? null : (res.count || 0);
+	}).catch(function() { return null; });
+}
+// ส่งของที่ค้างในคิวซ้ำทั้งหมด (เรียกก่อนดึงของจริงจากเซิร์ฟเวอร์ทุกครั้ง)
+function sbFlushPendingSocial() {
+	return Promise.all(sbPendingList().map(function(x) {
+		if (x.kind === "likeShop") return sbSetShopLike(x.id, x.on);
+		if (x.kind === "likePost") return sbSetPostLike(x.id, x.on);
+		if (x.kind.indexOf("follow:") === 0) return sbSetFollow(x.kind.slice(7), x.id, x.on);
+		return null;
+	}));
+}
+// รวมของจากเซิร์ฟเวอร์กับคิวที่ยังค้าง: ค้างว่า "กด" → ต้องมี / ค้างว่า "เลิกกด" → ต้องไม่มี (คิวชนะเสมอ)
+function sbApplyPending(kind, remoteIds, normalize) {
+	var set = [];
+	remoteIds.forEach(function(id) {
+		var v = normalize(id);
+		if (set.indexOf(v) === -1) set.push(v);
+	});
+	sbPendingList().forEach(function(x) {
+		if (x.kind !== kind) return;
+		var v = normalize(x.id);
+		var i = set.indexOf(v);
+		if (x.on && i === -1) set.push(v);
+		if (!x.on && i !== -1) set.splice(i, 1);
+	});
+	return set;
 }
 // ครั้งแรกที่เคย sync ในเครื่องนี้เท่านั้น (ยังไม่เคย backfill): เอาไลก์/ติดตามเดิมที่ทำไว้ก่อนมีระบบ sync
 // (ยุค localStorage ล้วน ๆ) ผลักขึ้น Supabase ให้ครบก่อน แล้ว union เข้ากับของจริง — ครั้งต่อ ๆ ไปหลังจากนั้น
 // ให้ "แทนที่ทั้งชุด" ด้วยของจริงจาก Supabase ตรง ๆ เลย เพราะทุกครั้งที่กด/เลิกกดหลังจากนี้ push ขึ้นจริงทันทีอยู่แล้ว
 // (ถ้ายัง union ตลอดไป การเลิกไลก์/เลิกติดตามจากเครื่องอื่นจะไม่มีวันหายไปจากเครื่องนี้ แถมจะถูกผลักกลับขึ้นไปซ้ำอีกด้วย)
 var CHIMCHIM_LIKES_FOLLOWS_BACKFILLED_KEY = "chimchim_likes_follows_backfilled_v1";
+var CHIMCHIM_SEED_LIKES_BACKFILLED_KEY = "chimchim_seed_post_likes_backfilled_v1";
 function syncLikesAndFollowsWithSupabase(onUpdated) {
 	var me = getMe();
 	if (!me || !sbClient) return;
 	var isFirstBackfill = !localStorage.getItem(CHIMCHIM_LIKES_FOLLOWS_BACKFILLED_KEY);
+	var asInt = function(v) { return parseInt(v, 10); };
+	var asStr = function(v) { return String(v); };
 
-	var p1 = sbClient.from("likes_shops").select("shop_id").eq("user_id", me.id).then(function(res) {
-		var remote = (res.data || []).map(function(r) { return r.shop_id; });
-		if (!isFirstBackfill) {
-			localStorage.setItem(CHIMCHIM_LIKES_KEY, JSON.stringify(remote));
-			return;
-		}
-		var toPush = getLikedShops().filter(function(id) { return remote.indexOf(id) === -1; });
-		return Promise.all(toPush.map(function(id) { return sbSetShopLike(id, true); })).then(function() {
-			mergeLocalIdSet(CHIMCHIM_LIKES_KEY, remote);
+	// ครั้งแรกของเครื่องนี้: ของที่เคยกดไว้ก่อนมีระบบ sync ใส่คิวให้หมด (ซ้ำกับที่มีอยู่แล้วไม่เป็นไร นับว่าสำเร็จ)
+	if (isFirstBackfill) {
+		getLikedShops().forEach(function(id) { if (sbPendingState("likeShop", id) === undefined) sbMarkPending("likeShop", id, true); });
+		getLikedPosts().forEach(function(id) { if (sbPendingState("likePost", id) === undefined) sbMarkPending("likePost", id, true); });
+		getFollowedShops().forEach(function(id) { if (sbPendingState("follow:shop", id) === undefined) sbMarkPending("follow:shop", id, true); });
+		getFollowedUsers().forEach(function(id) { if (sbPendingState("follow:profile", id) === undefined) sbMarkPending("follow:profile", id, true); });
+	}
+	// ไลก์โพสต์ตัวอย่างของร้านที่กดไว้ตอนตาราง likes_seed_posts ยังไม่มี (ก่อนรัน SQL Phase 9) → ใส่คิวครั้งเดียว
+	if (!localStorage.getItem(CHIMCHIM_SEED_LIKES_BACKFILLED_KEY)) {
+		getLikedPosts().filter(sbIsSeedPostId).forEach(function(id) {
+			if (sbPendingState("likePost", id) === undefined) sbMarkPending("likePost", id, true);
 		});
-	}).catch(function() {});
+		localStorage.setItem(CHIMCHIM_SEED_LIKES_BACKFILLED_KEY, "1");
+	}
 
-	var p2 = sbClient.from("likes_posts").select("post_id").eq("user_id", me.id).then(function(res) {
-		var remote = (res.data || []).map(function(r) { return String(r.post_id); });
-		if (!isFirstBackfill) {
-			localStorage.setItem(CHIMCHIM_POST_LIKES_KEY, JSON.stringify(remote));
-			return;
+	sbFlushPendingSocial().then(function() {
+		return Promise.all([
+			Promise.resolve(sbClient.from("likes_shops").select("shop_id").eq("user_id", me.id)).catch(function(e) { return { error: e }; }),
+			Promise.resolve(sbClient.from("likes_posts").select("post_id").eq("user_id", me.id)).catch(function(e) { return { error: e }; }),
+			Promise.resolve(sbClient.from("likes_seed_posts").select("post_key").eq("user_id", me.id)).catch(function(e) { return { error: e }; }),
+			Promise.resolve(sbClient.from("follows").select("target_type, target_id").eq("follower_id", me.id)).catch(function(e) { return { error: e }; })
+		]);
+	}).then(function(r) {
+		var shopRes = r[0], postRes = r[1], seedRes = r[2], followRes = r[3];
+		// อ่านจากเซิร์ฟเวอร์ไม่ได้ → ไม่แตะของในเครื่องเลย (เดิมเขียนทับด้วยค่าว่าง = ล้างทุกอย่างที่เคยกด)
+		if (!shopRes.error) {
+			localStorage.setItem(CHIMCHIM_LIKES_KEY, JSON.stringify(
+				sbApplyPending("likeShop", (shopRes.data || []).map(function(x) { return x.shop_id; }), asInt)));
 		}
-		var toPush = getLikedPosts().filter(function(id) { return remote.indexOf(id) === -1; });
-		return Promise.all(toPush.map(function(id) { return sbSetPostLike(id, true); })).then(function() {
-			mergeLocalIdSet(CHIMCHIM_POST_LIKES_KEY, remote);
-		});
-	}).catch(function() {});
-
-	var p3 = sbClient.from("follows").select("target_type, target_id").eq("follower_id", me.id).then(function(res) {
-		var rows = res.data || [];
-		var remoteShops = rows.filter(function(r) { return r.target_type === "shop"; }).map(function(r) { return parseInt(r.target_id, 10); });
-		var remoteUsers = rows.filter(function(r) { return r.target_type === "profile"; }).map(function(r) { return r.target_id; });
-		if (!isFirstBackfill) {
-			localStorage.setItem(CHIMCHIM_FOLLOWS_KEY, JSON.stringify(remoteShops));
-			localStorage.setItem(CHIMCHIM_FOLLOWED_USERS_KEY, JSON.stringify(remoteUsers));
-			return;
+		var local = getLikedPosts().map(asStr);
+		var numericPart = !postRes.error
+			? sbApplyPending("likePost", (postRes.data || []).map(function(x) { return x.post_id; }), asStr).filter(function(id) { return !sbIsSeedPostId(id); })
+			: local.filter(function(id) { return !sbIsSeedPostId(id); });
+		var seedPart = !seedRes.error
+			? sbApplyPending("likePost", (seedRes.data || []).map(function(x) { return x.post_key; }), asStr).filter(sbIsSeedPostId)
+			: local.filter(sbIsSeedPostId);
+		// ไลก์โพสต์ใหม่ที่ยังไม่ได้ id จริง ("post123…") ไม่อยู่บนเซิร์ฟเวอร์แน่ ๆ — เก็บไว้ตามเดิม
+		var tempPart = local.filter(function(id) { return !sbIsSeedPostId(id) && !/^\d+$/.test(id); });
+		localStorage.setItem(CHIMCHIM_POST_LIKES_KEY, JSON.stringify(numericPart.concat(seedPart).concat(tempPart)));
+		if (!followRes.error) {
+			var rows = followRes.data || [];
+			localStorage.setItem(CHIMCHIM_FOLLOWS_KEY, JSON.stringify(sbApplyPending("follow:shop",
+				rows.filter(function(x) { return x.target_type === "shop"; }).map(function(x) { return x.target_id; }), asInt)));
+			localStorage.setItem(CHIMCHIM_FOLLOWED_USERS_KEY, JSON.stringify(sbApplyPending("follow:profile",
+				rows.filter(function(x) { return x.target_type === "profile"; }).map(function(x) { return x.target_id; }), asStr)));
 		}
-		var toPushShops = getFollowedShops().filter(function(id) { return remoteShops.indexOf(id) === -1; });
-		var toPushUsers = getFollowedUsers().filter(function(id) { return remoteUsers.indexOf(id) === -1; });
-		return Promise.all(
-			toPushShops.map(function(id) { return sbSetFollow("shop", id, true); })
-				.concat(toPushUsers.map(function(id) { return sbSetFollow("profile", id, true); }))
-		).then(function() {
-			mergeLocalIdSet(CHIMCHIM_FOLLOWS_KEY, remoteShops);
-			mergeLocalIdSet(CHIMCHIM_FOLLOWED_USERS_KEY, remoteUsers);
-		});
-	}).catch(function() {});
-
-	Promise.all([p1, p2, p3]).then(function() {
 		if (isFirstBackfill) localStorage.setItem(CHIMCHIM_LIKES_FOLLOWS_BACKFILLED_KEY, "1");
 		if (typeof onUpdated === "function") onUpdated();
-	});
+	}).catch(function() {});
 }
 // นับไลก์จริงของร้าน/โพสต์หลายรายการพร้อมกันในคำขอเดียว (ใช้ตอน render การ์ดหลายใบพร้อมกัน) คืน Promise<{id: count}>
 function sbFetchShopLikeCounts(shopIds) {
@@ -436,22 +542,78 @@ function sbFetchShopLikeCounts(shopIds) {
 	}).catch(function() { return {}; });
 }
 function sbFetchPostLikeCounts(postIds) {
-	var numericIds = postIds.map(function(id) { return parseInt(id, 10); }).filter(function(n) { return !isNaN(n); });
-	if (!sbClient || !numericIds.length) return Promise.resolve({});
-	return sbClient.from("likes_posts").select("post_id").in("post_id", numericIds).then(function(res) {
-		var counts = {};
-		(res.data || []).forEach(function(r) { counts[r.post_id] = (counts[r.post_id] || 0) + 1; });
-		return counts;
-	}).catch(function() { return {}; });
+	var split = sbSplitPostIds(postIds);
+	if (!sbClient || (!split.numeric.length && !split.keys.length)) return Promise.resolve({});
+	var counts = {};
+	var jobs = [];
+	if (split.numeric.length) {
+		jobs.push(Promise.resolve(sbClient.from("likes_posts").select("post_id").in("post_id", split.numeric)).then(function(res) {
+			(res.data || []).forEach(function(r) { counts[r.post_id] = (counts[r.post_id] || 0) + 1; });
+		}).catch(function() {}));
+	}
+	if (split.keys.length) {
+		jobs.push(Promise.resolve(sbClient.from("likes_seed_posts").select("post_key").in("post_key", split.keys)).then(function(res) {
+			if (res.error) return;
+			// ดึงสำเร็จ → โพสต์ที่ไม่มีแถวเลย = 0 ไลก์จริง (ถ้าตารางยังไม่มี จะไม่ใส่ค่า ใช้ยอดในเครื่องต่อ)
+			split.keys.forEach(function(k) { counts[k] = 0; });
+			(res.data || []).forEach(function(r) { counts[r.post_key] = (counts[r.post_key] || 0) + 1; });
+		}).catch(function() {}));
+	}
+	return Promise.all(jobs).then(function() { return counts; });
+}
+// สรุปคอมเมนต์หลายโพสต์พร้อมกัน: จำนวน + 2 คอมเมนต์ล่าสุด (โชว์ใต้โพสต์ในฟีดให้เห็นเลยโดยไม่ต้องกดเปิด)
+// คืน Promise<{ postId: { count, latest: [{ author, text }] } }> — โพสต์ที่ดึงไม่ได้จะไม่มีใน object
+function sbFetchCommentSummaries(postIds) {
+	var split = sbSplitPostIds(postIds);
+	if (!sbClient || (!split.numeric.length && !split.keys.length)) return Promise.resolve({});
+	var out = {};
+	function collect(rows, keyOf, ids) {
+		ids.forEach(function(id) { out[String(id)] = { count: 0, latest: [] }; });
+		rows.forEach(function(r) {
+			var k = String(keyOf(r));
+			if (!out[k]) out[k] = { count: 0, latest: [] };
+			out[k].count++;
+			if (out[k].latest.length < 2) {
+				out[k].latest.push({ author: (r.profiles && r.profiles.name) || t("common.chimchimFoodie"), text: r.text });
+			}
+		});
+	}
+	// "*" = ได้ is_hidden มาด้วยถ้ามีคอลัมน์ (SQL Phase 10) — ถ้ายังไม่มีก็ไม่ error แค่ไม่มีฟิลด์นั้น
+	var cols = "*, profiles!author_id(name)";
+	var jobs = [];
+	if (split.numeric.length) {
+		jobs.push(Promise.resolve(sbClient.from("comments").select(cols).in("post_id", split.numeric).order("created_at", { ascending: false }).limit(500)).then(function(res) {
+			if (!res.error) collect((res.data || []).filter(function(r) { return r.is_hidden !== true; }), function(r) { return r.post_id; }, split.numeric);
+		}).catch(function() {}));
+	}
+	if (split.keys.length) {
+		jobs.push(Promise.resolve(sbClient.from("comments").select(cols).in("post_key", split.keys).order("created_at", { ascending: false }).limit(500)).then(function(res) {
+			if (!res.error) collect((res.data || []).filter(function(r) { return r.is_hidden !== true; }), function(r) { return r.post_key; }, split.keys);
+		}).catch(function() {}));
+	}
+	return Promise.all(jobs).then(function() { return out; });
+}
+/* --- ส่งคอมเมนต์ที่เพิ่งรายงานให้ AI ตรวจ (server.js /api/moderate-comment) ผิดจริง → เซิร์ฟเวอร์ซ่อนให้ทุกเครื่อง
+   คืน Promise<{ checked, hidden, explanation } | null> (null = เรียกไม่ได้ / เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า) --- */
+var CHIMCHIM_AI_MODERATE_URL = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+	? "http://localhost:8787/api/moderate-comment"
+	: "https://chimchim.onrender.com/api/moderate-comment";
+function sbRequestCommentModeration(remoteCommentId) {
+	if (!remoteCommentId) return Promise.resolve(null);
+	return fetch(CHIMCHIM_AI_MODERATE_URL, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ commentId: remoteCommentId })
+	}).then(function(res) {
+		return res.json().catch(function() { return null; });
+	}).catch(function() { return null; });
 }
 function sbFetchCommentCounts(postIds) {
-	var numericIds = postIds.map(function(id) { return parseInt(id, 10); }).filter(function(n) { return !isNaN(n); });
-	if (!sbClient || !numericIds.length) return Promise.resolve({});
-	return sbClient.from("comments").select("post_id").in("post_id", numericIds).then(function(res) {
+	return sbFetchCommentSummaries(postIds).then(function(sum) {
 		var counts = {};
-		(res.data || []).forEach(function(r) { counts[r.post_id] = (counts[r.post_id] || 0) + 1; });
+		Object.keys(sum).forEach(function(k) { counts[k] = sum[k].count; });
 		return counts;
-	}).catch(function() { return {}; });
+	});
 }
 
 /* =====================================================================
@@ -557,15 +719,17 @@ function sbReportContent(targetType, targetId, reason, note) {
 	}
 	var row = { target_type: targetType, target_id: numericId, reporter_id: me.id, reason: reason, note: note || "" };
 	return insert(row).then(function(res) {
-		if (!res.error) return;
+		if (!res.error) return true;
 		var legacyOk = SB_LEGACY_REPORT_REASONS.indexOf(reason) !== -1;
 		if (res.error.code === "23514" && !legacyOk && targetType !== "comment") {
 			return insert({ target_type: targetType, target_id: numericId, reporter_id: me.id, reason: "other", note: "[" + reason + "] " + (note || "") }).then(function(res2) {
 				if (res2.error) console.error("[chimchim] sbReportContent error:", res2.error.message);
+				return !res2.error;
 			});
 		}
 		console.error("[chimchim] sbReportContent error:", res.error.message);
-	}).catch(function() {});
+		return false;
+	}).catch(function() { return false; });
 }
 
 /* =====================================================================
@@ -573,9 +737,12 @@ function sbReportContent(targetType, targetId, reason, note) {
    ===================================================================== */
 function sbAddComment(postId, authorName, text) {
 	var me = getMe();
-	var numericPostId = parseInt(postId, 10);
-	if (!sbClient || !me || isNaN(numericPostId)) return Promise.resolve(null);
-	return sbClient.from("comments").insert({ post_id: numericPostId, author_id: me.id, text: text }).select().single().then(function(res) {
+	if (!sbClient || !me) return Promise.resolve(null);
+	var row = { author_id: me.id, text: text };
+	if (sbIsSeedPostId(postId)) row.post_key = String(postId);
+	else if (/^\d+$/.test(String(postId))) row.post_id = parseInt(postId, 10);
+	else return Promise.resolve(null); // โพสต์ใหม่ที่ยังไม่ได้ id จริง — sync ทีหลัง
+	return sbClient.from("comments").insert(row).select().single().then(function(res) {
 		if (res.error) {
 			console.error("[chimchim] sbAddComment error:", res.error.message);
 			return null;
@@ -601,12 +768,33 @@ function sbDeleteComment(remoteId) {
 	}).catch(function() { return false; });
 }
 // จุดเรียกหลัก — เรียกตอนเปิดโพสต์ดูคอมเมนต์ ดึงคอมเมนต์จริงของทุกคนมาแทนที่ของในเครื่องนี้ทั้งชุด
-function syncCommentsWithSupabase(postId, onUpdated) {
-	var numericPostId = parseInt(postId, 10);
-	if (!sbClient || isNaN(numericPostId)) return;
-	sbClient.from("comments").select("*, profiles!author_id(name)").eq("post_id", numericPostId).order("created_at", { ascending: true }).then(function(res) {
+function syncCommentsWithSupabase(postId, onUpdated, _alreadyPushed) {
+	if (!sbClient) return;
+	// คอมเมนต์ของเราที่ยังอยู่แค่ในเครื่อง (เช่น เคยคอมเมนต์โพสต์ตัวอย่างตอนยังส่งขึ้นไม่ได้) → ผลักขึ้นก่อน 1 รอบ
+	// ไม่งั้นพอดึงชุดจริงมาแทนที่ คอมเมนต์เก่าพวกนี้จะหายไปเฉย ๆ — ถ้าผลักไม่สำเร็จ เก็บของในเครื่องไว้ ไม่แทนที่
+	var me = getMe();
+	if (!_alreadyPushed && me) {
+		var orphans = getComments(postId).filter(function(c) {
+			// pending ที่ค้างเกิน 1 นาที = เคยส่งไม่ขึ้น (ไม่ใช่กำลังส่งอยู่) ส่งซ้ำได้
+			var stuck = !c.pending || Date.now() - new Date(c.date).getTime() > 60 * 1000;
+			return !c.remoteId && stuck && (c.userId === me.id || (!c.userId && c.author === me.name));
+		});
+		if (orphans.length) {
+			Promise.all(orphans.map(function(c) { return sbAddComment(postId, c.author, c.text); })).then(function(rows) {
+				if (rows.some(function(r) { return !r; })) return; // ส่งไม่ขึ้น (เช่น ยังไม่รัน SQL) — ไม่แตะของในเครื่อง
+				syncCommentsWithSupabase(postId, onUpdated, true);
+			});
+			return;
+		}
+	}
+	var q = sbClient.from("comments").select("*, profiles!author_id(name)");
+	if (sbIsSeedPostId(postId)) q = q.eq("post_key", String(postId));
+	else if (/^\d+$/.test(String(postId))) q = q.eq("post_id", parseInt(postId, 10));
+	else return;
+	q.order("created_at", { ascending: true }).then(function(res) {
 		if (res.error || !res.data) return;
-		var comments = res.data.map(function(row) {
+		// คอมเมนต์ที่ AI ตรวจแล้วว่าผิดจริง (is_hidden) ไม่แสดงให้ใครเห็นอีก
+		var comments = res.data.filter(function(row) { return row.is_hidden !== true; }).map(function(row) {
 			return { id: "cmt" + row.id, remoteId: row.id, author: (row.profiles && row.profiles.name) || t("common.chimchimFoodie"), text: row.text, date: row.created_at, userId: row.author_id };
 		});
 		replaceLocalComments(postId, comments);

@@ -243,12 +243,23 @@ function renderShopDetail() {
 		queueShopLikeCountFetch(ร้านปัจจุบัน.id, likeCountEl);
 	}
 
-	/* --- แท็บโพสต์ — โชว์เฉพาะร้านที่ผู้ใช้โพสต์เข้าชุมชนเอง (มี vendorId) ร้านทีม ChimChim ไม่มีโพสต์ให้โชว์ --- */
+	/* --- แท็บโพสต์ — ทุกร้าน: ร้านตั้งต้นในระบบใช้โพสต์จากเพจร้าน (ชุดเดียวกับหน้าโปรไฟล์ร้าน/ฟีด id "bu-<ร้าน>-post<ลำดับ>"
+	   ไลก์/คอมเมนต์เลยเป็นชุดเดียวกันทุกหน้า) + ร้านที่ผู้ใช้โพสต์เข้าชุมชนเองใช้โพสต์จริงของเพจนั้น --- */
 	function renderShopPosts() {
-		if (!(ร้านปัจจุบัน.community && ร้านปัจจุบัน.vendorId)) return;
-		var shopPosts = getPostsByPage(ร้านปัจจุบัน.id);
+		var shopPosts = [];
+		if (buShopของร้านนี้ && Array.isArray(buShopของร้านนี้.posts)) {
+			shopPosts = buShopของร้านนี้.posts.map(function(p, idx) {
+				return { id: "bu-" + buShopของร้านนี้.id + "-post" + idx, images: p.images, img: (p.images || [])[0], caption: p.caption, userId: null };
+			});
+		}
+		if (ร้านปัจจุบัน.community && ร้านปัจจุบัน.vendorId) {
+			shopPosts = shopPosts.concat(getPostsByPage(ร้านปัจจุบัน.id));
+		}
 		if (!shopPosts.length) return;
-		document.getElementById("rdPostsTab").hidden = false;
+		var postsTab = document.getElementById("rdPostsTab");
+		postsTab.hidden = false;
+		var countEl = document.getElementById("rdPostCount");
+		if (countEl) countEl.textContent = shopPosts.length;
 		var postGrid = document.getElementById("rdPostGrid");
 		var postEmpty = document.getElementById("rdPostEmpty");
 		postGrid.innerHTML = "";
@@ -260,9 +271,9 @@ function renderShopDetail() {
 			el.innerHTML =
 				'<img src="' + images[0] + '" alt=""/>' +
 				(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
-				'<div class="ppostcap">' + escapeHtml(p.caption) + '</div>';
+				'<div class="ppostcap">' + escapeHtml(p.caption || "") + '</div>';
 			el.addEventListener("click", function() {
-				openPostView({ id: p.id, images: images, caption: p.caption, posterName: ร้านปัจจุบัน.ร้าน, posterColor: "var(--cream2)", posterId: p.userId || null });
+				openPostView({ id: p.id, images: images, caption: p.caption, posterName: ร้านปัจจุบัน.ร้าน, posterColor: "var(--cream2)", posterAvatarUrl: buShopของร้านนี้ ? buShopของร้านนี้.avatar : null, posterId: p.userId || null });
 			});
 			postGrid.appendChild(el);
 		});

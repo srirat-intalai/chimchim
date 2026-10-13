@@ -34,12 +34,41 @@ function profileRowToPerson(row) {
 	return {
 		id: row.id,
 		name: row.name,
-		avatarImg: row.avatar_url || null,
-		color: 'linear-gradient(135deg, var(--dark), #8b68e0)',
+		avatarImg: row.avatar_url || row.avatar || null,
+		color: 'var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))',
+		university: row.university || null,
+		dna: row.food_dna || row.foodDNA || null,
 		sub: row.university
 			? '<i class="fas fa-graduation-cap"></i> ' + escapeHtml(row.university)
 			: '<i class="fas fa-user"></i> ' + t("following.foodie")
 	};
+}
+
+/* --- คัดนักชิมที่ "เหมาะกับฉัน" — ชอบอาหารคล้ายกัน (Food DNA) หรืออยู่มหาลัยเดียวกัน ไม่โชว์ทุกคน ---
+   มหาลัยของฉัน: ที่ตั้งไว้ในหน้าตั้งค่า ไม่งั้นใช้มหาลัยที่ใกล้ที่สุดจาก GPS (ตำแหน่งจริงไม่ได้ส่งขึ้นเซิร์ฟเวอร์
+   เลยใช้มหาลัยเป็นตัวแทน "อยู่ใกล้กัน") ส่วนมหาลัยของคนอื่นต้องรัน SQL Phase 6 ก่อนถึงจะมีข้อมูล */
+var PEOPLE_SIMILAR_MIN = 50;
+function getMyUniversity() {
+	var me = getMe();
+	if (me && me.university) return me.university;
+	var loc = getUserLocation();
+	return loc && loc.nearestUni ? loc.nearestUni : null;
+}
+function suggestPeople(list) {
+	var myUni = getMyUniversity();
+	return list.map(function(p) {
+		var score = p.dna ? คำนวณความชอบคล้ายกัน(foodDNA, p.dna) : 0;
+		var sameUni = !!(myUni && p.university && p.university === myUni);
+		var tags = [];
+		if (score >= PEOPLE_SIMILAR_MIN) tags.push('<span class="ftag ftag-taste"><i class="fas fa-heart"></i> ' + t("following.tasteMatch").replace("{n}", score) + "</span>");
+		if (sameUni) tags.push('<span class="ftag ftag-near"><i class="fas fa-location-dot"></i> ' + t("following.sameUni") + "</span>");
+		return { person: Object.assign({}, p, { sub: tags.join("") || p.sub }), score: score, sameUni: sameUni };
+	}).filter(function(x) {
+		return x.sameUni || x.score >= PEOPLE_SIMILAR_MIN;
+	}).sort(function(a, b) {
+		// มหาลัยเดียวกันได้โบนัส 20 คะแนน (อยู่ใกล้ = นัดกินด้วยกันได้จริง) แล้วเรียงจากคล้ายที่สุดก่อน
+		return (b.score + (b.sameUni ? 20 : 0)) - (a.score + (a.sameUni ? 20 : 0));
+	}).map(function(x) { return x.person; });
 }
 function loadPeople() {
 	if (peopleCache || peopleLoading) return;
@@ -56,10 +85,10 @@ function loadPeople() {
 	function query(cols) {
 		return sbClient.from("profiles").select(cols).order("created_at", { ascending: false }).limit(60);
 	}
-	query("id, name, avatar_url, university").then(function(res) {
-		return res.error ? query("id, name, avatar_url") : res;
+	query("id, name, avatar_url, university, food_dna").then(function(res) {
+		return res.error ? query("id, name, avatar_url, food_dna") : res;
 	}).then(function(res) {
-		return res.error ? query("id, name") : res;
+		return res.error ? query("id, name, food_dna") : res;
 	}).then(function(res) {
 		peopleCache = (res && !res.error && res.data ? res.data : [])
 			.filter(function(row) { return row.id !== myId && row.name; })
@@ -80,14 +109,20 @@ function buildSectionHead(title, count) {
 	head.querySelector('b').textContent = count;
 	return head;
 }
-function buildGridNote(text) {
+function buildGridNote(text, cls) {
 	var note = document.createElement('div');
 	note.className = 'col-12';
-	note.innerHTML = '<p class="fgridnote"></p>';
+	note.innerHTML = '<p class="' + (cls || 'fgridnote') + '"></p>';
 	note.querySelector('p').textContent = text;
 	return note;
 }
 
+// หัวข้อร้าน: ตามพื้นที่ที่เลือก (ทุกพื้นที่ = "ร้านทั้งหมด" / ไม่มีร้านในพื้นที่ = "ร้านที่ใกล้ X ที่สุด")
+function shopsTitle() {
+	var info = กรองร้านตามพื้นที่(รายการร้าน);
+	if (!info.area) return t("area.shopsAll");
+	return t(info.fallback ? "area.shopsNearest" : "area.shopsIn").replace("{area}", areaShortName(info.area));
+}
 var PEOPLE_FILTER_LABEL = { all: 'following.allTitle', shops: 'following.topReviewers', people: 'following.peopleTitle', following: 'following.onlyFollowing' };
 
 function renderCreators() {
@@ -98,12 +133,19 @@ function renderCreators() {
 	grid.innerHTML = '';
 	loadPeople();
 
-	var shops = เพจร้านBU.map(function(shop) {
-		return { id: 'bu-' + shop.id, name: shop.name, color: 'linear-gradient(135deg, var(--primary), var(--secondary))', avatarImg: shop.avatar, sub: '<i class="fas fa-store"></i> ' + catEmoji(shop.cat) + ' ' + escapeHtml(catLabel(shop.cat)) };
+	var areaShopIds = {};
+	ร้านในพื้นที่().forEach(function(r) { areaShopIds[r.id] = true; });
+	var shops = เพจร้านBU.filter(function(shop) { return areaShopIds[shop.menuId]; }).map(function(shop) {
+		return { id: 'bu-' + shop.id, name: shop.name, color: 'var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))', avatarImg: shop.avatar, sub: '<i class="fas fa-store"></i> ' + catEmoji(shop.cat) + ' ' + escapeHtml(catLabel(shop.cat)) };
 	});
 	var people = peopleCache || [];
 	var peopleStillLoading = peopleCache === null;
-	if (lbl) lbl.textContent = t(PEOPLE_FILTER_LABEL[currentPeopleFilter] || 'following.allTitle');
+	// ที่โชว์ในแท็บ "ทั้งหมด"/"นักชิม" = เฉพาะคนที่ชอบคล้าย/อยู่ใกล้ (ต้องล็อกอินก่อน ถึงจะมี Food DNA ของเราจริงมาเทียบ)
+	// ส่วนการค้นหาและแท็บ "ที่ติดตามแล้ว" ยังใช้ people ทั้งหมดเหมือนเดิม
+	var loggedIn = !!getSession();
+	var suggested = loggedIn ? suggestPeople(people) : [];
+	var peopleNoteKey = !loggedIn ? 'following.peopleLoginHint' : (peopleStillLoading ? 'following.peopleLoading' : 'following.peopleNoMatch');
+	if (lbl) lbl.textContent = currentPeopleFilter === 'shops' ? shopsTitle() : t(PEOPLE_FILTER_LABEL[currentPeopleFilter] || 'following.allTitle');
 
 	var searchEmptyMsg = document.getElementById('followingSearchEmpty');
 	var q = currentPeopleSearch.trim().toLowerCase();
@@ -150,23 +192,24 @@ function renderCreators() {
 	} else if (currentPeopleFilter === 'shops') {
 		appendCards(shops);
 	} else if (currentPeopleFilter === 'people') {
-		if (people.length) {
-			appendCards(people);
+		grid.appendChild(buildGridNote(t('following.peopleWhyHint'), 'fgridhint'));
+		if (suggested.length) {
+			appendCards(suggested);
 		} else {
-			grid.appendChild(buildGridNote(t(peopleStillLoading ? 'following.peopleLoading' : 'following.peopleEmpty')));
+			grid.appendChild(buildGridNote(t(peopleNoteKey)));
 		}
 	} else {
 		// ทั้งหมด: แยกเป็น 2 หมวดมีหัวข้อ — ร้านอาหารก่อน แล้วตามด้วยนักชิม
-		grid.appendChild(buildSectionHead(t('following.topReviewers'), shops.length));
+		grid.appendChild(buildSectionHead(shopsTitle(), shops.length));
 		appendCards(shops);
-		grid.appendChild(buildSectionHead(t('following.peopleTitle'), peopleStillLoading ? '' : people.length));
-		if (people.length) {
-			appendCards(people.slice(0, 6));
-			if (people.length > 6) {
+		grid.appendChild(buildSectionHead(t('following.peopleTitle'), (peopleStillLoading || !loggedIn) ? '' : suggested.length));
+		if (suggested.length) {
+			appendCards(suggested.slice(0, 6));
+			if (suggested.length > 6) {
 				var more = document.createElement('div');
 				more.className = 'col-12';
 				more.innerHTML = '<button type="button" class="fseemore"></button>';
-				more.querySelector('button').textContent = t('following.seeAllPeople').replace('{n}', people.length);
+				more.querySelector('button').textContent = t('following.seeAllPeople').replace('{n}', suggested.length);
 				more.querySelector('button').addEventListener('click', function() {
 					var btn = document.querySelector('.filtbtn[data-filter="people"]');
 					if (btn) btn.click();
@@ -174,7 +217,7 @@ function renderCreators() {
 				grid.appendChild(more);
 			}
 		} else {
-			grid.appendChild(buildGridNote(t(peopleStillLoading ? 'following.peopleLoading' : 'following.peopleEmpty')));
+			grid.appendChild(buildGridNote(t(peopleNoteKey)));
 		}
 	}
 

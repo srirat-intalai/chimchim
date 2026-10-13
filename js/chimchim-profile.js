@@ -77,7 +77,7 @@ if (!session) {
 	}
 	refreshProfileHeader(me);
 	document.getElementById("profEmail").textContent = session.email;
-	document.getElementById("profRole").innerHTML = '<i class="fas fa-graduation-cap"></i> ' + escapeHtml(t("profile.memberRole"));
+	refreshLevelCard();
 
 	/* --- Food DNA (ทุกบัญชี) — กดปุ่มเพื่อดูรายละเอียดเป็น popup --- */
 	var dnaCardBtn = document.getElementById("dnaCardBtn");
@@ -121,7 +121,24 @@ if (!session) {
 	}
 	refreshDnaCard(me);
 
-	document.getElementById("igStatFollowing").textContent = getFollowedUsers().length;
+	// กำลังติดตาม = นักชิม/เพจร้านที่ติดตาม + ร้านที่ติดตาม (เดิมนับแค่คน ร้านไม่ถูกนับ)
+	function refreshFollowingStat() {
+		var n = getFollowedUsers().length + getFollowedShops().length;
+		document.getElementById("igStatFollowing").textContent = n;
+		var c = document.getElementById("fsCountFollowing");
+		if (c) c.textContent = n;
+		refreshLevelCard(); // ติดตาม/เลิกติดตาม = XP เปลี่ยน
+	}
+	refreshFollowingStat();
+	// ผู้ติดตาม = คนที่กดติดตามเรา นับจริงจาก Supabase (ไม่มีเน็ต/ยังไม่ต่อ Supabase → คง 0 ไว้)
+	if (typeof sbCountRows === "function") {
+		sbCountRows("follows", { target_type: "profile", target_id: me.id }).then(function(n) {
+			if (n === null) return;
+			document.getElementById("igStatFollowers").textContent = formatLikeCount(n);
+			document.getElementById("fsCountFollowers").textContent = n;
+		});
+	}
+	setupFollowSheet(me, refreshFollowingStat);
 
 	// ดึงโปรไฟล์ (ชื่อ/bio/รูป/Food DNA)/โพสต์/ไลก์/ติดตามจริงจาก Supabase มาผสาน เผื่อทำไว้จากเครื่องอื่น (progressive enhancement)
 	if (typeof syncMyProfileWithSupabase === "function") {
@@ -131,9 +148,7 @@ if (!session) {
 		});
 	}
 	if (typeof syncLikesAndFollowsWithSupabase === "function") {
-		syncLikesAndFollowsWithSupabase(function() {
-			document.getElementById("igStatFollowing").textContent = getFollowedUsers().length;
-		});
+		syncLikesAndFollowsWithSupabase(refreshFollowingStat);
 	}
 	if (typeof syncPostsWithSupabase === "function") {
 		syncPostsWithSupabase(function() { renderMyPosts(); });
@@ -307,6 +322,7 @@ document.addEventListener("click", function(e) {
 	if (!e.target.closest || !e.target.closest(".ppost")) closeAllPostMenus();
 });
 function renderMyPosts() {
+	refreshLevelCard(); // โพสต์ใหม่/ลบโพสต์/sync โพสต์เสร็จ = XP เปลี่ยน
 	var grid = document.getElementById("myPostGrid");
 	var emptyMsg = document.getElementById("myPostEmpty");
 	var activePage = getActivePostingPage();
@@ -333,7 +349,7 @@ function renderMyPosts() {
 	}
 	emptyMsg.hidden = true;
 	var posterName = activePage ? activePage.name : session.name;
-	var posterColor = activePage ? "var(--cream2)" : "linear-gradient(135deg, var(--primary), var(--secondary))";
+	var posterColor = activePage ? "var(--cream2)" : "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))";
 	posts.forEach(function(p) {
 		var images = getPostImages(p);
 		var el = document.createElement("div");
@@ -388,4 +404,198 @@ function renderMyPosts() {
 		});
 		grid.appendChild(el);
 	});
+}
+
+
+/* =====================================================================
+   รายชื่อผู้ติดตาม / กำลังติดตาม (แผ่นเลื่อนขึ้นจากล่าง) — กดเลขบนหัวโปรไฟล์แล้วดูได้ในหน้านี้เลย
+   กำลังติดตาม: นักชิม + ร้าน (มีปุ่มเลิกติดตามในแถว) / ผู้ติดตาม: ดึงจาก Supabase (มีปุ่ม "ติดตามกลับ")
+   ===================================================================== */
+function setupFollowSheet(me, onFollowChanged) {
+	var sheet = document.getElementById("followSheet");
+	var list = document.getElementById("fsheetList");
+	if (!sheet || !list) return;
+	var currentTab = "following";
+	var profileCache = {}; // uuid → { name, avatar } จาก Supabase
+	var lastFocus = null;
+
+	function isUuid(id) { return /^[0-9a-f-]{36}$/i.test(String(id)); }
+	function avatarHtml(row) {
+		return row.avatar
+			? '<span class="fsrow-avatar" style="background-image:url(\'' + row.avatar + '\')"></span>'
+			: '<span class="fsrow-avatar fsrow-letter">' + escapeHtml((row.name || "?").trim().charAt(0).toUpperCase()) + "</span>";
+	}
+	// แปลง id ที่ติดตามอยู่ → ข้อมูลแถว (ชื่อ รูป ลิงก์) — หาไม่เจอคืน null
+	function resolveUser(id) {
+		if (/^bu-/.test(id)) {
+			var bu = หาเพจร้านBUจากId(id.slice(3));
+			return bu ? { key: id, kind: "user", name: bu.name, avatar: bu.avatar, sub: t("following.restaurants"), link: "public-profile.html?u=" + encodeURIComponent(id) } : null;
+		}
+		if (/^seed-/.test(id) && typeof หานักรีวิวจากId === "function") {
+			var c = หานักรีวิวจากId(id);
+			return c ? { key: id, kind: "user", name: c.ชื่อ, avatar: null, sub: t("following.foodie"), link: "public-profile.html?u=" + encodeURIComponent(id) } : null;
+		}
+		if (typeof getPageById === "function") {
+			var page = getPageById(id);
+			if (page) return { key: id, kind: "user", name: page.name, avatar: page.avatar, sub: t("following.restaurants"), link: "public-profile.html?u=page-" + encodeURIComponent(id) };
+		}
+		var local = getUsers().filter(function(u) { return u.id === id; })[0];
+		var info = profileCache[id] || (local ? { name: local.name, avatar: local.avatar || null } : null);
+		if (!info || !info.name) return null;
+		return { key: id, kind: "user", name: info.name, avatar: info.avatar, sub: t("following.foodie"), link: "public-profile.html?u=" + encodeURIComponent(id) };
+	}
+	function followingRows() {
+		var rows = [];
+		getFollowedUsers().forEach(function(id) {
+			var r = resolveUser(id);
+			if (r) rows.push(r);
+		});
+		getFollowedShops().forEach(function(shopId) {
+			var shop = หาร้านจากId(shopId);
+			if (shop) rows.push({ key: shopId, kind: "shop", name: shop.ร้าน, avatar: shop.รูป, sub: catLabel(shop.หมวด), link: "restaurant.html?id=" + shopId });
+		});
+		return rows;
+	}
+	function isFollowing(row) {
+		return row.kind === "shop" ? isShopFollowed(row.key) : isUserFollowed(row.key);
+	}
+	function buildRow(row) {
+		var el = document.createElement("div");
+		el.className = "fsrow";
+		el.innerHTML =
+			'<a class="fsrow-main" href="' + row.link + '">' + avatarHtml(row) +
+				'<span class="fsrow-text"><b></b><small></small></span></a>' +
+			'<button type="button" class="fsrow-btn"></button>';
+		el.querySelector("b").textContent = row.name;
+		el.querySelector("small").textContent = row.sub || "";
+		var btn = el.querySelector(".fsrow-btn");
+		function paint() {
+			var on = isFollowing(row);
+			btn.classList.toggle("is-on", on);
+			btn.textContent = on ? t("common.following") : (currentTab === "followers" ? t("profile.followBack") : t("common.follow"));
+		}
+		paint();
+		btn.addEventListener("click", function() {
+			var r = row.kind === "shop" ? toggleFollowShop(row.key) : toggleFollowUser(row.key);
+			if (r === null) return; // ยังไม่ล็อกอิน
+			paint();
+			if (typeof onFollowChanged === "function") onFollowChanged();
+		});
+		return el;
+	}
+	function renderList(rows, emptyKey) {
+		list.innerHTML = "";
+		if (!rows.length) {
+			list.innerHTML = '<p class="fsheet-empty"></p>';
+			list.querySelector("p").textContent = t(emptyKey);
+			return;
+		}
+		rows.forEach(function(r) { list.appendChild(buildRow(r)); });
+	}
+	function fetchProfiles(ids) {
+		var need = ids.filter(function(id) { return isUuid(id) && !profileCache[id]; });
+		if (!need.length || typeof sbClient === "undefined" || !sbClient) return Promise.resolve();
+		return Promise.resolve(sbClient.from("profiles").select("id, name, avatar_url").in("id", need)).then(function(res) {
+			if (res.error) return Promise.resolve(sbClient.from("profiles").select("id, name").in("id", need));
+			return res;
+		}).then(function(res) {
+			((res && res.data) || []).forEach(function(p) { profileCache[p.id] = { name: p.name, avatar: p.avatar_url || null }; });
+		}).catch(function() {});
+	}
+	function showTab(tab) {
+		currentTab = tab;
+		sheet.querySelectorAll(".fsheet-tab").forEach(function(b) {
+			var on = b.getAttribute("data-tab") === tab;
+			b.classList.toggle("active", on);
+			b.setAttribute("aria-selected", on ? "true" : "false");
+		});
+		if (tab === "following") {
+			renderList(followingRows(), "profile.followingEmpty");
+			// ชื่อนักชิมที่เครื่องนี้ไม่เคยเห็น → ถาม Supabase แล้ววาดใหม่
+			fetchProfiles(getFollowedUsers()).then(function() {
+				if (currentTab === "following") renderList(followingRows(), "profile.followingEmpty");
+			});
+			return;
+		}
+		list.innerHTML = '<p class="fsheet-empty"><i class="fas fa-spinner fa-spin"></i></p>';
+		if (typeof sbClient === "undefined" || !sbClient) {
+			renderList([], "profile.followersEmpty");
+			return;
+		}
+		Promise.resolve(sbClient.from("follows").select("follower_id, created_at").eq("target_type", "profile").eq("target_id", me.id).order("created_at", { ascending: false })).then(function(res) {
+			var ids = res.error ? [] : (res.data || []).map(function(r) { return r.follower_id; });
+			document.getElementById("fsCountFollowers").textContent = ids.length;
+			return fetchProfiles(ids).then(function() { return ids; });
+		}).then(function(ids) {
+			if (currentTab !== "followers") return;
+			var rows = ids.map(function(id) {
+				var info = profileCache[id];
+				return info ? { key: id, kind: "user", name: info.name, avatar: info.avatar, sub: t("following.foodie"), link: "public-profile.html?u=" + encodeURIComponent(id) } : null;
+			}).filter(Boolean);
+			renderList(rows, "profile.followersEmpty");
+		}).catch(function() { renderList([], "profile.followersEmpty"); });
+	}
+	function open(tab) {
+		lastFocus = document.activeElement;
+		sheet.hidden = false;
+		document.body.style.overflow = "hidden";
+		requestAnimationFrame(function() { sheet.classList.add("open"); });
+		showTab(tab);
+		var active = sheet.querySelector(".fsheet-tab.active");
+		if (active) active.focus();
+	}
+	function close() {
+		sheet.classList.remove("open");
+		document.body.style.overflow = "";
+		setTimeout(function() { sheet.hidden = true; }, 200);
+		if (lastFocus && lastFocus.focus) lastFocus.focus();
+	}
+	document.getElementById("igFollowersBtn").addEventListener("click", function() { open("followers"); });
+	document.getElementById("igFollowingBtn").addEventListener("click", function() { open("following"); });
+	sheet.querySelectorAll(".fsheet-tab").forEach(function(b) {
+		b.addEventListener("click", function() { showTab(this.getAttribute("data-tab")); });
+	});
+	document.getElementById("fsheetClose").addEventListener("click", close);
+	sheet.addEventListener("click", function(e) { if (e.target === sheet) close(); });
+	document.addEventListener("keydown", function(e) {
+		if (e.key === "Escape" && !sheet.hidden) close();
+	});
+}
+
+
+/* =====================================================================
+   เลเวลนักชิมบนหน้าโปรไฟล์ — ป้าย "Lv.N ชื่อระดับ" ใต้ชื่อ + การ์ด XP/แถบความคืบหน้า
+   กดการ์ดแล้วเห็นรายละเอียดว่าได้ XP จากกิจกรรมไหนบ้าง และต้องทำอะไรต่อเพื่อเลื่อนระดับ
+   ===================================================================== */
+function refreshLevelCard() {
+	var session = getSession();
+	var card = document.getElementById("profLevelCard");
+	if (!session || !card) return;
+	var info = คำนวณXP(session.id);
+	var lv = เลเวลจากXP(info.xp);
+	document.getElementById("profRole").innerHTML = '<i class="fas fa-medal"></i> Lv.' + lv.level + " " + escapeHtml(lv.name);
+	document.getElementById("profLevelBadge").textContent = "Lv." + lv.level;
+	document.getElementById("profLevelName").textContent = lv.name;
+	document.getElementById("profLevelXp").textContent = lv.next ? (info.xp + " / " + lv.next + " XP") : (info.xp + " XP");
+	document.getElementById("profLevelBar").style.width = Math.round(lv.progress * 100) + "%";
+	document.getElementById("profLevelNext").textContent = lv.next
+		? t("level.toNext").replace("{n}", lv.next - info.xp).replace("{name}", lv.nextName)
+		: t("level.maxed");
+	card.setAttribute("aria-label", "Lv." + lv.level + " " + lv.name + ", " + info.xp + " XP");
+	card.onclick = function() {
+		var rows = CHIMCHIM_XP_RULES.map(function(r) {
+			var n = info.counts[r.key] || 0;
+			return '<div class="lvlrow"><i class="fas fa-' + r.icon + '"></i><span>' + escapeHtml(t(r.label)) +
+				'<small>' + escapeHtml(t("level.perEach").replace("{xp}", r.xp)) + "</small></span><b>" + n + " × " + r.xp + " = " + (n * r.xp) + " XP</b></div>";
+		}).join("");
+		var ladder = CHIMCHIM_LEVELS.map(function(l, i) {
+			var reached = info.xp >= l.min;
+			return '<li class="' + (i + 1 === lv.level ? "cur" : (reached ? "done" : "")) + '"><span>Lv.' + (i + 1) + " " + escapeHtml(t(l.name)) + "</span><b>" + l.min + " XP</b></li>";
+		}).join("");
+		openProfDetailPop('<i class="fas fa-medal me-2"></i>' + escapeHtml(t("level.title")),
+			'<p class="lvlsum">' + escapeHtml(t("level.youAre").replace("{lv}", lv.level).replace("{name}", lv.name).replace("{xp}", info.xp)) + "</p>" +
+			'<div class="lvlrows">' + rows + "</div>" +
+			'<div class="lvlladdertit">' + escapeHtml(t("level.allLevels")) + "</div>" +
+			'<ol class="lvlladder">' + ladder + "</ol>");
+	};
 }

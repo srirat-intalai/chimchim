@@ -32,6 +32,62 @@ function ppRenderPosts(posts, posterName, posterColor) {
 	});
 }
 
+/* --- ตัวเลขแบบ IG ใต้หัวโปรไฟล์ — โพสต์ · ผู้ติดตาม · (กำลังติดตาม สำหรับนักชิม / รีวิว สำหรับร้าน)
+   ผู้ติดตาม: นับจริงจาก Supabase (ตาราง follows) + รวมการกดติดตามของเราที่ยังค้างส่ง แล้วขยับทันทีเมื่อกดปุ่มติดตาม
+   opts: { posts, followId, followerOf (uuid ของคนนี้ ถ้าเป็นนักชิมจริง), shopId (ถ้าเป็นร้าน) } --- */
+function ppSetStats(opts) {
+	var postsEl = document.getElementById("ppStatPosts");
+	var followersEl = document.getElementById("ppStatFollowers");
+	var thirdEl = document.getElementById("ppStatThird");
+	var thirdLbl = document.getElementById("ppStatThirdLbl");
+	if (!postsEl) return;
+	postsEl.textContent = formatLikeCount(opts.posts || 0);
+
+	// ผู้ติดตาม
+	var followers = isUserFollowed(opts.followId) ? 1 : 0; // ยังไม่ได้ยอดจริง อย่างน้อยนับเราเอง
+	function showFollowers() { followersEl.textContent = formatLikeCount(Math.max(0, followers)); }
+	showFollowers();
+	if (typeof sbCountRows === "function") {
+		sbCountRows("follows", { target_type: "profile", target_id: String(opts.followId) }).then(function(n) {
+			if (n === null) return;
+			followers = typeof ยอดรวมที่ค้างส่ง === "function" ? ยอดรวมที่ค้างส่ง("follow:profile", opts.followId, n) : n;
+			showFollowers();
+		});
+	}
+	// กดติดตาม/เลิกติดตาม → ขยับเลขทันที (ปุ่มนี้ตั้ง handler ของมันเองไว้ก่อนแล้ว อันนี้รันต่อจากนั้น)
+	var lastFollowed = isUserFollowed(opts.followId);
+	var followBtn = document.getElementById("ppFollowBtn");
+	if (followBtn) {
+		followBtn.addEventListener("click", function() {
+			var now = isUserFollowed(opts.followId);
+			if (now === lastFollowed) return; // ไม่ได้ติดตามจริง (เช่น ยังไม่ล็อกอิน / ปุ่มไปหน้าตั้งค่า)
+			followers += now ? 1 : -1;
+			lastFollowed = now;
+			showFollowers();
+		});
+	}
+
+	// ช่องที่ 3: ร้าน = จำนวนรีวิว / นักชิม = กำลังติดตาม
+	if (opts.shopId) {
+		thirdLbl.setAttribute("data-i18n", "profile.statReviews");
+		thirdLbl.textContent = t("profile.statReviews");
+		var localReviews = getReviews(opts.shopId).length;
+		thirdEl.textContent = formatLikeCount(localReviews);
+		if (typeof sbCountRows === "function") {
+			sbCountRows("reviews", { shop_id: opts.shopId }).then(function(n) {
+				if (n !== null) thirdEl.textContent = formatLikeCount(Math.max(n, localReviews));
+			});
+		}
+	} else {
+		thirdEl.textContent = "0";
+		if (opts.followerOf && typeof sbCountRows === "function") {
+			sbCountRows("follows", { follower_id: opts.followerOf }).then(function(n) {
+				if (n !== null) thirdEl.textContent = formatLikeCount(n);
+			});
+		}
+	}
+}
+
 if (ppIsBuShop) {
 	var buId = ppUid.slice("bu-".length);
 	var buShop = หาเพจร้านBUจากId(buId);
@@ -68,7 +124,8 @@ if (ppIsBuShop) {
 		mapBtn.innerHTML = '<i class="fas fa-location-dot me-1"></i><span>' + t("publicprofile.mapBtn") + '</span>';
 		followBtnBu.insertAdjacentElement("afterend", mapBtn);
 
-		ppRenderPosts(buShop.posts, buShop.name, "linear-gradient(135deg, var(--primary), var(--secondary))");
+		ppRenderPosts(buShop.posts, buShop.name, "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))");
+		ppSetStats({ posts: buShop.posts.length, followId: ppUid, shopId: buShop.menuId });
 	}
 } else if (ppIsPage) {
 	var pageId = ppUid.slice("page-".length);
@@ -104,6 +161,7 @@ if (ppIsBuShop) {
 		}
 
 		ppRenderPosts(getPostsByPage(page.id), page.name, "var(--cream2)");
+		ppSetStats({ posts: getPostsByPage(page.id).length, followId: page.id, shopId: page.numId || null });
 	}
 } else if (ppIsSeed) {
 	var creator = หานักรีวิวจากId(ppUid);
@@ -130,6 +188,7 @@ if (ppIsBuShop) {
 		});
 
 		ppRenderPosts(creator.โพสต์.map(function(p) { return { img: p.รูป, caption: p.แคปชั่น }; }), creator.ชื่อ, creator.สี);
+		ppSetStats({ posts: creator.โพสต์.length, followId: ppUid });
 	}
 } else {
 	var users = getUsers();
@@ -167,7 +226,8 @@ if (ppIsBuShop) {
 			})();
 		}
 
-		ppRenderPosts(getPostsByUser(user.id), user.name, "linear-gradient(135deg, var(--dark), #8b68e0)");
+		ppRenderPosts(getPostsByUser(user.id), user.name, "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))");
+		ppSetStats({ posts: getPostsByUser(user.id).length, followId: user.id, followerOf: /^[0-9a-f-]{36}$/i.test(user.id) ? user.id : null });
 	}
 	if (user) {
 		renderRealUserProfile(user);

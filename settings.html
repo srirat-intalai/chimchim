@@ -54,12 +54,42 @@
             </form>
          </div>
 
+         <!-- กิจกรรมของฉัน — ถูกใจ / บันทึกไว้ / รีวิว / ติดตาม รวมไว้ที่เดียว (แท็บสลับดู) แสดงเฉพาะตอนล็อกอิน -->
+         <div class="profcard actcard" id="myActivityCard" hidden>
+            <div class="profcardtit"><i class="fas fa-clock-rotate-left me-1"></i><span data-i18n="settings.myActivity">กิจกรรมของฉัน</span></div>
+            <div class="acttabs" role="tablist">
+               <button type="button" class="acttab active" role="tab" aria-selected="true" aria-controls="actPaneLikes" data-act="likes"><i class="fas fa-heart"></i><span data-i18n="settings.actLikes">ถูกใจ</span><b id="actCountLikes">0</b></button>
+               <button type="button" class="acttab" role="tab" aria-selected="false" aria-controls="actPaneSaves" data-act="saves"><i class="fas fa-bookmark"></i><span data-i18n="settings.actSaves">บันทึกไว้</span><b id="actCountSaves">0</b></button>
+               <button type="button" class="acttab" role="tab" aria-selected="false" aria-controls="actPaneReviews" data-act="reviews"><i class="fas fa-pen"></i><span data-i18n="settings.actReviews">รีวิว</span><b id="actCountReviews">0</b></button>
+               <button type="button" class="acttab" role="tab" aria-selected="false" aria-controls="actPaneFollows" data-act="follows"><i class="fas fa-user-check"></i><span data-i18n="settings.actFollows">ติดตาม</span><b id="actCountFollows">0</b></button>
+            </div>
+
+            <div class="actpane" id="actPaneLikes" role="tabpanel" data-pane="likes">
+               <div class="actsub" id="actLikedShopsHead"><span data-i18n="settings.actLikedShops">ร้านที่ถูกใจ</span></div>
+               <div id="settingsLikesList"></div>
+               <div class="actsub" id="actLikedPostsHead"><span data-i18n="settings.actLikedPosts">โพสต์ที่ถูกใจ</span></div>
+               <div class="ppgrid actpostgrid" id="settingsLikedPosts"></div>
+               <p id="settingsLikesEmpty" class="actempty" hidden data-i18n="settings.actLikesEmpty">ยังไม่ได้กดถูกใจร้านหรือโพสต์ไหนเลย</p>
+            </div>
+            <div class="actpane" id="actPaneSaves" role="tabpanel" data-pane="saves" hidden>
+               <div id="settingsSavesList"></div>
+               <p id="settingsSavesEmpty" class="actempty" hidden data-i18n="profile.saveHistoryEmpty">You haven't saved any shop yet.</p>
+            </div>
+            <div class="actpane" id="actPaneReviews" role="tabpanel" data-pane="reviews" hidden>
+               <div id="settingsReviewsList"></div>
+               <p id="settingsReviewsEmpty" class="actempty" hidden data-i18n="profile.reviewHistoryEmpty">ยังไม่ได้เขียนรีวิวไว้เลย</p>
+            </div>
+            <div class="actpane" id="actPaneFollows" role="tabpanel" data-pane="follows" hidden>
+               <div id="settingsFollowsList"></div>
+               <p id="settingsFollowsEmpty" class="actempty" hidden data-i18n="profile.followHistoryEmpty">You haven't followed any shop yet.</p>
+            </div>
+         </div>
+
          <div class="profcard">
             <div class="profcardtit"><i class="fas fa-palette me-1"></i><span data-i18n="settings.appearance">Appearance</span></div>
             <div class="settoggle" id="themeToggle">
                <button type="button" class="settopt" data-theme-choice="light"><i class="fas fa-sun"></i><span data-i18n="settings.light">Light</span></button>
                <button type="button" class="settopt" data-theme-choice="dark"><i class="fas fa-moon"></i><span data-i18n="settings.dark">Dark</span></button>
-               <button type="button" class="settopt" data-theme-choice="system"><i class="fas fa-circle-half-stroke"></i><span data-i18n="settings.system">System</span></button>
             </div>
          </div>
 
@@ -189,26 +219,6 @@
             <p class="rowsub" style="margin-top:10px;margin-bottom:0;" data-i18n="settings.postingAsHint">New posts you add from your profile will be posted as whichever you pick here.</p>
          </div>
 
-         <!-- ประวัติการกดถูกใจ (ย้ายมาจากหน้าโปรไฟล์ เพื่อไม่ให้หน้าโปรไฟล์รกเกินไป) -->
-         <div class="profcard" id="likesHistoryCard" hidden>
-            <div class="profcardtit"><i class="fas fa-heart-circle-check me-1"></i><span data-i18n="profile.likeHistory">Like History</span></div>
-            <div id="settingsLikesList"></div>
-            <p id="settingsLikesEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:10px 0;" hidden data-i18n="profile.likeHistoryEmpty">You haven't liked any dish yet.</p>
-         </div>
-
-         <!-- ประวัติการติดตามร้าน -->
-         <div class="profcard" id="followsHistoryCard" hidden>
-            <div class="profcardtit"><i class="fas fa-user-check me-1"></i><span data-i18n="profile.followHistory">Follow History</span></div>
-            <div id="settingsFollowsList"></div>
-            <p id="settingsFollowsEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:10px 0;" hidden data-i18n="profile.followHistoryEmpty">You haven't followed any shop yet.</p>
-         </div>
-
-         <!-- ร้านที่บันทึกไว้ดูทีหลัง (แยกจากถูกใจ) -->
-         <div class="profcard" id="savesHistoryCard" hidden>
-            <div class="profcardtit"><i class="fas fa-bookmark me-1"></i><span data-i18n="profile.saveHistory">Saved Shops</span></div>
-            <div id="settingsSavesList"></div>
-            <p id="settingsSavesEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:10px 0;" hidden data-i18n="profile.saveHistoryEmpty">You haven't saved any shop yet.</p>
-         </div>
       </div>
 
       <div id="appToast"></div>

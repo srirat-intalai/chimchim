@@ -350,7 +350,27 @@ document.addEventListener("keydown", function(e) {
 					if (!btn) return;
 					menu.remove();
 					if (btn.getAttribute("data-act") === "report") {
-						openReportPopup("comment", c.id, null, { remoteId: c.remoteId });
+						var postIdAtReport = currentPostId;
+						openReportPopup("comment", c.id, function(saved) {
+							if (!c.remoteId) return; // คอมเมนต์ที่ยังไม่ขึ้นเซิร์ฟเวอร์ ตรวจด้วย AI ไม่ได้ เก็บรายงานไว้เฉย ๆ
+							Promise.resolve(saved).then(function(ok) {
+								if (!ok) return null;
+								return sbRequestCommentModeration(c.remoteId);
+							}).then(function(result) {
+								if (!result || !result.checked) {
+									showToast(t("report.thanks"));
+									return;
+								}
+								if (result.hidden) {
+									// AI ยืนยันว่าผิดจริง → เอาออกจากหน้าจอทันที (เซิร์ฟเวอร์ซ่อนให้ทุกเครื่องแล้ว)
+									saveCommentsOfPost(postIdAtReport, getComments(postIdAtReport).filter(function(x) { return x.id !== c.id; }));
+									if (postIdAtReport === currentPostId) renderPvComments();
+									showToast(t("report.aiHidden"));
+								} else {
+									showToast(t("report.aiNotViolating"));
+								}
+							});
+						}, { remoteId: c.remoteId });
 					}
 				});
 				row.appendChild(menu);
@@ -472,6 +492,9 @@ document.addEventListener("keydown", function(e) {
 	}
 
 	function closePostView() {
+		document.querySelectorAll(".feeditem").forEach(function(fi) {
+			if (typeof fi.__refreshComments === "function") fi.__refreshComments();
+		});
 		modal.classList.remove("open");
 		document.body.style.overflow = "";
 	}
@@ -529,7 +552,7 @@ document.addEventListener("keydown", function(e) {
 			avatarEl.style.background = "var(--cream2) center/cover no-repeat url('" + post.posterAvatarUrl + "')";
 			avatarEl.textContent = "";
 		} else {
-			avatarEl.style.background = post.posterColor || "linear-gradient(135deg, var(--dark), #8b68e0)";
+			avatarEl.style.background = post.posterColor || "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))";
 			avatarEl.textContent = (post.posterName || "?").trim().charAt(0).toUpperCase();
 		}
 		document.getElementById("pvName").textContent = post.posterName || "";
@@ -587,6 +610,13 @@ function renderCommunityFeed(container, catFilter) {
 	}
 	var emptyMsg = document.getElementById("communityFeedEmpty");
 	var items = getFeedItems();
+	// เลือกพื้นที่ไว้ → โพสต์ของร้านโชว์เฉพาะร้านแถวนั้น (โพสต์ของนักชิมทั่วไปไม่มีพื้นที่ โชว์ตามเดิม)
+	var areaInfo = typeof กรองร้านตามพื้นที่ === "function" ? กรองร้านตามพื้นที่(typeof รายการร้าน !== "undefined" ? รายการร้าน : []) : null;
+	if (areaInfo && areaInfo.area) {
+		var okUnis = {};
+		areaInfo.list.forEach(function(r) { okUnis[r.มหาลัย] = true; });
+		items = items.filter(function(item) { return !item.uni || (!areaInfo.fallback && okUnis[item.uni]); });
+	}
 	if (catFilter && catFilter !== "all") {
 		items = items.filter(function(item) { return typeof ร้านอยู่ในหมวดที่เลือก === "function" && ร้านอยู่ในหมวดที่เลือก(item.cat, catFilter); });
 	}
@@ -653,7 +683,9 @@ function buildFeedItemEl(item) {
 				'<button class="feedlikebtn" type="button"><i class="far fa-heart"></i><span></span></button>' +
 				'<button class="feedcommentbtn" type="button"><i class="far fa-comment"></i><span></span></button>' +
 			"</div>" +
-			'<div class="feedcap"><b>' + escapeHtml(item.posterName) + "</b> " + escapeHtml(item.caption) + "</div>";
+			'<div class="feedlikesline" hidden></div>' +
+			'<div class="feedcap"><b>' + escapeHtml(item.posterName) + "</b> " + escapeHtml(item.caption) + "</div>" +
+			'<div class="feedcomments" hidden></div>';
 
 		if (item.posterLink) {
 			var headEl = el.querySelector(".feedhead");
@@ -699,6 +731,13 @@ function buildFeedItemEl(item) {
 		});
 
 		var likeBtn = el.querySelector(".feedlikebtn");
+		var likesLine = el.querySelector(".feedlikesline");
+		// "ถูกใจ N คน" — ยอดรวมของทุกคน (ดึงจริงจาก Supabase) ไม่ใช่แค่ของเครื่องนี้
+		function showLikesLine(count) {
+			likesLine.hidden = !count;
+			likesLine.innerHTML = count ? '<i class="fas fa-heart"></i> ' + escapeHtml(t("community.likedByCount").replace("{n}", formatLikeCount(count))) : "";
+			likeBtn.setAttribute("aria-label", t("community.likedByCount").replace("{n}", count));
+		}
 		function refreshFeedLike() {
 			var liked = isPostLiked(item.id);
 			var ico = likeBtn.querySelector("i");
@@ -706,21 +745,54 @@ function buildFeedItemEl(item) {
 			ico.classList.toggle("fas", liked);
 			likeBtn.classList.toggle("liked", liked);
 			likeBtn.querySelector("span").textContent = formatLikeCount(getPostLikeCount(item.id));
+			showLikesLine(getPostLikeCount(item.id));
 		}
 		likeBtn.addEventListener("click", function() {
 			togglePostLike(item.id);
 			refreshFeedLike();
 		});
 		refreshFeedLike();
-		if (typeof queuePostLikeCountFetch === "function") queuePostLikeCountFetch(item.id, likeBtn.querySelector("span"));
+		if (typeof queuePostLikeCountFetch === "function") {
+			queuePostLikeCountFetch(item.id, likeBtn.querySelector("span"));
+			queuePostLikeCountFetch(item.id, showLikesLine);
+		}
 
 	var commentBtn = el.querySelector(".feedcommentbtn");
 	var commentCountEl = commentBtn.querySelector("span");
-	commentCountEl.textContent = getComments(item.id).length;
-	if (typeof queueCommentCountFetch === "function") queueCommentCountFetch(item.id, commentCountEl);
-	commentBtn.addEventListener("click", function() {
+	var commentsBox = el.querySelector(".feedcomments");
+	function openThisPost() {
 		openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl, posterId: item.userId });
+	}
+	// คอมเมนต์ล่าสุด 2 อันโชว์ใต้โพสต์เลย (ของทุกคน) + "ดูความคิดเห็นทั้งหมด N รายการ" กดแล้วเปิดโพสต์
+	function showCommentPreview(summary) {
+		var count = summary.count;
+		commentCountEl.textContent = count;
+		commentsBox.hidden = !count;
+		if (!count) {
+			commentsBox.innerHTML = "";
+			return;
+		}
+		var lines = summary.latest.slice(0, 2).reverse().map(function(c) {
+			return '<div class="feedcommentline"><b>' + escapeHtml(c.author) + "</b> " + escapeHtml(c.text) + "</div>";
+		}).join("");
+		commentsBox.innerHTML =
+			(count > 2 ? '<button type="button" class="feedcommentsall">' + escapeHtml(t("community.viewAllComments").replace("{n}", count)) + "</button>" : "") +
+			lines;
+	}
+	// แสดงจากในเครื่องไปก่อน แล้วค่อยแทนด้วยของจริงจากเซิร์ฟเวอร์ (ใหม่สุดก่อน เหมือนที่เซิร์ฟเวอร์ส่งมา)
+	var localComments = getComments(item.id);
+	showCommentPreview({
+		count: localComments.length,
+		latest: localComments.slice(-2).reverse().map(function(c) { return { author: c.author, text: c.text }; })
 	});
+	if (typeof queueCommentCountFetch === "function") queueCommentCountFetch(item.id, showCommentPreview);
+	commentBtn.addEventListener("click", openThisPost);
+	commentsBox.addEventListener("click", openThisPost);
+	// ปิดหน้าดูโพสต์แล้ว อัปเดตตัวอย่างคอมเมนต์ใต้โพสต์นี้ให้ตรงกับที่เพิ่งพิมพ์/ลบ
+	el.__refreshComments = function() {
+		var list = getComments(item.id);
+		showCommentPreview({ count: list.length, latest: list.slice(-2).reverse().map(function(c) { return { author: c.author, text: c.text }; }) });
+	};
 
 	return el;
 }
@@ -773,4 +845,65 @@ refreshAuthUI();
 (function initCommunityFeedIfPresent() {
 	var feed = document.getElementById("communityFeed");
 	if (feed) renderCommunityFeed(feed, typeof currentTrendCat !== "undefined" ? currentTrendCat : "all");
+})();
+
+
+/* =====================================================================
+   ปุ่มเลือกพื้นที่ (มหาวิทยาลัย) บนแถบบน — ใส่ให้ทุกหน้าที่มีแถบบนอัตโนมัติ (ข้างปุ่มตั้งค่า)
+   เลือกแล้วโหลดหน้าใหม่ ทุกส่วนที่โชว์ร้าน (แนะนำ/ฟีด/ติดตาม/ไข่/AI) จะใช้ร้านแถวนั้น
+   ===================================================================== */
+(function setupAreaPicker() {
+	var actions = document.querySelector(".apptop-actions");
+	if (!actions || typeof getSelectedArea !== "function" || typeof มหาวิทยาลัยทั้งหมด === "undefined") return;
+	var wrap = document.createElement("div");
+	wrap.className = "areawrap";
+	wrap.innerHTML =
+		'<button type="button" class="areabtn" id="areaBtn" aria-haspopup="listbox" aria-expanded="false">' +
+			'<i class="fas fa-location-dot"></i><span class="areabtn-txt"></span><i class="fas fa-chevron-down areabtn-chev"></i>' +
+		"</button>" +
+		'<div class="areapanel" id="areaPanel" role="listbox" hidden></div>';
+	actions.insertBefore(wrap, actions.firstChild);
+	var btn = wrap.querySelector(".areabtn");
+	var panel = wrap.querySelector(".areapanel");
+	var current = getSelectedArea();
+	wrap.querySelector(".areabtn-txt").textContent = areaShortName(current);
+	btn.setAttribute("aria-label", t("area.pick") + ": " + areaShortName(current));
+
+	function render() {
+		var shops = typeof รายการร้าน !== "undefined" ? รายการร้าน : [];
+		var options = [""].concat(มหาวิทยาลัยทั้งหมด);
+		panel.innerHTML = '<div class="areapanel-tit"></div>';
+		panel.querySelector(".areapanel-tit").textContent = t("area.pick");
+		options.forEach(function(area) {
+			var n = area ? shops.filter(function(r) { return r.มหาลัย === area; }).length : shops.length;
+			var opt = document.createElement("button");
+			opt.type = "button";
+			opt.className = "areaopt" + (area === current ? " active" : "");
+			opt.setAttribute("role", "option");
+			opt.setAttribute("aria-selected", area === current ? "true" : "false");
+			opt.innerHTML = '<i class="fas fa-' + (area ? "graduation-cap" : "earth-asia") + '"></i><span></span><small></small>' + (area === current ? '<i class="fas fa-check areaopt-check"></i>' : "");
+			opt.querySelector("span").textContent = area ? areaShortName(area) : t("area.all");
+			opt.querySelector("small").textContent = n ? t("area.shopCount").replace("{n}", n) : t("area.noShops");
+			opt.addEventListener("click", function(e) {
+				e.stopPropagation();
+				if (area === current) { close(); return; }
+				setSelectedArea(area);
+				window.location.reload();
+			});
+			panel.appendChild(opt);
+		});
+	}
+	function close() {
+		panel.hidden = true;
+		btn.setAttribute("aria-expanded", "false");
+	}
+	btn.addEventListener("click", function(e) {
+		e.stopPropagation();
+		if (!panel.hidden) { close(); return; }
+		render();
+		panel.hidden = false;
+		btn.setAttribute("aria-expanded", "true");
+	});
+	document.addEventListener("click", function(e) { if (!wrap.contains(e.target)) close(); });
+	document.addEventListener("keydown", function(e) { if (e.key === "Escape") close(); });
 })();

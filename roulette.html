@@ -11,8 +11,8 @@
       <meta name="apple-mobile-web-app-status-bar-style" content="default">
       <meta name="apple-mobile-web-app-title" content="ChimChim">
       <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-      <meta name="description" content="ChimChim - วงล้อสุ่มเมนู ตัดสินใจไม่ได้ว่าจะกินอะไร หมุนวงล้อแล้วให้ ChimChim สุ่มเมนูเด็ดให้เลย">
-      <title>วงล้อสุ่มเมนู - ChimChim</title>
+      <meta name="description" content="ChimChim - ไข่ปริศนาสุ่มร้าน ตัดสินใจไม่ได้ว่าจะกินอะไร แตะไข่แล้วให้ ChimChim เปิดร้านจริงให้เลย">
+      <title>ไข่ปริศนาสุ่มร้าน - ChimChim</title>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
@@ -37,7 +37,6 @@
                      <div class="qstoggle">
                         <button type="button" data-theme-choice="light" title="Light"><i class="fas fa-sun"></i></button>
                         <button type="button" data-theme-choice="dark" title="Dark"><i class="fas fa-moon"></i></button>
-                        <button type="button" data-theme-choice="system" title="System"><i class="fas fa-circle-half-stroke"></i></button>
                      </div>
                   </div>
                   <div class="qsrow">
@@ -61,8 +60,8 @@
          <div class="container" style="max-width:520px;">
             <div class="text-center mb-3" data-aos="fade-up">
                <span class="slbl" data-i18n="roulette.miniGameLabel">มินิเกมของ ChimChim</span>
-               <h2 class="stitle" style="font-size:1.5rem;margin-bottom:6px;"><span class="stitleplain" data-i18n="roulette.heading1">วงล้อ</span> <span data-i18n="roulette.heading2">สุ่มเมนู</span></h2>
-               <p class="sdesc" style="font-size:.8rem;" data-i18n="roulette.desc">ตัดสินใจไม่ได้ว่าจะกินอะไรใช่ไหม? หมุนวงล้อแล้วให้ ChimChim สุ่มเมนูเด็ดให้เลย</p>
+               <h2 class="stitle" style="font-size:1.5rem;margin-bottom:6px;"><span class="stitleplain" data-i18n="roulette.heading1">ไข่ปริศนา</span> <span data-i18n="roulette.heading2">สุ่มร้าน</span></h2>
+               <p class="sdesc" style="font-size:.8rem;" data-i18n="roulette.desc">ตัดสินใจไม่ได้ว่าจะกินอะไรใช่ไหม? แตะไข่ 3 ครั้ง แล้วให้ ChimChim เปิดร้านจริงให้เลย</p>
             </div>
 
             <div class="rmodes" id="rmodes" data-aos="fade-up">
@@ -72,36 +71,50 @@
             </div>
             <p class="rmodedesc" id="rmodeDesc" data-aos="fade-up"></p>
 
-            <div class="wheelwrap mb-3" data-aos="zoom-in">
-               <img class="wheelmascot" src="img/Dino/11.png" alt="Dino มาสคอต ChimChim"/>
-               <div class="wheelptr"><i class="fas fa-caret-down"></i></div>
-               <div class="wheeldisc" id="wheelDisc">
-                  <span class="wslice" data-angle="15" data-val="เส้น"><b>🍜</b><span class="wslbl">เส้น</span></span>
-                  <span class="wslice" data-angle="45" data-val="ข้าว"><b>🍚</b><span class="wslbl">ข้าว</span></span>
-                  <span class="wslice" data-angle="75" data-val="ซุป"><b>🥣</b><span class="wslbl">ซุป</span></span>
-                  <span class="wslice" data-angle="105" data-val="ส้มตำ"><b>🌶️</b><span class="wslbl">ส้มตำ</span></span>
-                  <span class="wslice" data-angle="135" data-val="ญี่ปุ่น"><b>🍣</b><span class="wslbl">ญี่ปุ่น</span></span>
-                  <span class="wslice" data-angle="165" data-val="ฟาสต์ฟู้ด"><b>🍔</b><span class="wslbl">ฟาสต์ฟู้ด</span></span>
-                  <span class="wslice" data-angle="195" data-val="อิตาเลียน"><b>🍕</b><span class="wslbl">อิตาเลียน</span></span>
-                  <span class="wslice" data-angle="225" data-val="ปิ้งย่าง"><b>🍖</b><span class="wslbl">ปิ้งย่าง</span></span>
-                  <span class="wslice" data-angle="255" data-val="ของหวาน"><b>🍰</b><span class="wslbl">ของหวาน</span></span>
-                  <span class="wslice" data-angle="285" data-val="มื้อเช้า"><b>🍳</b><span class="wslbl">มื้อเช้า</span></span>
-                  <span class="wslice" data-angle="315" data-val="นานาชาติ"><b>🌏</b><span class="wslbl">นานาชาติ</span></span>
-                  <span class="wslice" data-angle="345" data-val="ของว่าง"><b>🍡</b><span class="wslbl">ของว่าง</span></span>
+            <!-- ไข่ปริศนา (แทนวงล้อเดิม) — แตะ 3 ครั้ง: ขยับ → ร้าว → เปิด แล้วเผยร้านจริงที่สุ่มตามโหมดที่เลือก
+                 ใช้รูปไข่เดิม img/Dino/3.png สองชั้นซ้อนกัน ตัดครึ่งเป็นรอยหยัก (clip-path) ตอนเปิดถึงแยกออกจากกัน -->
+            <div class="eggstage" id="eggStage" data-state="idle">
+               <button type="button" class="eggbtn" id="eggBtn" aria-describedby="eggHint">
+                  <span class="eggglow" aria-hidden="true"></span>
+                  <span class="eggbody" aria-hidden="true">
+                     <img class="eggshell eggshell-bottom" src="img/Dino/3.png" alt="" draggable="false"/>
+                     <img class="eggshell eggshell-top" src="img/Dino/3.png" alt="" draggable="false"/>
+                     <svg class="eggcracks" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <polyline class="crack crack-1" points="40,46 46,51 52,45 57,50"/>
+                        <polyline class="crack crack-2" points="27,49 32,45 40,46 46,51 52,45 57,50 64,45 69,50 74,46"/>
+                        <polyline class="crack crack-3" points="46,51 44,57 47,61"/>
+                        <polyline class="crack crack-4" points="64,45 66,39 63,35"/>
+                     </svg>
+                  </span>
+                  <span class="eggshadow" aria-hidden="true"></span>
+               </button>
+               <div class="eggsteps" aria-hidden="true"><span></span><span></span><span></span></div>
+               <p class="egghint" id="eggHint" aria-live="polite"></p>
+               <div class="eggerror" id="eggError" role="alert" hidden>
+                  <p id="eggErrorText"></p>
+                  <button type="button" class="wghostbtn" id="eggErrorRetry"><i class="fas fa-rotate"></i><span data-i18n="roulette.retry">ลองอีกครั้ง</span></button>
                </div>
-               <button id="spinBtn" class="wheelbtn" data-i18n="roulette.spinBtn">หมุน!</button>
             </div>
 
-            <div class="wresultcard" id="wresultcard" data-aos="fade-up">
-               <img id="wresultImg" src="img/Dino/3.png" alt="รอผลการสุ่ม"/>
-               <div class="wresultbody">
-                  <span class="wrtag" id="wresultTag" data-i18n="roulette.initialTag">พร้อมสุ่มหรือยัง?</span>
-                  <h4 id="wresultTitle" data-i18n="roulette.initialTitle">กดหมุนวงล้อได้เลย</h4>
-                  <p id="wresultDesc" data-i18n="roulette.initialDesc">ChimChim จะช่วยเลือกเมนูให้ 1 อย่างจากฐานข้อมูลกว่า 60 เมนู เผื่อวันไหนคิดไม่ออกว่าจะกินอะไรดี</p>
-                  <div class="wresultbtns" id="wresultBtns" hidden>
-                     <button class="btn-red" id="wagainBtn"><i class="fas fa-rotate"></i><span data-i18n="roulette.spinAgain">หมุนอีกครั้ง</span></button>
-                     <button type="button" class="wghostbtn" id="wfeedBtn"><i class="fas fa-utensils"></i><span data-i18n="roulette.viewRecommended">ดูร้านแนะนำ</span></button>
+            <!-- การ์ดร้านที่เปิดได้ — โชว์เฉพาะข้อมูลที่มีจริงของร้านนั้น -->
+            <div class="eggresult" id="eggResult" hidden aria-live="polite">
+               <div class="eggresult-media">
+                  <img id="eggResultImg" src="" alt=""/>
+                  <div class="eggresult-noimg" id="eggResultNoImg" hidden><i class="fas fa-utensils"></i></div>
+                  <span class="eggresult-match" id="eggResultMatch" hidden></span>
+               </div>
+               <div class="eggresult-body">
+                  <div class="eggresult-cat" id="eggResultCat"></div>
+                  <h3 class="eggresult-name" id="eggResultName"></h3>
+                  <p class="eggresult-menu" id="eggResultMenu"></p>
+                  <div class="eggresult-meta" id="eggResultMeta"></div>
+                  <p class="eggresult-why" id="eggResultWhy"></p>
+                  <div class="eggresult-btns">
+                     <a class="btn-red" id="eggViewBtn" href="#"><i class="fas fa-store"></i><span data-i18n="roulette.viewShop">ดูรายละเอียดร้าน</span></a>
+                     <button type="button" class="wghostbtn" id="eggAgainBtn"><i class="fas fa-rotate"></i><span data-i18n="roulette.tryAgain">สุ่มอีกครั้ง</span></button>
                   </div>
+                  <p class="eggkeepnote" id="eggKeepNote"></p>
+                  <button type="button" class="eggreclink" id="wfeedBtn"><i class="fas fa-utensils"></i><span data-i18n="roulette.viewRecommended">ดูร้านแนะนำ</span></button>
                </div>
             </div>
 
@@ -121,7 +134,7 @@
       </nav>
 
       <!-- ============================================================
-         RECOMMEND POPUP — กด "ดูร้านแนะนำ" แล้วเด้งดูรายชื่อร้านแนะนำตรงนี้เลย ไม่ต้องออกจากหน้าวงล้อ
+         RECOMMEND POPUP — กด "ดูร้านแนะนำ" แล้วเด้งดูรายชื่อร้านแนะนำตรงนี้เลย ไม่ต้องออกจากหน้าไข่ปริศนา
          ============================================================ -->
       <div id="recommendPop">
          <div class="apbox spbox2">

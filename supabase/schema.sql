@@ -378,3 +378,34 @@ alter table public.moderation_reports add constraint moderation_reports_reason_c
 -- รายละเอียดยาวไม่เกิน 300 ตัวอักษร (เท่ากับที่ช่องเขียนในแอปจำกัดไว้)
 alter table public.moderation_reports drop constraint if exists moderation_reports_note_length;
 alter table public.moderation_reports add constraint moderation_reports_note_length check (char_length(note) <= 300);
+
+-- =====================================================================
+-- Phase 9 — ไลก์/คอมเมนต์ของ "โพสต์ตัวอย่างของร้านตั้งต้น" ให้คนอื่นเห็นด้วย
+-- โพสต์พวกนี้ฝังอยู่ในโค้ดแอป (id แบบ "bu-yammamuang-post0") ไม่มีแถวในตาราง posts เลยใช้ post_id ไม่ได้
+-- → เก็บด้วย post_key แทน (คอมเมนต์ใช้ตาราง comments เดิม / ไลก์แยกตาราง likes_seed_posts)
+-- =====================================================================
+alter table public.comments alter column post_id drop not null;
+alter table public.comments add column if not exists post_key text;
+alter table public.comments drop constraint if exists comments_target_check;
+alter table public.comments add constraint comments_target_check
+  check ((post_id is not null) or (post_key ~ '^bu-[a-z0-9-]+-post[0-9]+$'));
+create index if not exists comments_post_key_idx on public.comments (post_key);
+
+create table if not exists public.likes_seed_posts (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  post_key text not null check (post_key ~ '^bu-[a-z0-9-]+-post[0-9]+$'),
+  created_at timestamptz not null default now(),
+  primary key (user_id, post_key)
+);
+alter table public.likes_seed_posts enable row level security;
+-- นับไลก์ได้ทุกคน (เหมือน likes_posts) / กดหรือเลิกกดได้เฉพาะของตัวเอง
+create policy "likes_seed_posts_select_all" on public.likes_seed_posts for select using (true);
+create policy "likes_seed_posts_insert_own" on public.likes_seed_posts for insert with check (auth.uid() = user_id);
+create policy "likes_seed_posts_delete_own" on public.likes_seed_posts for delete using (auth.uid() = user_id);
+
+-- =====================================================================
+-- Phase 10 — ซ่อนคอมเมนต์ที่ AI ตรวจแล้วว่าผิดจริงตามที่รายงาน
+-- เซิร์ฟเวอร์ AI (server.js /api/moderate-comment) เป็นคนตั้งค่านี้ด้วย service role key เท่านั้น
+-- ผู้ใช้ทั่วไปแก้ค่านี้ไม่ได้ (policy update ของ comments ให้แก้ได้เฉพาะคอมเมนต์ตัวเอง และแอปไม่ส่งคอลัมน์นี้)
+-- =====================================================================
+alter table public.comments add column if not exists is_hidden boolean not null default false;

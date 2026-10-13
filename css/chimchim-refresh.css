@@ -1820,23 +1820,1388 @@ body.appshell,
   background: var(--rf-fill);
 }
 
-/* =====================================================================
-   ทดลองสีส้ม — ใส่ data-accent="orange" บน <html> เพื่อดูตัวอย่าง (ยังไม่ได้เปิดใช้)
-   ===================================================================== */
-[data-accent="orange"] {
-  --primary: #f2541b;
-  --secondary: #ff7a3d;
-  --dark: #c43d0e;
-  --cream: #fff1ea;
-  --rf-bg: #faf6f1;
-  --rf-brand: #f2541b;
-  --rf-brand-grad: linear-gradient(135deg, #ff8a4c 0%, #f2541b 55%, #d9420f 100%);
-  --rf-brand-tint: #fff0e8;
-  --rf-glow: 0 10px 24px -8px rgba(242, 84, 27, 0.55);
+/* ---- ป้ายบนการ์ดนักชิม: ชอบคล้ายกัน % / ม.เดียวกัน ---- */
+.chlv .ftag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 2px 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
-[data-accent="orange"] body.appshell {
-  background:
-    radial-gradient(120% 360px at 85% -60px, rgba(255, 138, 76, 0.16), transparent 70%),
-    var(--rf-bg);
-  background-repeat: no-repeat;
+.ftag-taste {
+  background: #fdecef;
+  color: #d23f5c;
+}
+.ftag-near {
+  background: var(--rf-brand-tint);
+  color: var(--rf-brand);
+}
+[data-theme="dark"] .ftag-taste {
+  background: rgba(229, 72, 122, 0.16);
+  color: #ff8aa6;
+}
+.fgridhint {
+  margin: 0 2px 2px;
+  font-size: 0.76rem;
+  color: var(--rf-ink-2);
+}
+
+/* =====================================================================
+   V4 — ลดสีม่วงเหลือ ~10-15% ของหน้าจอ (หลัก 60-30-10)
+   60% พื้นสีกลาง (ขาว/เทาอ่อน) · 30% ตัวเน้นรองเป็นสีเข้มเกือบดำ · 10% ม่วงแบรนด์
+   ม่วงเหลือเฉพาะ: ปุ่มหลัก (btn-red/ส่ง), เมนูล่างที่เลือกอยู่, โลโก้, ตัวเลขตรงใจ %, ลูกแก้ว AI
+   ===================================================================== */
+:root {
+  --rf-bg: #f6f6f8;
+  --rf-fill: #efeff2;
+  --rf-line: rgba(17, 17, 26, 0.08);
+  --rf-ink: #18171c;
+  --rf-ink-2: #6b6a72;
+  --rf-brand-tint: #f1f1f4; /* เดิมม่วงอ่อน — ตอนนี้เป็นเทาอ่อน ม่วงจะไม่โผล่ตามพื้นหลังเล็ก ๆ ทั่วแอปอีก */
+  --rf-ink-grad: linear-gradient(135deg, #2b2a31 0%, #18171c 100%);
+  --rf-ink-glow: 0 10px 22px -10px rgba(17, 17, 26, 0.55);
+  --rf-shadow-sm: 0 1px 2px rgba(17, 17, 26, 0.04), 0 4px 14px -6px rgba(17, 17, 26, 0.1);
+  --rf-shadow: 0 1px 2px rgba(17, 17, 26, 0.05), 0 12px 32px -12px rgba(17, 17, 26, 0.16);
+  --rf-shadow-lift: 0 2px 4px rgba(17, 17, 26, 0.06), 0 22px 44px -16px rgba(17, 17, 26, 0.26);
+  /* โทเค็นเดิมใน style.css ที่ใช้ม่วงเป็นสีหัวข้อ/พื้นสลับ/เงา — เปลี่ยนเป็นสีกลาง (--primary ยังเป็นม่วงไว้ใช้กับปุ่มหลัก) */
+  --dark: #2a2833;
+  --secondary: #8a8794;
+  --cream: #f2f2f5;
+  --shadow: 0 8px 40px rgba(17, 17, 26, 0.1);
+  --shadow-lg: 0 20px 60px rgba(17, 17, 26, 0.16);
+}
+[data-theme="dark"] {
+  --rf-bg: #131317;
+  --rf-surface: #1c1c21;
+  --rf-fill: #26262c;
+  --rf-line: rgba(255, 255, 255, 0.08);
+  --rf-ink: #f4f4f6;
+  --rf-ink-2: #a9a8b1;
+  --rf-brand-tint: #26262c;
+  --rf-glass: rgba(28, 28, 33, 0.8);
+  --rf-ink-grad: linear-gradient(135deg, #f4f4f6 0%, #d9d8de 100%);
+  --rf-ink-glow: 0 10px 22px -10px rgba(0, 0, 0, 0.6);
+  --dark: #e6e5ea;
+  --secondary: #a9a8b1;
+  --cream: #26262c;
+}
+
+/* ---- พื้นหลัง: สีกลางล้วน ไม่มีแสงม่วงแล้ว ---- */
+body.appshell,
+[data-theme="dark"] body.appshell {
+  background: var(--rf-bg);
+}
+
+/* ---- ตัวที่ "เลือกอยู่" ทั้งหมด (ชิปหมวด/ตัวกรอง/การ์ดเหตุผล) ใช้สีเข้มแทนม่วง ---- */
+.trendcatchip.active,
+.filtbtn.active,
+.filtbtn:hover {
+  background: var(--rf-ink-grad);
+  border-color: transparent;
+  box-shadow: var(--rf-ink-glow);
+  color: var(--rf-bg);
+}
+.trendcatchip.active span {
+  color: var(--rf-bg);
+}
+.trendcatchip.active .trendcaticon {
+  background: rgba(255, 255, 255, 0.92);
+}
+.rpreason.selected {
+  border-color: var(--rf-ink);
+  background: var(--rf-surface);
+  color: var(--rf-ink);
+}
+.rpreason.selected i {
+  background: var(--rf-ink-grad);
+  color: var(--rf-bg);
+}
+
+/* ---- ไอคอน/ข้อความเล็ก ๆ ที่เคยเป็นม่วง → เทา ---- */
+.homesearch i,
+.mmeta span i,
+.chatchip i,
+.mhicon,
+.trendcatchip span,
+.homegreet-hi b,
+.aichat-pill .aichat-hi {
+  color: var(--rf-ink-2);
+}
+.homegreet-hi b {
+  color: var(--rf-ink);
+}
+.mrestaurant,
+[data-theme="dark"] .mrestaurant,
+.chlv,
+.mcat,
+.rdcat {
+  color: var(--rf-ink-2);
+}
+.homesearch:focus-within,
+.aichat-inputbar:focus-within {
+  border-color: rgba(17, 17, 26, 0.25);
+  box-shadow: 0 0 0 4px rgba(17, 17, 26, 0.06), var(--rf-shadow-sm);
+}
+.feedavatar,
+.apptop-avatar {
+  box-shadow: 0 0 0 2px var(--rf-surface), 0 0 0 3px var(--rf-line);
+}
+
+/* ---- หัวข้อทักทาย: ตัวเข้มล้วน ไม่ไล่ม่วง ---- */
+.homegreet-q span,
+.aihero-grad {
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  color: var(--rf-ink);
+}
+/* คำเน้นในหัวข้อใหญ่เป็นม่วงสีเดียว (ไม่ไล่สี) — หนึ่งในไม่กี่จุดที่ม่วงยังอยู่ ให้หน้าไม่จืดเกินไป */
+.homegreet-q span:last-child,
+.aihero-grad {
+  color: var(--rf-brand);
+}
+
+/* ---- ปุ่มรอง/การ์ดเสริม: เทาแทนม่วง ---- */
+.apptop-btn,
+.followbtn {
+  background: var(--rf-fill);
+  color: var(--rf-ink);
+}
+.apptop-btn:hover,
+.followbtn:hover {
+  background: var(--rf-ink-grad);
+  color: var(--rf-bg);
+}
+.locationprompticon,
+.aipromo-dino {
+  background: var(--rf-ink-grad);
+  box-shadow: var(--rf-ink-glow);
+}
+.aipromo {
+  background: var(--rf-surface);
+  border-color: var(--rf-line);
+  box-shadow: var(--rf-shadow-sm);
+}
+.aipromo-go {
+  background: var(--rf-fill);
+  color: var(--rf-ink);
+}
+.rdmatchbox {
+  background: var(--rf-surface);
+  border-color: var(--rf-line);
+  box-shadow: var(--rf-shadow-sm);
+}
+.mhring {
+  background: var(--rf-ink-2);
+  opacity: 0.12;
+}
+.imguploadbox,
+.postimgadd {
+  background: var(--rf-fill);
+  border-color: rgba(17, 17, 26, 0.18);
+}
+.imguploadlbl,
+.postimgadd,
+.postimgcount,
+.fsechead b {
+  color: var(--rf-ink-2);
+}
+.postimgthumb.iscover {
+  outline-color: var(--rf-ink);
+}
+.postimgcover,
+.pvcommenteditbtns button.primary {
+  background: var(--rf-ink-grad);
+  color: var(--rf-bg);
+}
+.ftag-near {
+  color: var(--rf-ink);
+}
+.fseemore,
+.pvcommentmore,
+.feedmore {
+  color: var(--rf-ink);
+}
+
+/* ---- แชท AI: ฟองข้อความของเราเป็นสีเข้ม (ม่วงเหลือแค่ลูกแก้ว + ปุ่มส่ง) ---- */
+.chatbubble.user {
+  background: var(--rf-ink-grad);
+  color: var(--rf-bg);
+  box-shadow: var(--rf-ink-glow);
+}
+.chattyping span {
+  background: var(--rf-ink-2);
+}
+.aichat-pill .aichat-hi {
+  color: var(--rf-ink);
+}
+.chatchip:hover {
+  background: var(--rf-fill);
+}
+
+/* ---- ปุ่มยืนยันในฟอร์ม/ป็อปอัพเดิมของ style.css ที่ใช้ --dark เป็นขอบ/ตัวอักษร ---- */
+.rdghost {
+  border-color: var(--rf-line);
+  color: var(--rf-ink);
+}
+
+/* พื้นหลังรูปโปรไฟล์แบบตัวอักษร (คนที่ยังไม่มีรูป) — JS ทุกจุดอ้างตัวแปรนี้ ไม่ฝังสีม่วงเองแล้ว */
+:root {
+  --avatar-grad: linear-gradient(135deg, #4a4852 0%, #1f1e24 100%);
+}
+[data-theme="dark"] {
+  --avatar-grad: linear-gradient(135deg, #3d3c45 0%, #2a2930 100%);
+}
+.rdreviewavt {
+  background: var(--avatar-grad);
+}
+
+/* ---- แชท AI: ปุ่มคำตอบของคำถาม (แนวอาหาร/รส/กี่คน/งบ) — ขึ้นบรรทัดใหม่ได้ ไม่ต้องเลื่อนข้าง ---- */
+.aichat-suggestrow.is-answers {
+  flex-wrap: wrap;
+  overflow: visible;
+  gap: 8px;
+  padding: 4px 2px 10px;
+}
+.chatchip-answer {
+  font-weight: 600;
+}
+.chatchip-answer:active,
+.chatchip-skip:active {
+  transform: scale(0.96);
+}
+.chatchip-skip {
+  background: transparent;
+  border: 1px dashed rgba(17, 17, 26, 0.25);
+  color: var(--rf-ink);
+  box-shadow: none;
+}
+[data-theme="dark"] .chatchip-skip {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.chatchip-skip i {
+  color: var(--rf-brand);
+}
+/* ระหว่างชิมชิมกำลังคิด: ปุ่มส่งจางลง (กดไม่ได้ แต่ยังพิมพ์รอไว้ได้) */
+.aichat-wrap.is-thinking .aichat-inputbar button {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* ---- แชท AI: บรรทัดทักทายจากความจำ + ปุ่ม "แบบเดิมเลย" ---- */
+.aihero-memory {
+  margin: 12px auto 0;
+  max-width: 300px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--rf-ink);
+}
+.chatchip-same {
+  background: var(--rf-ink-grad);
+  border-color: transparent;
+  color: var(--rf-bg);
+  box-shadow: var(--rf-ink-glow);
+}
+.chatchip-same i {
+  color: inherit;
+}
+.chatchip-same:hover {
+  background: var(--rf-ink-grad);
+}
+
+/* =====================================================================
+   ไข่ปริศนาสุ่มร้าน (หน้า roulette.html — แทนวงล้อเดิม)
+   รูปไข่เดิม img/Dino/3.png ซ้อน 2 ชั้น: ปกติโชว์ชั้นล่างเต็มใบ ตอนเปิดถึงตัดเป็น 2 ซีกตามแนวรอยร้าว
+   (จุดหยักของ clip-path ตรงกับเส้น .crack-2 ใน SVG ทุกจุด ไข่จึงแตกตามรอยที่เห็นจริง ไม่บิดรูป)
+   ===================================================================== */
+.eggstage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 6px 0 10px;
+}
+.eggbtn {
+  position: relative;
+  width: min(300px, 74vw);
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.eggbtn:focus-visible {
+  outline: 3px solid var(--rf-brand);
+  outline-offset: 4px;
+}
+.eggbtn[aria-disabled="true"] {
+  cursor: default;
+}
+.eggbody {
+  position: absolute;
+  inset: 0;
+  display: block;
+  animation: eggFloat 3.2s ease-in-out infinite;
+}
+.eggshell {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.9s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 0.6s ease;
+}
+.eggshell-top {
+  visibility: hidden;
+  clip-path: polygon(0% 0%, 100% 0%, 100% 46%, 74% 46%, 69% 50%, 64% 45%, 57% 50%, 52% 45%, 46% 51%, 40% 46%, 32% 45%, 27% 49%, 0% 49%);
+}
+.eggcracks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.crack {
+  fill: none;
+  stroke: #5a3d96;
+  stroke-width: 0.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  opacity: 0;
+  transition: stroke-dashoffset 0.45s ease, opacity 0.2s ease;
+}
+.eggshadow {
+  position: absolute;
+  left: 30%;
+  right: 30%;
+  bottom: 14%;
+  height: 6%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(17, 17, 26, 0.22), transparent 70%);
+  animation: eggShadow 3.2s ease-in-out infinite;
+}
+.eggglow {
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(205, 184, 255, 0.55) 40%, transparent 70%);
+  opacity: 0;
+  transform: scale(0.4);
+  pointer-events: none;
+}
+@keyframes eggFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes eggShadow {
+  0%, 100% { transform: scaleX(1); opacity: 1; }
+  50% { transform: scaleX(0.86); opacity: 0.7; }
+}
+
+/* แตะครั้งที่ 1: สั่นเบา + ร่องรอยเล็ก ๆ */
+.eggstage[data-state="firstTap"] .crack-1 {
+  opacity: 0.55;
+  stroke-dashoffset: 0;
+}
+.eggstage[data-state="firstTap"].is-shaking .eggbody {
+  animation: eggWobble 0.5s ease-in-out;
+}
+@keyframes eggWobble {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-4deg); }
+  45% { transform: rotate(3.5deg); }
+  70% { transform: rotate(-2deg); }
+  90% { transform: rotate(1deg); }
+}
+/* แตะครั้งที่ 2: สั่นแรงขึ้น + รอยร้าวเต็มแนวค่อย ๆ ลากออก */
+.eggstage[data-state="secondTap"] .crack-1,
+.eggstage[data-state="secondTap"] .crack-2,
+.eggstage[data-state="opening"] .crack-2 {
+  opacity: 1;
+  stroke-dashoffset: 0;
+}
+.eggstage[data-state="secondTap"] .crack-3,
+.eggstage[data-state="secondTap"] .crack-4 {
+  opacity: 0.85;
+  stroke-dashoffset: 0;
+  transition-delay: 0.2s;
+}
+.eggstage[data-state="secondTap"].is-shaking .eggbody {
+  animation: eggShake 0.5s ease-in-out;
+}
+@keyframes eggShake {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  15% { transform: translateX(-5px) rotate(-8deg); }
+  35% { transform: translateX(5px) rotate(7deg); }
+  55% { transform: translateX(-4px) rotate(-5deg); }
+  75% { transform: translateX(3px) rotate(3deg); }
+}
+/* แตะครั้งที่ 3: รอยร้าวเรืองแสง → เปลือกบนหมุนกระเด็นขึ้น เปลือกล่างทรุดลง แสงวาบจากข้างใน (~1.2 วิ) */
+.eggstage[data-state="opening"] .eggbody,
+.eggstage[data-state="revealing"] .eggbody,
+.eggstage[data-state="result"] .eggbody {
+  animation: none;
+}
+.eggstage[data-state="opening"] .eggshell-top,
+.eggstage[data-state="revealing"] .eggshell-top,
+.eggstage[data-state="result"] .eggshell-top {
+  visibility: visible;
+}
+.eggstage[data-state="opening"] .eggshell-bottom,
+.eggstage[data-state="revealing"] .eggshell-bottom,
+.eggstage[data-state="result"] .eggshell-bottom {
+  clip-path: polygon(0% 49%, 27% 49%, 32% 45%, 40% 46%, 46% 51%, 52% 45%, 57% 50%, 64% 45%, 69% 50%, 74% 46%, 100% 46%, 100% 100%, 0% 100%);
+}
+.eggstage[data-state="opening"] .crack-2 {
+  stroke: #ffffff;
+  stroke-width: 1.4;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 4px rgba(176, 140, 255, 0.9));
+}
+.eggstage[data-state="opening"] .eggshell-top {
+  animation: eggTopOff 1.2s cubic-bezier(0.3, 0.6, 0.2, 1) forwards;
+}
+.eggstage[data-state="opening"] .eggshell-bottom {
+  animation: eggBottomSettle 1.2s ease forwards;
+}
+.eggstage[data-state="opening"] .eggglow {
+  animation: eggBurst 1.2s ease-out forwards;
+}
+.eggstage[data-state="opening"] .crack-1,
+.eggstage[data-state="opening"] .crack-3,
+.eggstage[data-state="opening"] .crack-4 {
+  opacity: 0;
+}
+@keyframes eggTopOff {
+  0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+  25% { transform: translate(0, -2%) rotate(-3deg); opacity: 1; }
+  100% { transform: translate(-14%, -46%) rotate(-32deg); opacity: 0; }
+}
+@keyframes eggBottomSettle {
+  0%, 25% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(4%); opacity: 0.9; }
+}
+@keyframes eggBurst {
+  0%, 20% { opacity: 0; transform: scale(0.4); }
+  55% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+/* เปิดแล้ว: ไข่ย่อลงจาง ๆ ให้การ์ดร้านเป็นจุดเด่น */
+.eggstage[data-state="revealing"] .eggshell-top,
+.eggstage[data-state="result"] .eggshell-top {
+  opacity: 0;
+}
+.eggstage[data-state="revealing"] .eggbtn,
+.eggstage[data-state="result"] .eggbtn {
+  width: min(150px, 40vw);
+  transition: width 0.45s ease;
+}
+.eggstage[data-state="revealing"] .eggshell-bottom,
+.eggstage[data-state="result"] .eggshell-bottom {
+  opacity: 0.55;
+}
+.eggstage[data-state="revealing"] .eggshadow,
+.eggstage[data-state="result"] .eggshadow,
+.eggstage[data-state="reducedMotionReveal"] .eggshadow {
+  animation: none;
+}
+
+/* ความคืบหน้า 3 จุด (ข้อความใน .egghint บอกเป็นคำพูดด้วยเสมอ) */
+.eggsteps {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.eggsteps span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--rf-fill);
+  border: 1px solid var(--rf-line);
+  transition: background 0.25s, transform 0.25s;
+}
+.eggsteps span.on {
+  background: var(--rf-brand);
+  border-color: transparent;
+  transform: scale(1.15);
+}
+.eggstage[data-state="result"] .eggsteps,
+.eggstage[data-state="error"] .eggsteps {
+  display: none;
+}
+.egghint {
+  margin: 10px 0 0;
+  min-height: 1.4em;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--rf-ink);
+  text-align: center;
+}
+.eggerror {
+  margin-top: 6px;
+  max-width: 340px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow-sm);
+  text-align: center;
+}
+.eggerror p {
+  font-size: 0.84rem;
+  color: var(--rf-ink);
+  margin: 0 0 10px;
+}
+
+/* ---- การ์ดร้านที่เปิดได้ ---- */
+.eggresult {
+  margin: 4px 0 18px;
+  border-radius: var(--rf-radius);
+  overflow: hidden;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow-lift);
+}
+.eggresult.is-in {
+  animation: eggCardIn 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes eggCardIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.eggresult-media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: var(--rf-fill);
+}
+.eggresult-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.eggresult-noimg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rf-ink-2);
+  font-size: 2rem;
+}
+.eggresult-match {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--rf-brand);
+  font-size: 0.76rem;
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(15, 8, 30, 0.18);
+}
+.eggresult-body {
+  padding: 16px 18px 18px;
+}
+.eggresult-cat {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--rf-ink-2);
+  margin-bottom: 4px;
+}
+.eggresult-name {
+  font-family: "Google Sans", "Prompt", sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--rf-ink);
+  margin: 0 0 4px;
+}
+.eggresult-menu {
+  font-size: 0.86rem;
+  color: var(--rf-ink);
+  margin: 0 0 10px;
+}
+.eggresult-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.eggresult-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--rf-fill);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--rf-ink);
+}
+.eggresult-meta i {
+  color: var(--rf-ink-2);
+  font-size: 0.7rem;
+}
+.eggresult-why {
+  font-size: 0.8rem;
+  color: var(--rf-ink-2);
+  line-height: 1.55;
+  margin: 0 0 14px;
+}
+.eggresult-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.eggresult-btns .btn-red,
+.eggresult-btns .wghostbtn {
+  justify-content: center;
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  font-size: 0.86rem;
+  text-decoration: none;
+}
+@media (max-width: 340px) {
+  .eggresult-btns {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ลดการเคลื่อนไหว: ไข่ไม่ลอย/ไม่สั่น เปิดผลทันทีในแตะเดียว (JS ข้ามขั้นตอนแตกให้) */
+@media (prefers-reduced-motion: reduce) {
+  .eggbody,
+  .eggshadow {
+    animation: none !important;
+  }
+  .eggresult.is-in {
+    animation: none;
+  }
+}
+.eggresult-btns .wghostbtn,
+#eggErrorRetry {
+  background: var(--rf-surface);
+  border: 1.5px solid var(--rf-ink);
+  color: var(--rf-ink);
+  font-family: "Google Sans", "Prompt", sans-serif;
+  cursor: pointer;
+}
+.eggresult-btns .wghostbtn:hover,
+#eggErrorRetry:hover {
+  background: var(--rf-ink-grad);
+  color: var(--rf-bg);
+}
+
+/* ---- ฟีด: บรรทัด "ถูกใจ N คน" + คอมเมนต์ล่าสุดใต้โพสต์ (ของทุกคน) ---- */
+.feedlikesline {
+  padding: 2px 16px 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--rf-ink);
+}
+.feedlikesline i {
+  color: #e5487a;
+  font-size: 0.72rem;
+  margin-right: 2px;
+}
+.feedcomments {
+  padding: 0 16px 14px;
+  margin-top: -8px;
+  cursor: pointer;
+}
+.feedcommentsall {
+  display: block;
+  padding: 0;
+  margin: 0 0 4px;
+  border: none;
+  background: none;
+  font-size: 0.78rem;
+  font-family: "Google Sans", "Prompt", sans-serif;
+  color: var(--rf-ink-2);
+  cursor: pointer;
+}
+.feedcommentline {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--rf-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feedcommentline b {
+  margin-right: 4px;
+}
+
+/* =====================================================================
+   ตารางโพสต์ให้เต็มจอขึ้น — คอลัมน์ปรับตามจำนวนโพสต์ (ไม่ทิ้งช่องว่างหนึ่งในสามเวลามีแค่ 1-2 โพสต์)
+   + หน้าโปรไฟล์ร้าน/คนอื่น: รูปชิดขอบการ์ดเต็มความกว้าง
+   ===================================================================== */
+.ppgrid {
+  gap: 3px;
+}
+.ppost {
+  border-radius: 0;
+}
+/* ตารางโพสต์แบบ TikTok: 3 ช่องต่อแถวเสมอ รูปแนวตั้ง 3:4 เต็มความกว้างจอ ใช้เหมือนกันทุกหน้า
+   (โปรไฟล์ร้าน/นักชิม, แท็บโพสต์หน้าร้าน, โปรไฟล์ตัวเอง) — โพสต์ใหม่ที่ใครโพสต์ก็ได้ขนาดเดียวกันอัตโนมัติ */
+.ppgrid {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+.ppgrid > .ppost {
+  grid-column: auto;
+  aspect-ratio: 3 / 4;
+}
+/* หน้าโปรไฟล์ร้าน/คนอื่น: การ์ดโพสต์ไม่มีขอบเว้นข้าง รูปชิดขอบการ์ด */
+.profcard:has(> #ppPostGrid) {
+  padding: 18px 0 0;
+  overflow: hidden;
+  border-radius: var(--rf-radius);
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow);
+}
+.profcard:has(> #ppPostGrid) > .profcardtit {
+  padding: 0 18px;
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+  color: var(--rf-ink);
+}
+.profcard:has(> #ppPostGrid) > #ppPostGrid:empty + *,
+.profcard:has(> #ppPostGrid) > p {
+  padding: 0 18px 18px;
+}
+
+/* =====================================================================
+   ตารางโพสต์เต็มขอบจอ (ทุกร้าน ทุกนักชิม + แท็บโพสต์หน้าร้าน + โปรไฟล์ตัวเอง)
+   หน้าโปรไฟล์มีขอบเว้นข้าง 20px (.profwrap) / หน้าร้าน 20px (.rdbody) — ดึงตารางออกด้วย margin ติดลบเท่ากันพอดี
+   บนจอกว้าง "เต็มจอ" = เต็มคอลัมน์แอป (body.appshell กว้างสุด 480/640px) ไม่ยืดเต็มจอคอม
+   ===================================================================== */
+.profcard:has(> #ppPostGrid) {
+  margin: 0 -20px 20px;
+  padding: 6px 0 0;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.profcard:has(> #ppPostGrid) > .profcardtit {
+  padding: 0 20px;
+}
+#ppPostGrid,
+#rdPostGrid,
+#myPostGrid {
+  gap: 2px;
+}
+#rdPostGrid {
+  margin: 0 -20px;
+}
+/* โปรไฟล์ตัวเอง: การ์ดโพสต์ไม่มีกรอบ (เนื้อหาชิดแนวเดียวกับส่วนอื่นของหน้า) ตารางรูปออกไปชนขอบจอ */
+#profPostsCard {
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  padding: 6px 0 0;
+}
+#myPostGrid {
+  margin: 0 -20px;
+}
+/* แถวสุดท้ายไม่ครบ 3 รูป ไม่เหลือช่องโหว่ขาว ๆ — พื้นตารางกลืนกับหน้า */
+#ppPostGrid .ppost,
+#rdPostGrid .ppost,
+#myPostGrid .ppost {
+  background: var(--rf-fill);
+}
+
+/* ---- หน้าตั้งค่า: การ์ด "กิจกรรมของฉัน" (แท็บ ถูกใจ / บันทึกไว้ / รีวิว / ติดตาม) ---- */
+.actcard .profcardtit {
+  font-size: 0.95rem;
+  color: var(--rf-ink);
+}
+.acttabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.acttab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 4px 8px;
+  border: 1px solid var(--rf-line);
+  border-radius: 16px;
+  background: var(--rf-surface);
+  color: var(--rf-ink-2);
+  font-family: "Google Sans", "Prompt", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.acttab i {
+  font-size: 0.95rem;
+}
+.acttab b {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--rf-ink);
+}
+.acttab.active {
+  background: var(--rf-ink-grad);
+  border-color: transparent;
+  color: var(--rf-bg);
+}
+.acttab.active b {
+  color: var(--rf-bg);
+}
+.acttab:focus-visible {
+  outline: 2px solid var(--rf-brand);
+  outline-offset: 2px;
+}
+.actsub {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--rf-ink-2);
+  margin: 4px 0 8px;
+}
+.actsub:not(:first-child) {
+  margin-top: 16px;
+}
+.actempty {
+  text-align: center;
+  color: var(--rf-ink-2);
+  font-size: 0.82rem;
+  padding: 14px 0 6px;
+  margin: 0;
+}
+.actpostgrid {
+  border-radius: 14px;
+  overflow: hidden;
+}
+.actavatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--avatar-grad);
+  color: #fff;
+  font-weight: 800;
+}
+/* ลิงก์รอง "ดูร้านแนะนำ" ใต้ปุ่มหลัก 2 ปุ่มของการ์ดร้านที่เปิดจากไข่ */
+.eggreclink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px;
+  border: none;
+  background: none;
+  color: var(--rf-ink-2);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: "Google Sans", "Prompt", sans-serif;
+  cursor: pointer;
+}
+.eggreclink:hover {
+  color: var(--rf-ink);
+  text-decoration: underline;
+}
+
+/* ---- ตัวเลขแบบ IG (โพสต์ · ผู้ติดตาม · กำลังติดตาม/รีวิว) ---- */
+.igstat b,
+[data-theme="dark"] .igstat b {
+  color: var(--rf-ink);
+  font-size: 1.12rem;
+}
+.igstat span {
+  color: var(--rf-ink-2);
+}
+.ppstats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 14px 0 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--rf-line);
+  border-bottom: 1px solid var(--rf-line);
+}
+.ppstats .igstat + .igstat {
+  border-left: 1px solid var(--rf-line);
+}
+/* หน้าโปรไฟล์คนอื่นไม่ได้โหลด Bootstrap — จัดข้อความ "ยังไม่มีโพสต์" ให้อยู่กลางเอง */
+#ppEmpty {
+  text-align: center;
+  color: var(--rf-ink-2) !important;
+}
+
+/* ---- โปรไฟล์: เลขผู้ติดตาม/กำลังติดตามกดได้ + แผ่นรายชื่อเลื่อนขึ้นจากล่าง ---- */
+.igstatbtn {
+  border: none;
+  background: none;
+  padding: 4px 6px;
+  border-radius: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.igstatbtn:hover,
+.igstatbtn:focus-visible {
+  background: var(--rf-fill);
+}
+.fsheet {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(15, 8, 30, 0);
+  transition: background 0.2s;
+}
+.fsheet.open {
+  background: rgba(15, 8, 30, 0.5);
+}
+.fsheet-box {
+  width: 100%;
+  max-width: 480px;
+  max-height: 78vh;
+  max-height: 78dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--rf-surface);
+  border-radius: 26px 26px 0 0;
+  box-shadow: 0 -20px 50px -20px rgba(15, 8, 30, 0.45);
+  transform: translateY(100%);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.fsheet.open .fsheet-box {
+  transform: none;
+}
+@media (min-width: 640px) {
+  .fsheet {
+    align-items: center;
+  }
+  .fsheet-box {
+    border-radius: 24px;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: transform 0.2s, opacity 0.2s;
+  }
+  .fsheet.open .fsheet-box {
+    opacity: 1;
+  }
+}
+.fsheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--rf-line);
+  margin: 10px auto 4px;
+}
+.fsheet-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 10px;
+  border-bottom: 1px solid var(--rf-line);
+}
+.fsheet-tabs {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--rf-fill);
+}
+.fsheet-tab {
+  border: none;
+  border-radius: 999px;
+  padding: 9px 6px;
+  background: transparent;
+  color: var(--rf-ink-2);
+  font-family: "Google Sans", "Prompt", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fsheet-tab b {
+  color: inherit;
+  margin-left: 2px;
+}
+.fsheet-tab.active {
+  background: var(--rf-surface);
+  color: var(--rf-ink);
+  box-shadow: var(--rf-shadow-sm);
+}
+.fsheet-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: var(--rf-fill);
+  color: var(--rf-ink);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.fsheet-list {
+  overflow-y: auto;
+  padding: 6px 14px 18px;
+  -webkit-overflow-scrolling: touch;
+}
+.fsheet-empty {
+  text-align: center;
+  color: var(--rf-ink-2);
+  font-size: 0.84rem;
+  padding: 28px 10px;
+  margin: 0;
+}
+.fsrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rf-line);
+}
+.fsrow:last-child {
+  border-bottom: none;
+}
+.fsrow-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+.fsrow-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--rf-fill) center / cover no-repeat;
+}
+.fsrow-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--avatar-grad);
+  color: #fff;
+  font-weight: 800;
+}
+.fsrow-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.fsrow-text b {
+  font-size: 0.9rem;
+  color: var(--rf-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fsrow-text small {
+  font-size: 0.74rem;
+  color: var(--rf-ink-2);
+}
+.fsrow-btn {
+  flex-shrink: 0;
+  min-width: 96px;
+  height: 34px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--rf-ink-grad);
+  color: var(--rf-bg);
+  font-family: "Google Sans", "Prompt", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.fsrow-btn.is-on {
+  background: var(--rf-fill);
+  color: var(--rf-ink);
+}
+.eggkeepnote {
+  margin: 10px 0 0;
+  font-size: 0.74rem;
+  color: var(--rf-ink-2);
+  text-align: center;
+}
+
+/* ---- เลเวลนักชิม (หน้าโปรไฟล์) ---- */
+.lvlcard {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--rf-line);
+  border-radius: 16px;
+  background: var(--rf-surface);
+  box-shadow: var(--rf-shadow-sm);
+  text-align: left;
+  font-family: "Google Sans", "Prompt", sans-serif;
+  cursor: pointer;
+}
+.lvlcard:focus-visible {
+  outline: 2px solid var(--rf-brand);
+  outline-offset: 2px;
+}
+.lvltop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lvlbadge {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--rf-brand-grad);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.lvlname {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  color: var(--rf-ink);
+}
+.lvlxp {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--rf-ink-2);
+}
+.lvlbar {
+  display: block;
+  height: 8px;
+  margin: 10px 0 6px;
+  border-radius: 999px;
+  background: var(--rf-fill);
+  overflow: hidden;
+}
+.lvlbar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--rf-brand-grad);
+  transition: width 0.4s ease;
+}
+.lvlnext {
+  font-size: 0.74rem;
+  color: var(--rf-ink-2);
+}
+/* popup รายละเอียด XP */
+.lvlsum {
+  font-size: 0.86rem;
+  color: var(--rf-ink);
+  margin: 0 0 12px;
+}
+.lvlrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--rf-line);
+  font-size: 0.82rem;
+  color: var(--rf-ink);
+}
+.lvlrow i {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rf-fill);
+  color: var(--rf-ink-2);
+  flex-shrink: 0;
+}
+.lvlrow span {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.lvlrow small {
+  font-size: 0.7rem;
+  color: var(--rf-ink-2);
+}
+.lvlrow b {
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.lvlladdertit {
+  margin: 14px 0 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--rf-ink-2);
+}
+.lvlladder {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lvlladder li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  color: var(--rf-ink-2);
+}
+.lvlladder li.done {
+  color: var(--rf-ink);
+}
+.lvlladder li.cur {
+  background: var(--rf-brand-tint);
+  color: var(--rf-brand);
+  font-weight: 700;
+}
+
+/* ---- ปุ่มเลือกพื้นที่ (มหาวิทยาลัย) บนแถบบน ---- */
+.areawrap {
+  position: relative;
+}
+.areabtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  max-width: 132px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--rf-fill);
+  color: var(--rf-ink);
+  font-family: "Google Sans", "Prompt", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.areabtn > .fa-location-dot {
+  color: var(--rf-brand);
+}
+.areabtn-txt {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.areabtn-chev {
+  font-size: 0.62rem;
+  color: var(--rf-ink-2);
+}
+.areapanel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1000;
+  width: 220px;
+  padding: 6px;
+  border-radius: 18px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  box-shadow: 0 18px 40px -12px rgba(15, 8, 30, 0.35);
+}
+.areapanel-tit {
+  padding: 8px 10px 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--rf-ink-2);
+}
+.areaopt {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  text-align: left;
+  font-family: "Google Sans", "Prompt", sans-serif;
+  cursor: pointer;
+}
+.areaopt > i:first-child {
+  grid-row: 1 / 3;
+  color: var(--rf-ink-2);
+}
+.areaopt span {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--rf-ink);
+}
+.areaopt small {
+  grid-column: 2;
+  font-size: 0.7rem;
+  color: var(--rf-ink-2);
+}
+.areaopt-check {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  color: var(--rf-brand);
+}
+.areaopt:hover {
+  background: var(--rf-fill);
+}
+.areaopt.active {
+  background: var(--rf-brand-tint);
+}
+/* จอแคบมาก: ซ่อนชื่อ CHIMCHIM ข้างโลโก้ ให้ปุ่มพื้นที่/ตั้งค่า/โปรไฟล์ไม่เบียดกัน (โลโก้ยังอยู่) */
+@media (max-width: 400px) {
+  .apptop-logo .anm {
+    display: none;
+  }
+}
+/* หน้าแรก: แจ้งว่าพื้นที่ที่เลือกยังไม่มีร้าน */
+.areanotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  font-size: 0.8rem;
+  color: var(--rf-ink);
+}
+.areanotice i {
+  color: var(--rf-brand);
+  margin-top: 2px;
+}
+.areanotice[hidden] {
+  display: none;
 }

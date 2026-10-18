@@ -70,28 +70,160 @@ function wireImageUpload(fileInputId, hiddenInputId, previewImgId, boxId, existi
 	});
 }
 
-// เหมือน wireImageUpload แต่รองรับเลือกได้หลายรูปพร้อมกัน (หรือกดเพิ่มทีละรอบหลายครั้งก็ได้) — ใช้กับฟอร์มโพสต์ที่แนบได้หลายรูป
-// onFilesAdded(dataUrls) จะถูกเรียกพร้อมอาร์เรย์ data URL ของรูปที่เพิ่งเลือกทั้งหมด (บีบอัดแล้วทุกรูป)
-function wireMultiImageUpload(fileInputId, onFilesAdded) {
+/* --- รูปหลายรูปต่อโพสต์/รีวิว (สูงสุด 10) — กติกาเดียวกันทุกฟอร์ม ---
+   ฝั่งฐานข้อมูลบังคับซ้ำด้วย CHECK constraint (supabase/schema.sql Phase 11) กันการยิง request ตรงเกินจำนวน */
+var CHIMCHIM_MAX_IMAGES = 10;
+var CHIMCHIM_IMG_MAX_FILE_MB = 20; // ไฟล์ดิบก่อนบีบอัด (รูปกล้องมือถือปกติ 3-8MB)
+// รูปหลายรูปบีบเล็กกว่ารูปเดี่ยวนิดหน่อย — 10 รูปต้องพอดีทั้ง localStorage (~5MB ทั้งเว็บ) และแถวใน Supabase
+var CHIMCHIM_MULTI_IMG_MAX_DIMENSION = 1080;
+var CHIMCHIM_MULTI_IMG_JPEG_QUALITY = 0.74;
+var CHIMCHIM_MULTI_IMG_MAX_DATAURL = 1500000; // ~1.1MB ต่อรูปหลังบีบอัด (ตรงกับ CHECK ฝั่งฐานข้อมูล)
+function เป็นไฟล์รูป(file) {
+	if (file.type) return /^image\//.test(file.type);
+	return /\.(jpe?g|png|webp|gif|heic|heif|avif)$/i.test(file.name || ""); // บางเครื่องไม่ส่ง MIME มา
+}
+// บีบอัดแบบเข้ม: ถ้าเบราว์เซอร์ถอดรหัสรูปไม่ได้ (เช่น HEIC บน Chrome) ให้ล้มเหลวเลย ไม่เก็บไฟล์ดิบขนาดใหญ่แทน
+function บีบอัดรูปหลายรูป(dataUrl) {
+	return new Promise(function(resolve, reject) {
+		var img = new Image();
+		img.onload = function() {
+			var scale = Math.min(1, CHIMCHIM_MULTI_IMG_MAX_DIMENSION / Math.max(img.width, img.height));
+			var canvas = document.createElement("canvas");
+			canvas.width = Math.max(1, Math.round(img.width * scale));
+			canvas.height = Math.max(1, Math.round(img.height * scale));
+			canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+			var out;
+			try { out = canvas.toDataURL("image/jpeg", CHIMCHIM_MULTI_IMG_JPEG_QUALITY); } catch (e) { reject(e); return; }
+			if (out.length > CHIMCHIM_MULTI_IMG_MAX_DATAURL) out = canvas.toDataURL("image/jpeg", 0.55);
+			if (out.length > CHIMCHIM_MULTI_IMG_MAX_DATAURL) { reject(new Error("too_big")); return; }
+			resolve(out);
+		};
+		img.onerror = function() { reject(new Error("decode")); };
+		img.src = dataUrl;
+	});
+}
+
+// เหมือน wireImageUpload แต่รองรับเลือกได้หลายรูปพร้อมกัน (หรือกดเพิ่มทีละรอบหลายครั้งก็ได้) — ใช้กับฟอร์มโพสต์/รีวิวที่แนบได้หลายรูป
+// onFilesAdded(dataUrls) จะถูกเรียกพร้อมอาร์เรย์ data URL ของรูปที่ผ่านการตรวจแล้ว (บีบอัดแล้วทุกรูป)
+// opts.remaining() = ยังเพิ่มได้อีกกี่รูป — ไฟล์เกินจำนวนจะไม่ถูกอ่านเลย และแจ้งผู้ใช้ว่าทำไมบางรูปไม่ถูกเพิ่ม
+function wireMultiImageUpload(fileInputId, onFilesAdded, opts) {
 	var fileInput = document.getElementById(fileInputId);
 	if (!fileInput) return;
+	opts = opts || {};
+	var busy = false;
 	fileInput.addEventListener("change", function() {
 		var files = Array.prototype.slice.call(fileInput.files || []);
-		if (!files.length) return;
-		var readers = files.map(function(file) {
+		fileInput.value = ""; // เคลียร์ค่าเดิม เผื่อผู้ใช้อยากเลือกรูปเดิมซ้ำได้อีกรอบ
+		if (!files.length || busy) return;
+		var problems = { over: 0, type: 0, size: 0, failed: 0 };
+		var ok = files.filter(function(f) {
+			if (!เป็นไฟล์รูป(f)) { problems.type++; return false; }
+			if (f.size > CHIMCHIM_IMG_MAX_FILE_MB * 1024 * 1024) { problems.size++; return false; }
+			return true;
+		});
+		var room = typeof opts.remaining === "function" ? Math.max(0, opts.remaining()) : CHIMCHIM_MAX_IMAGES;
+		if (ok.length > room) { problems.over = ok.length - room; ok = ok.slice(0, room); }
+		busy = true;
+		if (opts.onBusy) opts.onBusy(true);
+		Promise.all(ok.map(function(file) {
 			return new Promise(function(resolve) {
 				var reader = new FileReader();
 				reader.onload = function(e) { resolve(e.target.result); };
+				reader.onerror = function() { resolve(null); };
 				reader.readAsDataURL(file);
-			});
+			}).then(function(dataUrl) {
+				return dataUrl ? บีบอัดรูปหลายรูป(dataUrl) : Promise.reject(new Error("read"));
+			}).catch(function() { problems.failed++; return null; });
+		})).then(function(results) {
+			busy = false;
+			if (opts.onBusy) opts.onBusy(false);
+			var good = results.filter(Boolean);
+			if (good.length) onFilesAdded(good);
+			แจ้งปัญหาการเลือกรูป(problems);
 		});
-		Promise.all(readers)
-			.then(function(dataUrls) { return Promise.all(dataUrls.map(บีบอัดรูปภาพ)); })
-			.then(function(compressed) {
-				onFilesAdded(compressed);
-				fileInput.value = ""; // เคลียร์ค่าเดิม เผื่อผู้ใช้อยากเลือกรูปเดิมซ้ำได้อีกรอบ
-			});
 	});
+}
+function แจ้งปัญหาการเลือกรูป(p) {
+	if (typeof showToast !== "function") return;
+	var msgs = [];
+	if (p.over) msgs.push(t("photos.overLimit").replace("{n}", CHIMCHIM_MAX_IMAGES).replace("{x}", p.over));
+	if (p.type) msgs.push(t("photos.badType").replace("{x}", p.type));
+	if (p.size) msgs.push(t("photos.tooLarge").replace("{mb}", CHIMCHIM_IMG_MAX_FILE_MB).replace("{x}", p.size));
+	if (p.failed) msgs.push(t("photos.readFailed").replace("{x}", p.failed));
+	if (msgs.length) showToast(msgs.join(" · "));
+}
+
+// ผู้ใช้คนนี้ต้องบันทึกขึ้นเซิร์ฟเวอร์ให้สำเร็จก่อนถึงจะนับว่าโพสต์/รีวิวสำเร็จไหม
+// (มี Supabase + เป็นบัญชี Supabase จริง (id เป็น UUID) หรือไม่ได้ล็อกอิน — รีวิวแบบไม่ล็อกอิน RLS อนุญาต)
+// บัญชีทดลองแบบ localStorage ล้วน (id ไม่ใช่ UUID) เขียนขึ้นเซิร์ฟเวอร์ไม่ได้อยู่แล้ว จึงบันทึกในเครื่องอย่างเดียวเหมือนเดิม
+function ต้องบันทึกขึ้นเซิร์ฟเวอร์() {
+	if (typeof sbClient === "undefined" || !sbClient) return false;
+	var s = getSession();
+	return !s || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.id);
+}
+
+/* --- ดูรูปขนาดใหญ่ (แกลเลอรีเต็มจอ ปัดซ้าย-ขวา / ปุ่มลูกศรบน Desktop / Esc ปิด) — ใช้กับรูปแนบรีวิว --- */
+function openPhotoViewer(images, startIndex) {
+	if (!images || !images.length) return;
+	var box = document.getElementById("photoViewer");
+	if (!box) {
+		box = document.createElement("div");
+		box.id = "photoViewer";
+		box.className = "photoviewer";
+		box.setAttribute("role", "dialog");
+		box.setAttribute("aria-modal", "true");
+		box.innerHTML =
+			'<button type="button" class="pvw-close" aria-label="' + escapeHtml(t("common.close")) + '"><i class="fas fa-times"></i></button>' +
+			'<div class="pvw-count" aria-live="polite"></div>' +
+			'<button type="button" class="pvw-nav pvw-prev" aria-label="' + escapeHtml(t("photos.prev")) + '"><i class="fas fa-chevron-left"></i></button>' +
+			'<div class="pvw-strip"></div>' +
+			'<button type="button" class="pvw-nav pvw-next" aria-label="' + escapeHtml(t("photos.next")) + '"><i class="fas fa-chevron-right"></i></button>';
+		document.body.appendChild(box);
+		var strip = box.querySelector(".pvw-strip");
+		function idx() { return Math.round(strip.scrollLeft / Math.max(1, strip.clientWidth)); }
+		function go(d) { strip.scrollTo({ left: (idx() + d) * strip.clientWidth, behavior: "smooth" }); }
+		box.querySelector(".pvw-prev").addEventListener("click", function() { go(-1); });
+		box.querySelector(".pvw-next").addEventListener("click", function() { go(1); });
+		box.querySelector(".pvw-close").addEventListener("click", closePhotoViewer);
+		box.addEventListener("click", function(e) { if (e.target === box || e.target.classList.contains("pvw-slide")) closePhotoViewer(); });
+		strip.addEventListener("scroll", function() { updatePhotoViewerCount(); });
+		document.addEventListener("keydown", function(e) {
+			if (!box.classList.contains("open")) return;
+			if (e.key === "Escape") closePhotoViewer();
+			if (e.key === "ArrowRight") go(1);
+			if (e.key === "ArrowLeft") go(-1);
+		});
+	}
+	var strip2 = box.querySelector(".pvw-strip");
+	strip2.innerHTML = images.map(function(src) {
+		return '<div class="pvw-slide"><img src="' + escapeHtml(src) + '" alt=""/></div>';
+	}).join("");
+	box.dataset.total = images.length;
+	box.classList.toggle("single", images.length < 2);
+	box.classList.add("open");
+	box._returnFocus = document.activeElement;
+	document.body.style.overflow = "hidden";
+	// เปิดแล้ว layout พร้อมทันที (display:flex) — เลื่อนไปรูปที่กดได้เลยแบบ synchronous ไม่ต้องรอเฟรมถัดไป
+	strip2.scrollLeft = (startIndex || 0) * strip2.clientWidth;
+	updatePhotoViewerCount();
+	box.querySelector(".pvw-close").focus();
+}
+function updatePhotoViewerCount() {
+	var box = document.getElementById("photoViewer");
+	if (!box) return;
+	var strip = box.querySelector(".pvw-strip");
+	var total = parseInt(box.dataset.total, 10) || 1;
+	var i = Math.min(total - 1, Math.round(strip.scrollLeft / Math.max(1, strip.clientWidth)));
+	box.querySelector(".pvw-count").textContent = total > 1 ? (i + 1) + " / " + total : "";
+	box.querySelector(".pvw-prev").disabled = i <= 0;
+	box.querySelector(".pvw-next").disabled = i >= total - 1;
+}
+function closePhotoViewer() {
+	var box = document.getElementById("photoViewer");
+	if (!box) return;
+	box.classList.remove("open");
+	document.body.style.overflow = "";
+	if (box._returnFocus && box._returnFocus.focus) box._returnFocus.focus();
 }
 
 // ไอคอนหมวดอาหาร — เดิมเป็นอิโมจิดิบ เปลี่ยนเป็นคลาส Font Awesome แทน (ดูเป็นมืออาชีพขึ้น ไม่ขึ้นกับฟอนต์อิโมจิของแต่ละเครื่อง)
@@ -382,6 +514,23 @@ function areaShortName(area) {
 	if (!area) return t("area.all");
 	return getLang() === "th" ? (CHIMCHIM_AREA_SHORT[area] || area) : area;
 }
+// ระยะทางที่ "บอกได้ตามจริง" ของร้านหนึ่ง:
+// - ร้านมีหมุดจริง (พิกัด) + ผู้ใช้แชร์ตำแหน่งไว้ → ระยะจริงจากตำแหน่งผู้ใช้ถึงหมุดร้าน { fromUser: true }
+// - ไม่งั้น → ระยะโดยประมาณจากมหาลัยของร้าน (ตัวเลขที่กรอกไว้) { fromUser: false, uni } ห้ามบอกว่า "จากตำแหน่งคุณ"
+// ร้านตั้งต้นในแอปยังไม่มีพิกัด — ใส่ฟิลด์ พิกัด: { lat, lng } ใน chimchim-data.js เมื่อได้พิกัดจริงของร้านมาแล้ว
+function ข้อมูลระยะทาง(r) {
+	var loc = getUserLocation();
+	if (r && r.พิกัด && typeof r.พิกัด.lat === "number" && loc && typeof loc.lat === "number") {
+		return { meters: Math.round(ระยะทางฮาเวอร์ไซน์(loc.lat, loc.lng, r.พิกัด.lat, r.พิกัด.lng)), fromUser: true, uni: r.มหาลัย || null };
+	}
+	return { meters: r ? r.ระยะทาง : 0, fromUser: false, uni: (r && r.มหาลัย) || null };
+}
+// ป้ายบอกที่มาของระยะทาง เช่น "จากตำแหน่งคุณ" / "จาก ม.กรุงเทพ"
+function ป้ายที่มาระยะทาง(info) {
+	if (info.fromUser) return t("home.fromYou");
+	return info.uni ? t("home.fromUni").replace("{uni}", areaShortName(info.uni)) : t("home.approxDistance");
+}
+
 // กรองร้านตามพื้นที่ที่เลือก คืน { list, area, fallback, km }
 // fallback = พื้นที่นี้ยังไม่มีร้าน list คือร้านที่ใกล้ที่สุดไม่กี่ร้าน / km = ระยะโดยประมาณถึงร้านที่ใกล้ที่สุด
 function กรองร้านตามพื้นที่(list) {
@@ -581,6 +730,8 @@ function shopToร้าน(shop) {
 		มื้อที่เหมาะ: ["เช้า", "เที่ยง", "บ่าย", "เย็น", "ดึก"],
 		vendorId: shop.vendorId,
 		vendorName: shop.vendorName,
+		// พิกัดจริงของร้าน (หมุดที่เจ้าของร้านปักไว้) — ใช้คำนวณระยะจากตำแหน่งผู้ใช้สด ๆ ใน ข้อมูลระยะทาง()
+		พิกัด: (typeof shop.lat === "number" && typeof shop.lng === "number") ? { lat: shop.lat, lng: shop.lng } : null,
 		เวลาเปิดกำหนดเอง: shop.hours || null,
 		โปรโมชั่นกำหนดเอง: shop.promo || null,
 		คำโปรยกำหนดเอง: shop.desc || null,
@@ -721,6 +872,8 @@ function getReviews(shopId) {
 		return [];
 	}
 }
+// คืน Promise<{ ok, reason }> — ok=false แปลว่ายังบันทึกไม่ครบ ผู้เรียกต้องแจ้งผู้ใช้ ห้ามบอกว่าส่งสำเร็จ
+// reason: "storage" (เครื่องเต็ม) / "server" (ส่งขึ้น Supabase ไม่สำเร็จ) / "images_column" (ยังไม่ได้รัน SQL ช่องรูป)
 function addReview(shopId, review) {
 	var all;
 	try {
@@ -728,19 +881,34 @@ function addReview(shopId, review) {
 	} catch (e) {
 		all = {};
 	}
+	if (review.images) review.images = review.images.slice(0, CHIMCHIM_MAX_IMAGES);
 	if (!all[shopId]) all[shopId] = [];
 	// localId ใช้แค่ชั่วคราวเพื่อหารีวิวนี้เจอตอน push ขึ้น Supabase เสร็จแล้วมาแปะ remoteId จริงให้ (ดูด้านล่าง)
 	var localId = "rev" + Date.now() + Math.random().toString(36).slice(2, 6);
 	review.localId = localId;
 	all[shopId].unshift(review);
-	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
-	logEvent("review_submitted", { shopId: shopId });
+	try {
+		localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
+	} catch (e) {
+		return Promise.resolve({ ok: false, reason: "storage" });
+	}
+	var mustReachServer = ต้องบันทึกขึ้นเซิร์ฟเวอร์();
 	// คืน Promise ให้ผู้เรียกรอจน push ขึ้น Supabase เสร็จก่อนเปลี่ยนหน้า — ถ้าเปลี่ยนหน้าทันที request จะโดนยกเลิก
 	// กลางทาง รีวิวไม่ขึ้นเครื่องอื่น และไม่เคยได้ remoteId (ปุ่มแก้ไขรีวิวเลยไม่โผล่)
-	if (typeof sbSubmitReview !== "function") return Promise.resolve(null);
-	return sbSubmitReview(shopId, review).then(function(saved) {
-		if (saved && saved.remoteId) tagReviewRemoteId(shopId, localId, saved.remoteId);
-		return saved;
+	if (typeof sbSubmitReview !== "function") return Promise.resolve({ ok: true });
+	return sbSubmitReview(shopId, review).then(function(res) {
+		if (res && res.saved && res.saved.remoteId) {
+			tagReviewRemoteId(shopId, localId, res.saved.remoteId);
+			logEvent("review_submitted", { shopId: shopId });
+			return { ok: true };
+		}
+		if (!mustReachServer) { // บัญชีทดลองในเครื่อง — เก็บในเครื่องอย่างเดียวเหมือนเดิม
+			logEvent("review_submitted", { shopId: shopId });
+			return { ok: true };
+		}
+		// เซิร์ฟเวอร์ไม่รับ → ถอนรีวิวในเครื่องออก ไม่ให้ขึ้นเหมือนสำเร็จ (ฟอร์มยังเก็บข้อมูลไว้ให้กดส่งใหม่)
+		deleteReview(shopId, { localId: localId });
+		return { ok: false, reason: (res && res.error) || "server" };
 	});
 }
 // รอ promise ไม่เกิน ms มิลลิวินาที — กันเน็ตช้า/ค้างจนผู้ใช้ติดอยู่หน้าเดิมไม่ได้ไปไหน
@@ -772,6 +940,7 @@ function tagReviewRemoteId(shopId, localId, remoteId) {
 	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
 }
 // แก้ไข/ลบรีวิวของตัวเอง — ใช้ได้เฉพาะรีวิวที่ sync ขึ้น Supabase แล้วเท่านั้น (มี remoteId จริง)
+// คืน Promise<{ ok, reason }> เหมือน addReview — ถ้าเซิร์ฟเวอร์ไม่รับ จะคืนค่ารีวิวในเครื่องกลับเป็นของเดิม
 function updateReview(shopId, remoteId, patch) {
 	var all;
 	try {
@@ -779,10 +948,13 @@ function updateReview(shopId, remoteId, patch) {
 	} catch (e) {
 		all = {};
 	}
+	if (Array.isArray(patch.images)) patch.images = patch.images.slice(0, CHIMCHIM_MAX_IMAGES);
 	var list = all[shopId] || [];
+	var before = null;
 	var i;
 	for (i = 0; i < list.length; i++) {
 		if (String(list[i].remoteId) === String(remoteId)) {
+			before = JSON.parse(JSON.stringify(list[i]));
 			if (typeof patch.taste === "number") list[i].taste = patch.taste;
 			if (typeof patch.atmosphere === "number") list[i].atmosphere = patch.atmosphere;
 			if (typeof patch.service === "number") list[i].service = patch.service;
@@ -792,9 +964,22 @@ function updateReview(shopId, remoteId, patch) {
 		}
 	}
 	all[shopId] = list;
-	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
-	if (typeof sbUpdateReview !== "function") return Promise.resolve(null);
-	return sbUpdateReview(remoteId, patch);
+	try {
+		localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
+	} catch (e) {
+		return Promise.resolve({ ok: false, reason: "storage" });
+	}
+	if (typeof sbUpdateReview !== "function") return Promise.resolve({ ok: true });
+	var mustReachServer = ต้องบันทึกขึ้นเซิร์ฟเวอร์();
+	return sbUpdateReview(remoteId, patch).then(function(res) {
+		if (res && res.ok) return { ok: true };
+		if (!mustReachServer) return { ok: true };
+		if (before) {
+			list[i] = before;
+			try { localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all)); } catch (e) {}
+		}
+		return { ok: false, reason: (res && res.error) || "server" };
+	});
 }
 // ลบรีวิวของตัวเอง — ระบุตัวด้วย remoteId ถ้า sync ขึ้น Supabase แล้ว ไม่งั้นใช้ localId (รีวิวที่ยังค้างอยู่ในเครื่องนี้
 // ก็ลบได้เหมือนกัน ถ้า push ขึ้นไปเสร็จทีหลัง tagReviewRemoteId จะตามไปลบแถวบน Supabase ให้เอง)
@@ -1135,6 +1320,41 @@ function toggleSaveShop(shopId) {
 	if (typeof sbSetShopSave === "function") sbSetShopSave(shopId, nowSaved);
 	return nowSaved;
 }
+/* --- โพสต์ที่บันทึกไว้ (ปุ่มบุ๊กมาร์กในหน้าดูโพสต์) — แสดงในแท็บ "บันทึกไว้" ของหน้าโปรไฟล์
+   เก็บเป็น id สตริง (โพสต์จริง = ตัวเลข / โพสต์ตัวอย่างร้านตั้งต้น = "bu-…-postN" / โพสต์ที่ยังไม่ sync = "post…")
+   sync ขึ้นตาราง saved_posts (SQL Phase 12) --- */
+var CHIMCHIM_SAVED_POSTS_KEY = "chimchim_saved_posts";
+function getSavedPosts() {
+	try {
+		return (JSON.parse(localStorage.getItem(CHIMCHIM_SAVED_POSTS_KEY)) || []).map(String);
+	} catch (e) {
+		return [];
+	}
+}
+function isPostSaved(postId) {
+	return getSavedPosts().indexOf(String(postId)) !== -1;
+}
+function toggleSavePost(postId) {
+	if (ต้องล็อกอินก่อนไหม()) return null;
+	var id = String(postId);
+	var list = getSavedPosts();
+	var idx = list.indexOf(id);
+	var nowSaved = idx === -1;
+	if (nowSaved) list.unshift(id);
+	else list.splice(idx, 1);
+	localStorage.setItem(CHIMCHIM_SAVED_POSTS_KEY, JSON.stringify(list));
+	if (nowSaved) logEvent("post_saved", {});
+	if (typeof sbSetPostSave === "function") sbSetPostSave(id, nowSaved);
+	return nowSaved;
+}
+// โพสต์ที่บันทึกไว้ที่ยังหาเจอในฟีดจริง (โพสต์ที่ถูกลบ/ถูกซ่อนไปแล้วไม่แสดง และไม่นับ)
+function โพสต์ที่บันทึกไว้() {
+	var items = getFeedItems();
+	return getSavedPosts().map(function(id) {
+		return items.filter(function(it) { return String(it.id) === id; })[0] || null;
+	}).filter(Boolean);
+}
+
 // รวมคำขอนับไลก์จริงของหลายร้านที่โชว์บนหน้าเดียวกันให้เป็นคำขอ Supabase เดียว (debounce ด้วย setTimeout สั้น ๆ)
 // กันยิง query แยกทีละการ์ด ๆ ตอนหน้ามีการ์ดร้านเป็นสิบ ๆ ใบพร้อมกัน (แถวแนะนำ/ฟีด/ค้นหา/วงล้อ ฯลฯ)
 var __pendingShopLikeIds = [];
@@ -1408,29 +1628,39 @@ function getPostsByPage(pageId) {
 }
 // pageId ใส่เฉพาะตอนโพสต์ในนามเพจร้าน (ไม่ใส่ = โพสต์ในนามตัวเอง) userId เก็บไว้เสมอเพื่อ audit/คำนวณ XP
 // images รับได้ทั้ง string เดียว (รูปเดียว) หรืออาร์เรย์ (โพสต์ได้หลายรูปในโพสต์เดียวเหมือน IG)
-// คืน true ถ้าโพสต์สำเร็จ, false ถ้าเก็บไม่ได้ (เช่น localStorage เต็ม — รูปใหญ่เกินไปแม้บีบอัดแล้ว)
-// ผู้เรียกต้องเช็คค่านี้แล้วโชว์ error ให้ผู้ใช้เห็นจริง ๆ ไม่ใช่ปล่อยเงียบเหมือนเดิม (เคยเจอบั๊กกดโพสต์ไม่ได้
-// เพราะ setItem() throw QuotaExceededError แล้วไม่มีใครจับ ฟอร์มเลยไม่ปิด แต่ก็ไม่มี error ให้เห็นว่าทำไม)
+// คืน Promise<{ ok, reason }> — ok=false: "storage" (localStorage เต็ม) หรือ "server" (Supabase ไม่รับ/รูปไม่ครบ)
+// ผู้เรียกต้องรอผลนี้ก่อนบอกผู้ใช้ว่าโพสต์สำเร็จ (เดิมคืน true ทันทีแล้วส่งขึ้นเซิร์ฟเวอร์แบบไม่รอ ถ้าพังผู้ใช้ไม่รู้เลย)
+// บัญชีทดลองในเครื่อง (ดู ต้องบันทึกขึ้นเซิร์ฟเวอร์) ยังเก็บในเครื่องอย่างเดียวได้เหมือนเดิม
 function addPost(userId, images, caption, pageId) {
-	var imgList = Array.isArray(images) ? images.filter(Boolean) : [images];
+	var imgList = (Array.isArray(images) ? images.filter(Boolean) : [images]).slice(0, CHIMCHIM_MAX_IMAGES);
 	var posts = getAllPosts();
 	var localId = "post" + Date.now();
 	posts.unshift({ id: localId, userId: userId, pageId: pageId || null, images: imgList, img: imgList[0], caption: caption, date: new Date().toISOString() });
 	try {
 		localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
 	} catch (e) {
-		return false;
+		return Promise.resolve({ ok: false, reason: "storage" });
 	}
-	logEvent("post_created", { pageId: pageId || null });
-	// ผลักโพสต์ขึ้น Supabase จริงทันที ให้คนอื่นเห็นในฟีดข้ามเครื่องได้เลย ไม่ต้องรอ sync รอบถัดไป
-	// (ถ้า pageId เป็นร้านที่ยังไม่เคย sync id จริง ครั้งนี้อาจ push ไม่สำเร็จ — syncPostsWithSupabase()
-	// จะ retry ให้เองตอนเข้าแอปครั้งถัดไป เพราะโพสต์นี้ยังไม่มี remoteId)
-	if (typeof sbSavePost === "function") {
-		sbSavePost({ userId: userId, pageId: pageId || null, images: imgList, caption: caption }).then(function(saved) {
-			if (saved) reconcilePostId(localId, String(saved.id));
-		});
+	if (typeof sbSavePost !== "function") {
+		logEvent("post_created", { pageId: pageId || null });
+		return Promise.resolve({ ok: true });
 	}
-	return true;
+	var mustReachServer = ต้องบันทึกขึ้นเซิร์ฟเวอร์();
+	// ผลักโพสต์ขึ้น Supabase จริงทันที ให้คนอื่นเห็นในฟีดข้ามเครื่องได้เลย
+	return sbSavePost({ userId: userId, pageId: pageId || null, images: imgList, caption: caption }).then(function(saved) {
+		var complete = !!(saved && Array.isArray(saved.images) && saved.images.length === imgList.length);
+		if (complete) reconcilePostId(localId, String(saved.id));
+		if (complete || !mustReachServer) {
+			logEvent("post_created", { pageId: pageId || null });
+			return { ok: true };
+		}
+		// บันทึกไม่ครบ → ถอนโพสต์ในเครื่องออก (ถ้าแถวขึ้นไปแต่รูปไม่ครบ ลบแถวนั้นทิ้งด้วย) ฟอร์มยังเก็บรูป/แคปชั่นไว้ให้ลองใหม่
+		if (saved && saved.id && typeof sbDeletePost === "function") sbDeletePost(saved.id);
+		try {
+			localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(getAllPosts().filter(function(p) { return p.id !== localId; })));
+		} catch (e) {}
+		return { ok: false, reason: "server" };
+	});
 }
 // คืนอาร์เรย์รูปของโพสต์เสมอ ไม่ว่าโพสต์นั้นจะเป็นโพสต์เก่า (มีแค่ img เดียว) หรือใหม่ (มี images หลายรูป)
 function getPostImages(p) {
@@ -1455,11 +1685,14 @@ function deletePost(postId) {
 }
 // แก้ไขโพสต์เดิม (รูป/แคปชั่น) — แก้ได้เฉพาะเจ้าของโพสต์อยู่แล้วในทางปฏิบัติ เพราะเรียกจากหน้า "โพสต์ของฉัน" เท่านั้น
 // คืน true/false เหมือน addPost (ดูคอมเมนต์ที่ addPost ว่าทำไมต้องเช็คค่านี้)
+// คืน Promise<{ ok, reason }> เหมือน addPost — ถ้าเซิร์ฟเวอร์ไม่รับ จะคืนโพสต์ในเครื่องกลับเป็นของเดิม
 function updatePost(postId, patch) {
 	var posts = getAllPosts();
-	var i, target = null;
+	var i, target = null, before = null;
+	if (patch.images) patch.images = patch.images.slice(0, CHIMCHIM_MAX_IMAGES);
 	for (i = 0; i < posts.length; i++) {
 		if (posts[i].id === postId) {
+			before = JSON.parse(JSON.stringify(posts[i]));
 			if (patch.images) {
 				posts[i].images = patch.images;
 				posts[i].img = patch.images[0];
@@ -1472,10 +1705,17 @@ function updatePost(postId, patch) {
 	try {
 		localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
 	} catch (e) {
-		return false;
+		return Promise.resolve({ ok: false, reason: "storage" });
 	}
-	if (target && target.remoteId && typeof sbSavePost === "function") sbSavePost(target);
-	return true;
+	if (!(target && target.remoteId && typeof sbSavePost === "function")) return Promise.resolve({ ok: true });
+	var mustReachServer = ต้องบันทึกขึ้นเซิร์ฟเวอร์();
+	return sbSavePost(target).then(function(saved) {
+		var complete = !!(saved && Array.isArray(saved.images) && saved.images.length === target.images.length);
+		if (complete || !mustReachServer) return { ok: true };
+		posts[i] = before;
+		try { localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts)); } catch (e) {}
+		return { ok: false, reason: "server" };
+	});
 }
 // ผสานโพสต์จริงของทุกคนจาก Supabase เข้ากับ localStorage เครื่องนี้ — แทนที่โพสต์เดิมถ้า id ตรงกัน (ข้อมูลใหม่กว่า)
 // หรือเพิ่มเป็นโพสต์ใหม่ถ้ายังไม่เคยเห็น (เห็นโพสต์ของคนอื่นข้ามเครื่องได้จริง ไม่ใช่แค่โพสต์ตัวอย่าง)
@@ -1521,6 +1761,14 @@ function reconcilePostId(oldId, newId) {
 		allComments[newId] = allComments[oldId];
 		delete allComments[oldId];
 		localStorage.setItem(CHIMCHIM_COMMENTS_KEY, JSON.stringify(allComments));
+	}
+
+	var savedPosts = getSavedPosts();
+	var saveIdx = savedPosts.indexOf(String(oldId));
+	if (saveIdx !== -1) {
+		savedPosts[saveIdx] = String(newId);
+		localStorage.setItem(CHIMCHIM_SAVED_POSTS_KEY, JSON.stringify(savedPosts));
+		if (typeof sbSetPostSave === "function") sbSetPostSave(String(newId), true);
 	}
 
 	var likedPosts = getLikedPosts();

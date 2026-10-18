@@ -249,9 +249,18 @@ function syncMyUniversityWithSupabase(onUpdated) {
 function sbReviewRowToLocal(row) {
 	return { remoteId: row.id, taste: row.taste, atmosphere: row.atmosphere, service: row.service, text: row.text || "", author: row.author_name, userId: row.user_id, date: row.created_at, images: row.images || [] };
 }
+// คืน { saved } เมื่อสำเร็จ หรือ { error } — "images_column" = ยังไม่ได้รัน SQL Phase 6 (คอลัมน์ reviews.images)
+// "images_limit" = เกิน CHECK ฝั่งฐานข้อมูล (Phase 11: ไม่เกิน 10 รูป) / "server" = อื่น ๆ (เน็ต, RLS ฯลฯ)
+function sbReviewError(err) {
+	var msg = (err && (err.message || err.details)) || "";
+	console.error("[chimchim] review save error:", msg);
+	if (/reviews_images_(limit|size)|check constraint/i.test(msg)) return "images_limit";
+	if (/images/i.test(msg) && /column|schema cache/i.test(msg)) return "images_column";
+	return "server";
+}
 function sbSubmitReview(shopId, review) {
 	if (!sbClient) return Promise.resolve(null);
-	return sbClient.from("reviews").insert({
+	var row = {
 		shop_id: shopId,
 		user_id: review.userId || null,
 		author_name: review.author,
@@ -259,26 +268,22 @@ function sbSubmitReview(shopId, review) {
 		atmosphere: review.atmosphere,
 		service: review.service,
 		text: review.text || ""
-	}).select().single().then(function(res) {
-		if (res.error) {
-			console.error("[chimchim] sbSubmitReview error:", res.error.message);
-			return null;
-		}
-		// รูปแนบรีวิว — แยก query ต่างหากจากการ insert รีวิวหลักด้านบนโดยตั้งใจ เพราะคอลัมน์ reviews.images
-		// เป็นของใหม่ (SQL Phase 6) ถ้าใครยังไม่ได้รัน SQL อันนั้น การแนบรูปจะ error เฉย ๆ (จับด้วย catch)
-		// โดยไม่ทำให้การส่งรีวิวหลักที่ทำงานอยู่แล้วพังไปด้วย
+	};
+	// ใส่รูปไปในแถวเดียวกับรีวิวเลย (insert ครั้งเดียว ได้ทั้งหมดหรือไม่ได้เลย) — เดิมแยก update ทีหลัง
+	// ซึ่งพังเงียบ ๆ ได้ (เช่น รีวิวแบบไม่ล็อกอินไม่มีสิทธิ์ update) ทำให้รีวิวขึ้นแต่รูปหาย
+	// รีวิวไม่มีรูปไม่ส่งช่อง images เลย จึงยังใช้ได้แม้ยังไม่ได้รัน SQL Phase 6
+	if (review.images && review.images.length) row.images = review.images.slice(0, CHIMCHIM_MAX_IMAGES);
+	return Promise.resolve(sbClient.from("reviews").insert(row).select().single()).then(function(res) {
+		if (res.error) return { error: sbReviewError(res.error) };
 		var saved = sbReviewRowToLocal(res.data);
-		if (review.images && review.images.length) {
-			// รอให้อัปเดตรูปเสร็จด้วย (ผู้เรียกรอ promise นี้ก่อนเปลี่ยนหน้า) แต่ถ้าพังก็ยังคืนรีวิวที่บันทึกแล้ว
-			return Promise.resolve(sbClient.from("reviews").update({ images: review.images }).eq("id", res.data.id))
-				.catch(function() {})
-				.then(function() { return saved; });
-		}
-		return saved;
-	}).catch(function() { return null; });
+		// ตรวจซ้ำว่าเซิร์ฟเวอร์เก็บรูปครบทุกรูปจริง
+		if (row.images && (saved.images || []).length !== row.images.length) return { error: "server" };
+		return { saved: saved };
+	}).catch(function(e) { return { error: sbReviewError(e) }; });
 }
-// แก้ไข/ลบรีวิวที่เคย sync ขึ้น Supabase แล้วเท่านั้น (ต้องมี remoteId จริง) ต้องรัน migration "Phase 4"
-// (reviews_update_own / reviews_delete_own policy) ก่อน ไม่งั้นจะถูก RLS บล็อกเงียบ ๆ เหมือนที่เจอกับ posts มาก่อน
+// แก้ไขรีวิวที่เคย sync ขึ้น Supabase แล้วเท่านั้น (ต้องมี remoteId จริง) ต้องรัน migration "Phase 4"
+// (reviews_update_own policy) ก่อน — คืน { ok } หรือ { error }
+// RLS ที่ไม่ให้แก้จะไม่ error แต่แก้ได้ 0 แถว → เช็คจากแถวที่ได้กลับมาด้วย
 function sbUpdateReview(remoteId, patch) {
 	if (!sbClient) return Promise.resolve(null);
 	var row = {};
@@ -286,15 +291,13 @@ function sbUpdateReview(remoteId, patch) {
 	if (typeof patch.atmosphere === "number") row.atmosphere = patch.atmosphere;
 	if (typeof patch.service === "number") row.service = patch.service;
 	if (typeof patch.text === "string") row.text = patch.text;
-	// รูปแนบแยก query ต่างหาก (เหตุผลเดียวกับใน sbSubmitReview — คอลัมน์ images เป็นของใหม่ SQL Phase 6)
-	var imagesPromise = patch.images
-		? Promise.resolve(sbClient.from("reviews").update({ images: patch.images }).eq("id", remoteId)).catch(function() {})
-		: Promise.resolve(null);
-	if (!Object.keys(row).length) return imagesPromise;
-	var rowPromise = Promise.resolve(sbClient.from("reviews").update(row).eq("id", remoteId)).then(function(res) {
-		if (res.error) console.error("[chimchim] sbUpdateReview error:", res.error.message);
-	}).catch(function() {});
-	return Promise.all([imagesPromise, rowPromise]);
+	if (Array.isArray(patch.images)) row.images = patch.images.slice(0, CHIMCHIM_MAX_IMAGES);
+	if (!Object.keys(row).length) return Promise.resolve({ ok: true });
+	return Promise.resolve(sbClient.from("reviews").update(row).eq("id", remoteId).select()).then(function(res) {
+		if (res.error) return { error: sbReviewError(res.error) };
+		if (!res.data || !res.data.length) return { error: "server" };
+		return { ok: true };
+	}).catch(function(e) { return { error: sbReviewError(e) }; });
 }
 function sbDeleteReview(remoteId) {
 	if (!sbClient) return Promise.resolve(null);
@@ -393,6 +396,28 @@ function syncSavedShopsWithSupabase(onUpdated) {
 		var merged = local.slice();
 		remote.forEach(function(id) { if (merged.indexOf(id) === -1) merged.push(id); });
 		localStorage.setItem(CHIMCHIM_SAVES_KEY, JSON.stringify(merged));
+		if (typeof onUpdated === "function") onUpdated();
+	}).catch(function() {});
+}
+// บันทึกโพสต์ — ตาราง saved_posts เก็บด้วย post_key (id โพสต์จริงเป็นข้อความ หรือ "bu-…-postN") ต้องรัน SQL Phase 12
+function sbSetPostSave(postId, saved) {
+	var me = getMe();
+	var key = String(postId);
+	if (!me || !sbClient || !(/^\d+$/.test(key) || sbIsSeedPostId(key))) return Promise.resolve();
+	var query = saved
+		? sbClient.from("saved_posts").insert({ user_id: me.id, post_key: key })
+		: sbClient.from("saved_posts").delete().eq("user_id", me.id).eq("post_key", key);
+	return Promise.resolve(query).catch(function() {});
+}
+// ผสานโพสต์ที่บันทึกไว้จาก Supabase (บันทึกจากเครื่องอื่น) แบบรวมกัน ไม่แทนที่ — เหมือน syncSavedShopsWithSupabase
+function syncSavedPostsWithSupabase(onUpdated) {
+	var me = getMe();
+	if (!me || !sbClient) return;
+	Promise.resolve(sbClient.from("saved_posts").select("post_key").eq("user_id", me.id)).then(function(res) {
+		if (res.error || !res.data) return;
+		var merged = getSavedPosts();
+		res.data.forEach(function(r) { if (merged.indexOf(String(r.post_key)) === -1) merged.push(String(r.post_key)); });
+		localStorage.setItem(CHIMCHIM_SAVED_POSTS_KEY, JSON.stringify(merged));
 		if (typeof onUpdated === "function") onUpdated();
 	}).catch(function() {});
 }

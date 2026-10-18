@@ -195,8 +195,14 @@ function renderShopDetail() {
 			var canEdit = isMine && !!r.remoteId;
 			var row = document.createElement("div");
 			row.className = "rdreviewrow";
-			var reviewImgsHtml = (r.images && r.images.length)
-				? '<div class="rdreviewimgs">' + r.images.map(function(src) { return '<img src="' + src + '" alt=""/>'; }).join("") + '</div>'
+			// รูปแนบทุกรูป (สูงสุด 10) เลื่อนดูได้ในแถว กดรูปไหนเปิดแกลเลอรีเต็มจอที่รูปนั้น
+			// รีวิวเก่าที่ไม่มีรูป/เก็บเป็นค่าเดี่ยวก็แสดงได้ถูกต้อง
+			var reviewImages = Array.isArray(r.images) ? r.images.filter(Boolean) : (r.images ? [r.images] : []);
+			var reviewImgsHtml = reviewImages.length
+				? '<div class="rdreviewimgs" role="list">' + reviewImages.map(function(src, i) {
+					return '<button type="button" class="rdreviewimg" role="listitem" data-idx="' + i + '" aria-label="' + escapeHtml(t("photos.openN").replace("{i}", i + 1).replace("{n}", reviewImages.length)) + '"><img src="' + escapeHtml(src) + '" alt="" loading="lazy"/></button>';
+				}).join("") + '</div>' +
+				(reviewImages.length > 1 ? '<div class="rdreviewimgn"><i class="fas fa-images"></i> ' + escapeHtml(t("common.photoCount").replace("{n}", reviewImages.length)) + '</div>' : "")
 				: "";
 			row.innerHTML =
 				'<div class="rdreviewavt">' + escapeHtml(r.author.charAt(0).toUpperCase()) + "</div>" +
@@ -211,6 +217,11 @@ function renderShopDetail() {
 						(canEdit ? '<button type="button" class="rdreviewedit" aria-label="' + t("review.edit") + '"><i class="fas fa-pen"></i><span>' + t("review.edit") + '</span></button>' : "") +
 						'<button type="button" class="rdreviewdel" aria-label="' + t("review.delete") + '"><i class="fas fa-trash-can"></i><span>' + t("review.delete") + '</span></button>' +
 					"</div>" : "");
+			row.querySelectorAll(".rdreviewimg").forEach(function(btn) {
+				btn.addEventListener("click", function() {
+					openPhotoViewer(reviewImages, parseInt(btn.getAttribute("data-idx"), 10));
+				});
+			});
 			if (canEdit) {
 				row.querySelector(".rdreviewedit").addEventListener("click", function() {
 					window.location.href = "review.html?id=" + ร้านปัจจุบัน.id + "&editRemoteId=" + encodeURIComponent(r.remoteId);

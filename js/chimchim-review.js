@@ -28,26 +28,47 @@ if (!revร้าน) {
 	var scores = { taste: 0, atmosphere: 0, service: 0 };
 	var chosenReviewImages = [];
 	var reviewImgList = document.getElementById("reviewImgList");
+	var reviewImgBox = document.getElementById("reviewImgUploadBox");
+	var reviewImgCount = document.getElementById("reviewImgCount");
+	var reviewImgInput = document.getElementById("reviewImgFile");
+	// พรีวิวรูปที่เลือก: ตารางย่อ + ปุ่มลบทุกรูป + ช่อง "เพิ่มรูป" ต่อท้ายจนกว่าจะครบ 10 รูป
 	function renderChosenReviewImages() {
 		reviewImgList.innerHTML = "";
 		chosenReviewImages.forEach(function(src, idx) {
 			var thumb = document.createElement("div");
 			thumb.className = "postimgthumb";
-			thumb.innerHTML = '<img src="' + src + '" alt=""/><button type="button" title="' + t("common.removePhoto") + '"><i class="fas fa-times"></i></button>';
+			thumb.innerHTML = '<img src="' + src + '" alt=""/><button type="button" title="' + t("common.removePhoto") + '" aria-label="' + t("common.removePhoto") + '"><i class="fas fa-times"></i></button>';
+			thumb.querySelector("img").addEventListener("click", function() { openPhotoViewer(chosenReviewImages, idx); });
 			thumb.querySelector("button").addEventListener("click", function() {
 				chosenReviewImages.splice(idx, 1);
 				renderChosenReviewImages();
 			});
 			reviewImgList.appendChild(thumb);
 		});
+		var full = chosenReviewImages.length >= CHIMCHIM_MAX_IMAGES;
+		if (chosenReviewImages.length && !full) {
+			var addTile = document.createElement("label");
+			addTile.className = "postimgadd";
+			addTile.setAttribute("for", "reviewImgFile");
+			addTile.innerHTML = '<i class="fas fa-plus"></i><span>' + t("profile.addMorePhotos") + "</span>";
+			reviewImgList.appendChild(addTile);
+		}
+		// ครบ 10 แล้ว ปิดช่องเลือกไฟล์ไปเลย (กันเปิดตัวเลือกไฟล์จากที่อื่นได้อีก)
+		reviewImgInput.disabled = full;
+		reviewImgBox.hidden = chosenReviewImages.length > 0;
+		reviewImgCount.textContent = t("photos.count").replace("{n}", chosenReviewImages.length).replace("{max}", CHIMCHIM_MAX_IMAGES);
+		reviewImgCount.classList.toggle("full", full);
 	}
 	wireMultiImageUpload("reviewImgFile", function(dataUrls) {
 		dataUrls.forEach(function(dataUrl) {
-			if (chosenReviewImages.length >= 6) return;
-			chosenReviewImages.push(dataUrl);
+			if (chosenReviewImages.length < CHIMCHIM_MAX_IMAGES) chosenReviewImages.push(dataUrl);
 		});
 		renderChosenReviewImages();
+	}, {
+		remaining: function() { return CHIMCHIM_MAX_IMAGES - chosenReviewImages.length; },
+		onBusy: function(on) { document.getElementById("reviewImgBusy").hidden = !on; }
 	});
+	renderChosenReviewImages();
 
 	function setDinoScore(field, val) {
 		scores[field] = val;
@@ -95,29 +116,52 @@ if (!revร้าน) {
 			return;
 		}
 
+		if (chosenReviewImages.length > CHIMCHIM_MAX_IMAGES) {
+			errBox.textContent = t("photos.overLimitShort").replace("{n}", CHIMCHIM_MAX_IMAGES);
+			errBox.classList.add("show");
+			return;
+		}
+		if (!document.getElementById("reviewImgBusy").hidden) {
+			errBox.textContent = t("photos.waitPreparing");
+			errBox.classList.add("show");
+			return;
+		}
+
 		var submitBtn = document.querySelector(".revsubmitbtn");
 		if (submitBtn.disabled) return;
 		submitBtn.disabled = true;
-		submitBtn.querySelector("i").className = "fas fa-spinner fa-spin";
-		var savePromise;
+		var submitIcon = submitBtn.querySelector("i");
+		submitIcon.className = "fas fa-spinner fa-spin";
+		var images = chosenReviewImages.slice(0, CHIMCHIM_MAX_IMAGES);
+
+		// รอผลบันทึกจริงก่อนเสมอ (ไม่ตัดเวลา) — ถ้าไม่สำเร็จ แจ้งเหตุ ไม่เปลี่ยนหน้า และเก็บข้อมูลในฟอร์มไว้ให้กดส่งใหม่
+		function onSaved(result, nextUrl) {
+			if (result && result.ok) {
+				window.location.href = nextUrl;
+				return;
+			}
+			var reason = (result && result.reason) || "server";
+			errBox.textContent = t("review.saveFailed." + reason);
+			errBox.classList.add("show");
+			errBox.scrollIntoView({ behavior: "smooth", block: "center" });
+			submitBtn.disabled = false;
+			submitIcon.className = "fas fa-paper-plane";
+		}
 
 		if (revExisting) {
-			savePromise = updateReview(revร้าน.id, revExisting.remoteId, {
+			updateReview(revร้าน.id, revExisting.remoteId, {
 				taste: scores.taste,
 				atmosphere: scores.atmosphere,
 				service: scores.service,
 				text: document.getElementById("reviewText").value.trim(),
-				images: chosenReviewImages
-			});
-			waitAtMost(savePromise, 8000).then(function() {
-				window.location.href = "restaurant.html?id=" + revร้าน.id;
-			});
+				images: images
+			}).then(function(result) { onSaved(result, "restaurant.html?id=" + revร้าน.id); });
 			return;
 		}
 
 		var author = meSession ? meSession.name : (document.getElementById("reviewAuthor").value.trim() || t("common.anonymousFoodie"));
 
-		savePromise = addReview(revร้าน.id, {
+		addReview(revร้าน.id, {
 			taste: scores.taste,
 			atmosphere: scores.atmosphere,
 			service: scores.service,
@@ -125,11 +169,7 @@ if (!revร้าน) {
 			author: author,
 			userId: meSession ? meSession.id : null,
 			date: new Date().toISOString(),
-			images: chosenReviewImages
-		});
-
-		waitAtMost(savePromise, 8000).then(function() {
-			window.location.href = "home.html?reviewed=1";
-		});
+			images: images
+		}).then(function(result) { onSaved(result, "home.html?reviewed=1"); });
 	});
 }

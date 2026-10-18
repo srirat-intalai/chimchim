@@ -77,12 +77,13 @@
                <textarea class="fctrl" id="reviewText" rows="4" placeholder="อาหารเป็นยังไงบ้าง อยากบอกอะไรคนอื่นไหม..." data-i18n-ph="review.textPlaceholder"></textarea>
             </div>
             <div class="revrow">
-               <label class="revlbl" data-i18n="review.addPhotos">แนบรูป (ถ้ามี)</label>
+               <div class="revlbl postimghead"><span data-i18n="review.addPhotos">แนบรูป (ถ้ามี)</span><span class="postimgcount" id="reviewImgCount" aria-live="polite">0/10</span></div>
                <div class="imguploadbox" id="reviewImgUploadBox">
-                  <label class="imguploadlbl" for="reviewImgFile"><i class="fas fa-camera"></i><span data-i18n="shop.uploadPhoto">Upload a photo</span></label>
+                  <label class="imguploadlbl" for="reviewImgFile"><i class="fas fa-images"></i><span data-i18n="review.pickPhotosHint">แตะเพื่อเลือกรูป — เลือกได้หลายรูป สูงสุด 10 รูป</span></label>
                </div>
                <input type="file" id="reviewImgFile" accept="image/*" multiple hidden/>
                <div class="postimglist" id="reviewImgList"></div>
+               <p class="postimgbusy" id="reviewImgBusy" hidden><i class="fas fa-spinner fa-spin"></i> <span data-i18n="photos.preparing">กำลังเตรียมรูป...</span></p>
             </div>
             <div class="aperr" id="reviewErr"></div>
             <button type="submit" class="btn-red revsubmitbtn"><i class="fas fa-paper-plane"></i><span data-i18n="review.submit">ส่งรีวิว</span></button>

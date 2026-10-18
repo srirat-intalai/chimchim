@@ -148,7 +148,8 @@ if (!session) {
 		});
 	}
 	if (typeof syncLikesAndFollowsWithSupabase === "function") {
-		syncLikesAndFollowsWithSupabase(refreshFollowingStat);
+		// ผลเดียวกันใช้ทั้งตัวเลขติดตาม และแท็บร้านที่ถูกใจ (ไม่ยิงซ้ำสองรอบ)
+		syncLikesAndFollowsWithSupabase(function() { refreshFollowingStat(); renderProfileActivity(); });
 	}
 	if (typeof syncPostsWithSupabase === "function") {
 		syncPostsWithSupabase(function() { renderMyPosts(); });
@@ -167,14 +168,14 @@ if (!session) {
 		});
 	}
 
-	/* --- โพสต์ของฉัน (ทุกบัญชี) --- */
-	document.getElementById("profPostsCard").hidden = false;
+	/* --- โพสต์ของฉัน (ทุกบัญชี) — เป็นแท็บแรกของแถบกิจกรรม --- */
 	initMyPosts();
+	setupProfileTabs(me);
 }
 
 /* --- โพสต์ของฉัน: ฟอร์มเพิ่มโพสต์ + แสดงกริดโพสต์ ---
    (เวอร์ชันย่อของฟีเจอร์คอมมูนิตี้ - ภาพ + แคปชั่นเท่านั้น ยังไม่รองรับสตอรี่/รีล/วิดีโอ) */
-var POST_MAX_IMAGES = 10;
+var POST_MAX_IMAGES = CHIMCHIM_MAX_IMAGES; // 10 รูปต่อโพสต์ (ค่ากลางใน core.js)
 function initMyPosts() {
 	var toggle = document.getElementById("addPostToggle");
 	var form = document.getElementById("postForm");
@@ -218,7 +219,9 @@ function initMyPosts() {
 		}
 		uploadBox.hidden = chosenImages.length > 0;
 		countEl.hidden = chosenImages.length === 0;
-		countEl.textContent = chosenImages.length + "/" + POST_MAX_IMAGES;
+		countEl.textContent = t("photos.count").replace("{n}", chosenImages.length).replace("{max}", POST_MAX_IMAGES);
+		countEl.classList.toggle("full", chosenImages.length >= POST_MAX_IMAGES);
+		document.getElementById("postImgFile").disabled = chosenImages.length >= POST_MAX_IMAGES;
 	}
 
 	function resetFormToCreateMode() {
@@ -231,19 +234,24 @@ function initMyPosts() {
 
 	// อัปโหลดรูปจริงจากเครื่องผู้ใช้เอง (แทนดรอปดาวน์เลือกรูปสต็อกเดิม) เลือกได้หลายรูปพร้อมกัน สูงสุด 10 รูปต่อโพสต์
 	wireMultiImageUpload("postImgFile", function(dataUrls) {
-		var skipped = 0;
 		dataUrls.forEach(function(dataUrl) {
-			if (chosenImages.length >= POST_MAX_IMAGES) { skipped++; return; }
-			chosenImages.push(dataUrl);
+			if (chosenImages.length < POST_MAX_IMAGES) chosenImages.push(dataUrl);
 		});
-		if (skipped) showToast(t("profile.maxPhotosToast").replace("{n}", POST_MAX_IMAGES));
 		renderChosenImages();
 		// บนมือถือ พอเลือกรูปแล้วฟอร์มจะยาวขึ้นเยอะ ปุ่มโพสต์อาจตกขอบจอไปโดยไม่รู้ตัวว่าต้องเลื่อนลงไปกด
 		// เลื่อนจอให้เห็นปุ่มเองเลย กันปัญหา "กดปุ่มไม่ติด" ทั้งที่จริง ๆ แค่มองไม่เห็นปุ่ม
 		setTimeout(function() {
 			submitBtn.scrollIntoView({ behavior: "smooth", block: "end" });
 		}, 100);
+	}, {
+		// เกิน 10 รูป: ไฟล์ส่วนเกินไม่ถูกอ่านเลย + แจ้งเตือนว่าตัดไปกี่รูป (ดู แจ้งปัญหาการเลือกรูป)
+		remaining: function() { return POST_MAX_IMAGES - chosenImages.length; },
+		onBusy: function(on) {
+			postImgBusy = on;
+			document.getElementById("postImgBusy").hidden = !on;
+		}
 	});
+	var postImgBusy = false;
 
 	toggle.addEventListener("click", function() {
 		if (form.style.display === "none") {
@@ -276,29 +284,43 @@ function initMyPosts() {
 			return;
 		}
 
+		if (postImgBusy) {
+			errBox.textContent = t("photos.waitPreparing");
+			errBox.classList.add("show");
+			return;
+		}
+		if (submitBtn.disabled) return;
+		var submitHtml = submitBtn.innerHTML;
+		submitBtn.disabled = true;
+		submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>' + t("photos.uploading").replace("{n}", chosenImages.length) + "</span>";
+		function failed(result) {
+			submitBtn.disabled = false;
+			submitBtn.innerHTML = submitHtml;
+			errBox.textContent = t(result.reason === "storage" ? "profile.storageFullError" : "profile.serverSaveError");
+			errBox.classList.add("show");
+		}
+
 		if (editingPostId) {
-			if (!updatePost(editingPostId, { images: chosenImages, caption: caption })) {
-				errBox.textContent = t("profile.storageFullError");
-				errBox.classList.add("show");
-				return;
-			}
-			resetFormToCreateMode();
-			form.style.display = "none";
-			showToast(t("profile.postUpdatedToast"));
-			renderMyPosts();
+			updatePost(editingPostId, { images: chosenImages, caption: caption }).then(function(result) {
+				submitBtn.disabled = false;
+				if (!result.ok) { failed(result); return; }
+				resetFormToCreateMode();
+				form.style.display = "none";
+				showToast(t("profile.postUpdatedToast"));
+				renderMyPosts();
+			});
 			return;
 		}
 
 		var activePage = getActivePostingPage();
-		if (!addPost(session.id, chosenImages, caption, activePage ? activePage.numId : null)) {
-			errBox.textContent = t("profile.storageFullError");
-			errBox.classList.add("show");
-			return;
-		}
-		resetFormToCreateMode();
-		form.style.display = "none";
-		showToast(activePage ? t("profile.postedAsToast").replace("{name}", activePage.name) : t("profile.postedToast"));
-		renderMyPosts();
+		addPost(session.id, chosenImages, caption, activePage ? activePage.numId : null).then(function(result) {
+			submitBtn.disabled = false;
+			if (!result.ok) { failed(result); return; }
+			resetFormToCreateMode();
+			form.style.display = "none";
+			showToast(activePage ? t("profile.postedAsToast").replace("{name}", activePage.name) : t("profile.postedToast"));
+			renderMyPosts();
+		});
 	});
 
 	renderMyPosts();
@@ -343,6 +365,8 @@ function renderMyPosts() {
 	var posts = activePage ? getPostsByPage(activePage.numId) : getPostsByUser(session.id);
 	var igStatPosts = document.getElementById("igStatPosts");
 	if (igStatPosts) igStatPosts.textContent = posts.length;
+	var tabCountPosts = document.getElementById("ptabCountPosts");
+	if (tabCountPosts) tabCountPosts.textContent = posts.length;
 	if (posts.length === 0) {
 		emptyMsg.hidden = false;
 		return;
@@ -598,4 +622,150 @@ function refreshLevelCard() {
 			'<div class="lvlladdertit">' + escapeHtml(t("level.allLevels")) + "</div>" +
 			'<ol class="lvlladder">' + ladder + "</ol>");
 	};
+}
+
+
+/* =====================================================================
+   กิจกรรมของฉัน (แถบแท็บไอคอนแบบ IG ใต้ข้อมูลโปรไฟล์) — ย้ายมาจากหน้าตั้งค่า
+   โพสต์ (ตารางรูปเดิม) / ร้านที่ถูกใจ / รีวิวของฉัน / บันทึกไว้ — ข้อมูลจริงของผู้ที่ล็อกอินอยู่เท่านั้น
+   สลับแท็บแล้วเปลี่ยนแค่เนื้อหาด้านล่าง ไม่โหลดหน้าใหม่ จำแท็บล่าสุดไว้ระหว่างเปิดแอป
+   ===================================================================== */
+// หมายเหตุ: setupProfileTabs ถูกเรียกจากโค้ดตั้งต้นด้านบนไฟล์ ก่อนบรรทัดนี้จะทำงาน
+// จึงใช้ฟังก์ชัน (hoist ทั้งตัว) แทนตัวแปรที่มีค่าเริ่มต้น และไม่กำหนดค่าเริ่มให้ profReviewsLoading (ไม่งั้นจะทับค่า true)
+function profTabKey() { return "chimchim_profile_tab"; }
+function profPanes() { return { posts: "profPostsCard", likes: "ppaneLikes", reviews: "ppaneReviews", saves: "ppaneSaves" }; }
+var profReviewsLoading;
+
+// id ร้าน → ข้อมูลร้านจริง (ตัดร้านที่ถูกลบไปแล้ว และ id ซ้ำ ไม่ให้นับเกิน)
+function ร้านจากรายการId(ids) {
+	var seen = {};
+	return ids.filter(function(id) {
+		if (seen[id]) return false;
+		seen[id] = true;
+		return true;
+	}).map(function(id) { return หาร้านจากId(id); }).filter(Boolean);
+}
+
+function showProfileTab(tab) {
+	var panes = profPanes();
+	if (!panes[tab]) tab = "posts";
+	document.querySelectorAll("#profTabs .proftab").forEach(function(b) {
+		var on = b.getAttribute("data-ptab") === tab;
+		b.classList.toggle("active", on);
+		b.setAttribute("aria-selected", on ? "true" : "false");
+		b.tabIndex = on ? 0 : -1;
+	});
+	Object.keys(panes).forEach(function(k) {
+		document.getElementById(panes[k]).hidden = k !== tab;
+	});
+	try { sessionStorage.setItem(profTabKey(), tab); } catch (e) {}
+}
+
+// แท็บ ร้านที่ถูกใจ / รีวิว / บันทึกไว้ + ตัวเลขบนแท็บ (โพสต์นับใน renderMyPosts)
+function renderProfileActivity() {
+	var session = getSession();
+	if (!session || !document.getElementById("profTabs")) return;
+
+	var liked = ร้านจากรายการId(getLikedShops());
+	var likeList = document.getElementById("profLikesList");
+	likeList.innerHTML = "";
+	liked.forEach(function(ร้าน) { likeList.appendChild(buildLikeRow(ร้าน)); });
+	document.getElementById("profLikesEmpty").hidden = liked.length > 0;
+	document.getElementById("ptabCountLikes").textContent = liked.length;
+
+	var reviewList = document.getElementById("profReviewsList");
+	reviewList.innerHTML = "";
+	var shownReviews = 0;
+	getReviewsByUser(session.id).forEach(function(r) {
+		var item = buildReviewItem(r);
+		if (!item) return; // ร้านของรีวิวนี้หาไม่เจอแล้ว (ถูกลบ) — ไม่นับ
+		item.classList.add("profreviewlink");
+		item.setAttribute("role", "link");
+		item.tabIndex = 0;
+		function go() { window.location.href = "restaurant.html?id=" + r.shopId; }
+		item.addEventListener("click", go);
+		item.addEventListener("keydown", function(e) { if (e.key === "Enter") go(); });
+		reviewList.appendChild(item);
+		shownReviews++;
+	});
+	var reviewEmpty = document.getElementById("profReviewsEmpty");
+	reviewEmpty.hidden = shownReviews > 0;
+	// ยังไม่มีรีวิวในเครื่อง + กำลังดึงจาก Supabase → แสดงว่ากำลังโหลด แทนการบอกว่าไม่มี
+	if (!shownReviews && profReviewsLoading) {
+		reviewEmpty.hidden = true;
+		reviewList.innerHTML = '<p class="profpane-empty"><i class="fas fa-spinner fa-spin"></i></p>';
+	}
+	document.getElementById("ptabCountReviews").textContent = shownReviews;
+
+	// บันทึกไว้ = โพสต์ที่บันทึก (ตารางรูป 3 ช่อง) + ร้านที่บันทึก (รายการ) นับรวมกันบนแท็บ
+	var savedPosts = typeof โพสต์ที่บันทึกไว้ === "function" ? โพสต์ที่บันทึกไว้() : [];
+	var postGrid = document.getElementById("profSavedPosts");
+	postGrid.innerHTML = "";
+	savedPosts.forEach(function(item) {
+		var tile = document.createElement("div");
+		tile.className = "ppost";
+		tile.setAttribute("role", "button");
+		tile.tabIndex = 0;
+		tile.innerHTML = '<img src="' + escapeHtml(item.images[0] || "") + '" alt=""/>' +
+			(item.images.length > 1 ? '<i class="fas fa-clone ppostmulti"></i>' : "");
+		function open() {
+			openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl, posterId: item.userId });
+		}
+		tile.addEventListener("click", open);
+		tile.addEventListener("keydown", function(e) { if (e.key === "Enter") open(); });
+		postGrid.appendChild(tile);
+	});
+	var saved = ร้านจากรายการId(getSavedShops());
+	var saveList = document.getElementById("profSavesList");
+	saveList.innerHTML = "";
+	saved.forEach(function(ร้าน) { saveList.appendChild(buildLikeRow(ร้าน)); });
+	var both = savedPosts.length > 0 && saved.length > 0;
+	document.getElementById("profSavedPostsTit").hidden = !both;
+	document.getElementById("profSavedShopsTit").hidden = !both;
+	document.getElementById("profSavesEmpty").hidden = (saved.length + savedPosts.length) > 0;
+	document.getElementById("ptabCountSaves").textContent = saved.length + savedPosts.length;
+}
+
+function setupProfileTabs(me) {
+	var bar = document.getElementById("profTabs");
+	if (!bar) return;
+	bar.hidden = false;
+	var tabs = Array.prototype.slice.call(bar.querySelectorAll(".proftab"));
+	tabs.forEach(function(b, i) {
+		b.addEventListener("click", function() { showProfileTab(this.getAttribute("data-ptab")); });
+		// ลูกศรซ้าย/ขวาสลับแท็บได้ (รูปแบบ tablist มาตรฐาน)
+		b.addEventListener("keydown", function(e) {
+			var dir = e.key === "ArrowRight" ? 1 : (e.key === "ArrowLeft" ? -1 : 0);
+			if (!dir) return;
+			e.preventDefault();
+			var next = tabs[(i + dir + tabs.length) % tabs.length];
+			next.focus();
+			showProfileTab(next.getAttribute("data-ptab"));
+		});
+	});
+	var savedTab = null;
+	try { savedTab = sessionStorage.getItem(profTabKey()); } catch (e) {}
+	showProfileTab(savedTab || "posts");
+	renderProfileActivity();
+
+	// รีวิวของฉันจาก Supabase (เผื่อเขียนจากเครื่องอื่น) — รวมเข้ากับในเครื่องแบบไม่ซ้ำ (mergeRemoteReviewsIntoLocal)
+	if (typeof sbClient !== "undefined" && sbClient && me && /^[0-9a-f-]{36}$/i.test(me.id)) {
+		profReviewsLoading = true;
+		renderProfileActivity();
+		Promise.resolve(sbClient.from("reviews").select("*").eq("user_id", me.id)).then(function(res) {
+			if (res.error || !res.data) return;
+			var byShop = {};
+			res.data.forEach(function(row) {
+				(byShop[row.shop_id] = byShop[row.shop_id] || []).push(sbReviewRowToLocal(row));
+			});
+			Object.keys(byShop).forEach(function(shopId) { mergeRemoteReviewsIntoLocal(shopId, byShop[shopId]); });
+		}).catch(function() {}).then(function() {
+			profReviewsLoading = false;
+			renderProfileActivity();
+			refreshLevelCard();
+		});
+	}
+	// ร้านที่บันทึกไว้จริงจาก Supabase (กดจากเครื่องอื่น) → วาดแท็บใหม่ (ถูกใจ sync พร้อมตัวเลขติดตามด้านบนแล้ว)
+	if (typeof syncSavedShopsWithSupabase === "function") syncSavedShopsWithSupabase(renderProfileActivity);
+	if (typeof syncSavedPostsWithSupabase === "function") syncSavedPostsWithSupabase(renderProfileActivity);
 }

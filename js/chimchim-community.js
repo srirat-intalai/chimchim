@@ -260,6 +260,7 @@ document.addEventListener("keydown", function(e) {
 				'<div class="pvcap" id="pvCap"></div>' +
 				'<div class="pvactions">' +
 					'<button class="pvlikebtn" id="pvLikeBtn" type="button"><i class="far fa-heart"></i><span id="pvLikeCount"></span></button>' +
+					'<button class="pvsavebtn" id="pvSaveBtn" type="button" aria-label="' + t("community.savePost") + '" title="' + t("community.savePost") + '"><i class="far fa-bookmark"></i></button>' +
 					'<button class="pvreportbtn" id="pvReportBtn" type="button" hidden><i class="fas fa-flag"></i><span>' + t("report.button") + '</span></button>' +
 				"</div>" +
 				'<div class="pvcomments" id="pvComments"></div>' +
@@ -291,6 +292,27 @@ document.addEventListener("keydown", function(e) {
 		if (!currentPostId) return;
 		togglePostLike(currentPostId);
 		refreshPvLike();
+	});
+	// บุ๊กมาร์ก — บันทึกโพสต์ไว้ดูทีหลังในแท็บ "บันทึกไว้" ของหน้าโปรไฟล์
+	function refreshPvSave() {
+		var btn = document.getElementById("pvSaveBtn");
+		btn.hidden = !currentPostId;
+		if (!currentPostId) return;
+		var saved = isPostSaved(currentPostId);
+		btn.querySelector("i").className = (saved ? "fas" : "far") + " fa-bookmark";
+		btn.classList.toggle("saved", saved);
+		btn.setAttribute("aria-pressed", saved ? "true" : "false");
+		var lbl = t(saved ? "community.unsavePost" : "community.savePost");
+		btn.setAttribute("aria-label", lbl);
+		btn.title = lbl;
+	}
+	document.getElementById("pvSaveBtn").addEventListener("click", function() {
+		if (!currentPostId) return;
+		var now = toggleSavePost(currentPostId);
+		if (now === null) return;
+		refreshPvSave();
+		if (typeof showToast === "function") showToast(t(now ? "community.postSavedToast" : "community.postUnsavedToast"));
+		if (typeof renderProfileActivity === "function") renderProfileActivity();
 	});
 
 	// รายงานได้เฉพาะโพสต์จริงที่ผู้ใช้สร้างเอง (id ขึ้นต้นด้วย "post") ไม่ใช่โพสต์ตัวอย่างของร้าน BU/นักรีวิวเด่น
@@ -565,6 +587,7 @@ document.addEventListener("keydown", function(e) {
 		document.getElementById("pvReportBtn").hidden = !(currentPostId && !/^bu-/.test(currentPostId)) || isOwnPost;
 		renderPvComments();
 		refreshPvLike();
+		refreshPvSave();
 		queuePvCounts();
 		if (typeof syncCommentsWithSupabase === "function") {
 			syncCommentsWithSupabase(currentPostId, function() {

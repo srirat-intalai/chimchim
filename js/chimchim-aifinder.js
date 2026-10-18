@@ -203,7 +203,10 @@ var AI_CAT_RULES = [
 	{ re: /ข้าว|\brice\b/, th: "เมนูข้าว", en: "Rice dishes", cats: ["อาหารตามสั่ง", "ข้าวแกง"] },
 	{ re: /ของหวาน|ขนม|เค้ก|บิงซู|dessert|sweets/, th: "ของหวาน", en: "Dessert", cats: ["ของหวาน/เบเกอรี่", "ผลไม้"] },
 	{ re: /ฟาสต์ฟู้ด|fast ?food|เบอร์เกอร์|burger|พิซซ่า|pizza|ไก่ทอด/, th: "Fast Food", en: "Fast food", cats: ["Fast Food", "เบอร์เกอร์", "พิซซ่า"] },
-	{ re: /นานาชาติ|ต่างชาติ|ฝรั่ง|เกาหลี|จีน|international|korean|chinese/, th: "อาหารนานาชาติ", en: "International", cats: ["อาหารจีน", "อาหารเกาหลี", "อาหารอินเดีย", "อาหารเวียดนาม", "พิซซ่า", "เบอร์เกอร์", "สเต็ก", "Fast Food"] },
+	// เกาหลี/จีน แยกเป็นแนวของตัวเอง — เดิมรวมในกลุ่มนานาชาติ ขอเกาหลีแล้วได้ร้านสเต็กมาแทน (ไม่ตรงความจริง)
+	{ re: /เกาหลี|korean|ต็อกบกกี|บิบิมบับ|kimchi|กิมจิ/, th: "อาหารเกาหลี", en: "Korean", cats: ["อาหารเกาหลี"] },
+	{ re: /อาหารจีน|chinese|ติ่มซำ|dim ?sum/, th: "อาหารจีน", en: "Chinese", cats: ["อาหารจีน"] },
+	{ re: /นานาชาติ|ต่างชาติ|ฝรั่ง|international/, th: "อาหารนานาชาติ", en: "International", cats: ["อาหารจีน", "อาหารเกาหลี", "อาหารอินเดีย", "อาหารเวียดนาม", "พิซซ่า", "เบอร์เกอร์", "สเต็ก", "Fast Food"] },
 	{ re: /เครื่องดื่ม|ชานม|กาแฟ|drink|coffee|tea/, th: "เครื่องดื่ม", en: "Drinks", cats: ["เครื่องดื่ม"] },
 	{ re: /มังสวิรัติ|วีแกน|ฮาลาล|อาหารเจ|สุขภาพ|คลีน|healthy|vegan|vegetarian|halal/, th: "อาหารสุขภาพ", en: "Healthy", cats: ["อาหารเจ", "อาหารฮาลาล", "มังสวิรัติ", "วีแกน"] }
 ];
@@ -384,7 +387,7 @@ function แยกคำขอจากข้อความ(text) {
    (ชื่อร้าน/เมนู/แท็ก/หมวด/ชาติอาหาร) — มีจริง = หาร้านที่มีของนั้น / ไม่มี = บอกตรง ๆ ว่ายังไม่มี + ถามว่าสนใจแนวอื่นไหม
    ไม่เอาร้านแนวใกล้เคียงมาแทนเอง (เช่น ขออาหารเกาหลี ไม่ยัดร้านสเต็กเพราะอยู่กลุ่ม "นานาชาติ" เดียวกัน) --- */
 var AI_ASK_TRIGGER_RE = /(?:อยากกิน|อยากได้|อยากลอง|หาร้าน|หา|มีร้าน|มี|แนะนำร้าน|ขอร้าน|ร้าน)\s*(.+)$|(?:want|craving|looking for|find|have any|got any|any)\s+(.+)$/;
-var AI_TERM_STOP_RE = /(ไหม|มั้ย|มั๊ย|มัย|หน่อย|ครับ|ค่ะ|คะ|จ้า|นะ|สิ|งบ|ใกล้|ไกล|\d|บาท|คน|กับ|ที่ไหน|ร้านไหน|อะไร|ดี|อร่อย|เผ็ด|หวาน|เค็ม|เปรี้ยว|แถว|ตอนนี้|วันนี้|เย็นนี้|พรุ่งนี้|เลย|บ้าง|แบบ|สัก|\?|!|,|\.|\s+(?:near|for|under|with|today|tonight|please))/;
+var AI_TERM_STOP_RE = /(แนะนำ|ที่มี|และ|หรือเปล่า|ไหน|ไหม|มั้ย|มั๊ย|มัย|หน่อย|ครับ|ค่ะ|คะ|จ้า|นะ|สิ|งบ|ใกล้|ไกล|\d|บาท|คน|กับ|ที่ไหน|ร้านไหน|อะไร|ดี|อร่อย|เผ็ด|หวาน|เค็ม|เปรี้ยว|แถว|ตอนนี้|วันนี้|เย็นนี้|พรุ่งนี้|เลย|บ้าง|แบบ|สัก|\?|!|,|\.|\s+(?:near|for|under|with|today|tonight|please))/;
 // กลุ่มกว้าง ๆ ที่ใช้การจัดกลุ่มเดิมได้อยู่แล้ว (ไม่ถือเป็นของเจาะจง)
 var AI_GENERIC_GROUP_RE = /^(อาหาร)?(นานาชาติ|ต่างชาติ|สุขภาพ|คลีน|ตามสั่ง|เมนูข้าว|เมนูเส้น|ของว่าง|international|healthy)$/;
 function แยกสิ่งที่ขอเจาะจง(text) {
@@ -394,7 +397,7 @@ function แยกสิ่งที่ขอเจาะจง(text) {
 	var term = (m[1] || m[2] || "");
 	var cut = term.search(AI_TERM_STOP_RE);
 	if (cut !== -1) term = term.slice(0, cut);
-	term = term.replace(/^(ร้าน|เมนู|พวก|ประเภท|แนว|some|a|an|the)\s*/, "").trim();
+	term = term.replace(/^(ร้าน|เมนู|พวก|ประเภท|แนว|some|a|an|the)\s*/, "").trim().replace(/\s*(ที่|แบบ)$/, "").trim();
 	if (term.length < 2 || AI_ANY_RE.test(term) || /^(กิน|ข้าวกิน|อาหาร|ของกิน|food|something|place|restaurant)$/.test(term)) return null;
 	return term;
 }
@@ -404,6 +407,73 @@ function ร้านที่มีคำนี้(term) {
 		var ข้อความร้าน = [r.ร้าน, r.เมนู, r.หมวด, r.ชาติอาหาร].concat(r.แท็ก || []).join(" ").toLowerCase();
 		return คำ.some(function(k) { return ข้อความร้าน.indexOf(k) !== -1; });
 	});
+}
+
+/* --- คำถามนอกขอบเขต (ไม่เกี่ยวกับอาหาร/ร้าน) — ตัดสินในเครื่องเฉพาะเคสที่ชัดเจนมาก ๆ เท่านั้น
+   ตอบปฏิเสธสั้น ๆ ทันทีโดยไม่เรียก AI (ได้ผลเหมือนเดิมทุกครั้ง แม้ Gemini ล่ม/โควตาหมด และไม่เปลืองโควตา)
+   เคสก้ำกึ่งปล่อยให้ AI ตัดสินตาม system prompt (ดู server.js ข้อ 2) — ถ้ามีคำเกี่ยวกับอาหารปนอยู่ จะไม่ถือว่านอกเรื่อง --- */
+var AI_OFFTOPIC_RE = /ทำความสะอาด|ถูพื้น|กวาดบ้าน|ซักผ้า|รีดผ้า|ล้างห้องน้ำ|งานบ้าน|จัดบ้าน|การเมือง|เลือกตั้ง|นายกฯ?|รัฐบาล|พรรค|ฟุตบอล|ผลบอล|กีฬา|นักเตะ|พรีเมียร์ลีก|เขียนโค้ด|เขียนโปรแกรม|โปรแกรมมิ่ง|javascript|python|html|css|sql|บั๊ก|debug|หุ้น|ลงทุน|คริปโต|บิทคอยน์|กองทุน|ดอกเบี้ย|ภาษีเงินได้|การบ้าน|แก้สมการ|คณิต|ฟิสิกส์|แฟนทิ้ง|อกหัก|เลิกกับแฟน|ปรึกษาความรัก|ดูดวง|เขียนเรียงความ|แปลภาษา|clean(ing)? (the )?house|politic|election|football|soccer|stock market|invest|crypto|bitcoin|homework|write (a |some )?code|programming|debug/i;
+var AI_FOOD_WORD_RE = /กิน|อาหาร|ร้าน|เมนู|หิว|อร่อย|ทำกับข้าว|สูตร|ข้าว|ก๋วยเตี๋ยว|เผ็ด|หวาน|เค็ม|เปรี้ยว|ขนม|เครื่องดื่ม|กาแฟ|ชานม|ชาไทย|ชาเย็น|มื้อ|ปรุง|วัตถุดิบ|eat|food|restaurant|menu|meal|dish|recipe|cook|hungry|snack|drink|coffee/i;
+function เป็นคำถามนอกเรื่อง(text) {
+	return AI_OFFTOPIC_RE.test(text) && !AI_FOOD_WORD_RE.test(text);
+}
+
+/* --- คุณสมบัติร้านที่ผู้ใช้ถามถึง แต่ฐานข้อมูลร้านของแอป "ไม่มีเก็บ" (หรือมีบางร้าน) — ตัดออกจากข้อความก่อนแยกคำขอ
+   (เดิม "มีร้านไหนเปิดตอนนี้" ถูกอ่านเป็นของเจาะจงชื่อ "ไหนเปิด" แล้วตอบว่ายังไม่มี) และส่งให้ AI รู้ว่าต้องบอกว่าไม่มีข้อมูล --- */
+var AI_ATTR_RULES = [
+	{ key: "aircon", re: /ห้องแอร์|มีแอร์|ติดแอร์|แอร์|air ?-?con(ditioning)?|a\/c/i },
+	{ key: "seats", re: /ที่นั่ง(เยอะ|เยอะๆ|เยอะ ๆ|เพียงพอ|กว้าง)?|นั่งได้(กี่คน|เยอะ)|ร้านกว้าง|กว้างขวาง|seats?|seating|spacious/i },
+	{ key: "openNow", re: /เปิด(อยู่)?ตอนนี้|ตอนนี้เปิด|เปิดอยู่ไหม|เปิดกี่โมง|ปิดกี่โมง|เวลาเปิด|เปิดดึก|open now|opening hours|hours|open late/i },
+	{ key: "crowd", re: /คนเยอะไหม|แออัด|คิวยาว|ต้องรอคิว|คนไม่เยอะ|crowded|busy|queue/i },
+	{ key: "noise", re: /ไม่เสียงดัง|เสียงดัง|เงียบ ?ๆ?|นั่งคุย|quiet|noisy/i },
+	{ key: "atmosphere", re: /บรรยากาศ|ตกแต่ง|นั่งชิล|ร้านสวย|ถ่ายรูปสวย|cozy|atmosphere|vibe|decor/i },
+	{ key: "outdoor", re: /กลางแจ้ง|outdoor|ริมน้ำ|ลานกว้าง/i },
+	{ key: "parking", re: /ที่จอดรถ|จอดรถ|parking/i }
+];
+function แยกคุณสมบัติร้าน(text) {
+	var asked = [];
+	var cleaned = text;
+	AI_ATTR_RULES.forEach(function(rule) {
+		if (rule.re.test(cleaned)) {
+			asked.push(rule.key);
+			cleaned = cleaned.replace(new RegExp(rule.re.source, "gi"), " ");
+		}
+	});
+	cleaned = cleaned.replace(/\s*(ที่มี|มี|และ|กับ)\s*(?=\s|$)/g, " ").replace(/\s+/g, " ").trim();
+	return { asked: asked, cleaned: cleaned };
+}
+function ชื่อคุณสมบัติ(keys) {
+	return keys.map(function(k) { return t("ai.attr_" + k); }).join(", ");
+}
+// ร้านที่มีเวลาเปิดจริง (เจ้าของร้านกรอกเอง) — เวลาเปิดของร้านตั้งต้นในแอปเป็นข้อมูลตัวอย่าง ห้ามส่งให้ AI ใช้ตอบ
+function เวลาเปิดจริง(r) { return r.เวลาเปิดกำหนดเอง || null; }
+
+/* --- ความชอบของผู้ใช้ที่ระบบมีจริง (ส่งให้ AI ใช้ประกอบคำแนะนำ) — ส่งเฉพาะที่มีจริง ไม่ส่งค่าตั้งต้นของระบบ --- */
+function ความชอบสำหรับAI() {
+	var parts = [];
+	var me = typeof getMe === "function" ? getMe() : null;
+	if (me && me.foodDNA) {
+		var d = me.foodDNA;
+		if (d.ชอบชาติอาหาร && d.ชอบชาติอาหาร.length) parts.push("ชอบอาหาร " + d.ชอบชาติอาหาร.join("/"));
+		if (d.ชอบหมวด && d.ชอบหมวด.length) parts.push("หมวดที่ชอบ " + d.ชอบหมวด.join("/"));
+		if (d.ชอบรส && d.ชอบรส.length) parts.push("รสที่ชอบ " + d.ชอบรส.join("/"));
+		if (d.งบเฉลี่ยที่ใช้บ่อย) parts.push("งบปกติราว ฿" + d.งบเฉลี่ยที่ใช้บ่อย + "/มื้อ");
+		if (d.ระยะที่ยอมไป) parts.push("ยอมไปได้ไกลราว " + distanceText(d.ระยะที่ยอมไป));
+	}
+	var liked = (typeof getLikedShops === "function" ? getLikedShops() : []).map(หาร้านจากId).filter(Boolean).slice(0, 5);
+	if (liked.length) parts.push("ร้านที่กดถูกใจ: " + liked.map(function(r) { return r.ร้าน; }).join(", "));
+	var saved = (typeof getSavedShops === "function" ? getSavedShops() : []).map(หาร้านจากId).filter(Boolean).slice(0, 5);
+	if (saved.length) parts.push("ร้านที่บันทึกไว้: " + saved.map(function(r) { return r.ร้าน; }).join(", "));
+	return parts.length ? parts.join("; ") : null;
+}
+
+// ข้อมูลพอจะแนะนำได้แล้วไหม — ถามเพิ่มเฉพาะตอนจำเป็น (รู้แนวอาหารแล้ว + รู้อย่างอื่นอีกอย่าง หรือผู้ใช้ขอให้แนะนำตรง ๆ)
+var AI_DIRECT_ASK_RE = /แนะนำ|มีร้าน.*(ไหม|มั้ย|บ้าง)|ร้านไหน|ขอร้าน|recommend|suggest|any good/;
+function ข้อมูลพอแล้ว(msg) {
+	var รู้แนว = !!(คำขอ.keyword || (คำขอ.cat && คำขอ.cat !== null));
+	if (!รู้แนว) return false;
+	var อื่น = ["taste", "people", "budget"].filter(function(k) { return คำขอ[k] !== null; }).length + (คำขอ.near ? 1 : 0);
+	return อื่น >= 1 || AI_DIRECT_ASK_RE.test(msg);
 }
 
 function มีข้อมูลอาหาร(parsed) {
@@ -622,6 +692,11 @@ function ขอคำตอบจากชิมชิม(text, ผลลัพ�
 			category: r.หมวด,
 			tastes: r.รส || [],
 			distance: distanceText(r.ระยะทาง),
+			cuisine: r.ชาติอาหาร || null,
+			area: r.มหาลัย || null,
+			meals: r.มื้อที่เหมาะ || [],
+			hours: เวลาเปิดจริง(r),
+			desc: r.คำโปรยกำหนดเอง || null,
 			// ราคารวมโดยประมาณตามจำนวนคน คำนวณจากราคาจริง (AI จะได้ไม่ต้องคิดเลขเองแล้วพลาด)
 			groupTotal: people > 1 ? ("฿" + (r.ราคาต่ำ * people) + "–" + (r.ราคาสูง * people) + " / " + people + " คน") : null
 		};
@@ -631,6 +706,9 @@ function ขอคำตอบจากชิมชิม(text, ผลลัพ�
 		request: สรุปคำขอ(คำขอ) || null,
 		people: คำขอ.people || null,
 		relaxed: extra.relaxed || [],
+		asked: (extra.asked || []).map(function(k) { return t("ai.attr_" + k); }),
+		area: (typeof getSelectedArea === "function" && getSelectedArea()) || null,
+		prefs: ความชอบสำหรับAI(),
 		memory: สรุปความจำสำหรับAI(),
 		lang: lang()
 	};
@@ -697,11 +775,28 @@ function ส่งข้อความ(text) {
 	aiChatInput.value = "";
 	เก็บประวัติแชท("user", text);
 
-	var msg = text.toLowerCase();
+	// นอกขอบเขตชัดเจน → ปฏิเสธสั้น ๆ (ครั้งถัดไปติดกันใช้ประโยคสั้นลง) ไม่ล้างสิ่งที่คุยเรื่องอาหารค้างไว้
+	if (เป็นคำถามนอกเรื่อง(text)) {
+		var ซ้ำ = นอกเรื่องติดกัน > 0;
+		นอกเรื่องติดกัน++;
+		หน่วงแล้ว(function() {
+			var ข้อความ = t(ซ้ำ ? "ai.offTopicAgain" : "ai.offTopic");
+			addBotBubble(ข้อความ);
+			เก็บประวัติแชท("model", ข้อความ);
+			แสดงปุ่มตามสถานะ();
+		});
+		return;
+	}
+	นอกเรื่องติดกัน = 0;
+
+	// ถามคุณสมบัติร้านที่ระบบไม่มีข้อมูล (แอร์/ที่นั่ง/เปิดตอนนี้ ฯลฯ) → ตัดออกก่อนอ่านคำขอ แล้วให้ AI บอกตรง ๆ ว่าไม่มีข้อมูลข้อไหน
+	var คุณสมบัติ = แยกคุณสมบัติร้าน(text);
+	var ถามคุณสมบัติ = คุณสมบัติ.asked;
+	var msg = คุณสมบัติ.cleaned.toLowerCase();
 
 	// ถามต่อเรื่องร้านที่เพิ่งแนะนำ (ใกล้สุด/ถูกสุด/ตรงใจสุด) → ตอบจากข้อมูลจริงทันที
 	// เช็คก่อนอ่านเงื่อนไข ไม่งั้นคำว่า "ใกล้"/"ถูก" ในคำถามจะถูกเข้าใจผิดเป็นคำขอหาร้านใหม่
-	if (คำขอ.stage === "done") {
+	if (คำขอ.stage === "done" && !ถามคุณสมบัติ.length) {
 		var ตอบเอง = ตอบคำถามเรื่องร้านที่แนะนำ(text);
 		if (ตอบเอง) {
 			หน่วงแล้ว(function() { ตอบเป็นข้อความ(ตอบเอง); });
@@ -717,7 +812,7 @@ function ส่งข้อความ(text) {
 		return;
 	}
 
-	var parsed = แยกคำขอจากข้อความ(text);
+	var parsed = แยกคำขอจากข้อความ(msg);
 	var skip = AI_SKIP_RE.test(msg);
 	var รีเซ็ต = AI_RESET_RE.test(msg);
 
@@ -730,7 +825,12 @@ function ส่งข้อความ(text) {
 	if (คำขอ.stage === "asking" && คำขอ.pending && parsed[คำขอ.pending] === undefined && AI_ANY_RE.test(msg)) {
 		parsed[คำขอ.pending] = "any";
 	}
-	var ขอเจาะจง = แยกสิ่งที่ขอเจาะจง(text);
+	var ขอเจาะจง = แยกสิ่งที่ขอเจาะจง(msg);
+	// คำที่ดึงออกมาตรงกับแนวอาหารที่มีร้านอยู่แล้ว (เช่น "ก๋วยเตี๋ยว") → ใช้แนวอาหารนั้นค้นแทน ไม่ต้องตอบว่ายังไม่มี
+	var แนวนี้มีร้าน = parsed.cat && ร้านทั้งหมดที่ค้นได้().some(function(r) { return parsed.cat.cats.indexOf(r.หมวด) !== -1; });
+	if (ขอเจาะจง && แนวนี้มีร้าน && !ร้านที่มีคำนี้(ขอเจาะจง).length) ขอเจาะจง = null;
+	// แนวที่ขอ (เช่น อาหารเกาหลี) ไม่มีร้านเลย → ให้ข้อความ "ยังไม่มีร้านแนวนี้" ด้านล่างตอบด้วยชื่อแนวที่สะอาด
+	if (ขอเจาะจง && parsed.cat && !แนวนี้มีร้าน && !ร้านที่มีคำนี้(ขอเจาะจง).length) ขอเจาะจง = null;
 	if (ขอเจาะจง) {
 		if (ร้านที่มีคำนี้(ขอเจาะจง).length) {
 			// มีของนี้จริง → ค้นด้วยคำนั้นตรง ๆ (ไม่ต้องถามแนวอาหารซ้ำ)
@@ -745,7 +845,7 @@ function ส่งข้อความ(text) {
 			คำขอ.pending = "cat";
 			คำขอ.stage = "asking";
 			หน่วงแล้ว(function() {
-				var ข้อความ = t("ai.notAvailable").replace("{what}", ขอเจาะจง);
+				var ข้อความ = t("ai.notAvailable").replace("{what}", ขอเจาะจง) + หมายเหตุคุณสมบัติ(ถามคุณสมบัติ);
 				addBotBubble(ข้อความ);
 				เก็บประวัติแชท("model", ข้อความ);
 				บันทึกสถานะแชท();
@@ -767,7 +867,7 @@ function ส่งข้อความ(text) {
 		คำขอ.cat = null;
 		if (คำขอ.stage === "done") คำขอ.stage = "asking";
 		หน่วงแล้ว(function() {
-			var ข้อความ = t("ai.noShopForCat").replace("{what}", ไม่มีแนว);
+			var ข้อความ = t("ai.noShopForCat").replace("{what}", ไม่มีแนว) + หมายเหตุคุณสมบัติ(ถามคุณสมบัติ);
 			addBotBubble(ข้อความ);
 			เก็บประวัติแชท("model", ข้อความ);
 			ถามข้อต่อไป("cat");
@@ -776,9 +876,20 @@ function ส่งข้อความ(text) {
 	}
 
 	// 1) ถามต่อเรื่องร้านที่เพิ่งแนะนำ (ไม่ได้ขอแนวใหม่) → ให้ AI ตอบจากข้อมูลร้านชุดเดิม
-	if (คำขอ.stage === "done" && !มีข้อมูลอาหาร(parsed) && !skip && !รีเซ็ต) {
+	if (คำขอ.stage === "done" && !มีข้อมูลอาหาร(parsed) && !skip && !รีเซ็ต && !ขอเจาะจง) {
 		var ร้านเดิม = ร้านที่เพิ่งแนะนำ.map(หาร้านจากId).filter(Boolean).map(function(r) { return { ข้อมูล: r, คะแนน: คำนวณMatch(r, foodDNA) }; });
-		ให้AIตอบ(text, ร้านเดิม, "followup");
+		ให้AIตอบ(text, ร้านเดิม, ถามคุณสมบัติ.length ? "attributes" : "followup", { asked: ถามคุณสมบัติ });
+		return;
+	}
+
+	// 1.5) ถามแต่คุณสมบัติร้าน (เปิดตอนนี้/ที่นั่ง/แอร์) ไม่ได้บอกแนวอาหาร → ตอบจากข้อมูลร้านจริงในพื้นที่ ไม่เดาข้อที่ไม่มีข้อมูล
+	if (ถามคุณสมบัติ.length && !มีข้อมูลอาหาร(parsed) && !ขอเจาะจง && คำขอ.stage !== "asking") {
+		var ร้านในพื้นที่ตอนนี้ = ร้านทั้งหมดที่ค้นได้().map(function(r) { return { ข้อมูล: r, คะแนน: คำนวณMatch(r, foodDNA) }; })
+			.sort(function(a, b) {
+				// ร้านที่มีเวลาเปิดจริงขึ้นก่อน (ตอบเรื่องเวลาได้จริง) แล้วค่อยเรียงตาม Match
+				return (เวลาเปิดจริง(b.ข้อมูล) ? 1 : 0) - (เวลาเปิดจริง(a.ข้อมูล) ? 1 : 0) || b.คะแนน - a.คะแนน;
+			}).slice(0, 5);
+		ให้AIตอบ(text, ร้านในพื้นที่ตอนนี้, "attributes", { asked: ถามคุณสมบัติ, fallback: ตอบคุณสมบัติสำรอง(ถามคุณสมบัติ, ร้านในพื้นที่ตอนนี้) });
 		return;
 	}
 
@@ -794,13 +905,33 @@ function ส่งข้อความ(text) {
 		return;
 	}
 
-	// 4) เรื่องหาของกิน → ยังมีข้อที่ไม่รู้ ถามต่อ (ยกเว้นกด "แนะนำเลย") / รู้ครบแล้ว หาร้านจริงแล้วแนะนำ
-	var ข้อต่อไป = skip ? null : ช่องที่ยังไม่รู้();
+	// 4) เรื่องหาของกิน → ข้อมูลยังไม่พอ ถามต่อทีละข้อ (ยกเว้นกด "แนะนำเลย") / พอแล้ว หาร้านจริงแล้วแนะนำเลย ไม่ถามเกินจำเป็น
+	var ข้อต่อไป = (skip || ข้อมูลพอแล้ว(msg)) ? null : ช่องที่ยังไม่รู้();
 	if (ข้อต่อไป && คำขอ.stage !== "done") {
 		หน่วงแล้ว(function() { ถามข้อต่อไป(ข้อต่อไป); });
 		return;
 	}
-	แนะนำร้านตามคำขอ(text);
+	แนะนำร้านตามคำขอ(text, ถามคุณสมบัติ);
+}
+
+var นอกเรื่องติดกัน = 0;
+// ถามคุณสมบัติที่ระบบไม่มีข้อมูล แนบท้ายข้อความตอบสำเร็จรูป (ตอนไม่ได้ให้ AI พูด)
+function หมายเหตุคุณสมบัติ(keys) {
+	return keys && keys.length ? " " + t("ai.attrNoData").replace("{what}", ชื่อคุณสมบัติ(keys)) : "";
+}
+// คำตอบสำรองเมื่อ AI ใช้ไม่ได้ สำหรับคำถามเรื่องคุณสมบัติร้าน — ใช้ข้อมูลจริงเท่านั้น
+function ตอบคุณสมบัติสำรอง(keys, ร้าน) {
+	var ไม่มีข้อมูล = keys.filter(function(k) { return k !== "openNow"; });
+	var ข้อความ = [];
+	if (keys.indexOf("openNow") !== -1) {
+		var มีเวลา = ร้าน.filter(function(x) { return เวลาเปิดจริง(x.ข้อมูล); });
+		ข้อความ.push(มีเวลา.length
+			? t("ai.hoursKnown").replace("{list}", มีเวลา.slice(0, 3).map(function(x) { return x.ข้อมูล.ร้าน + " (" + เวลาเปิดจริง(x.ข้อมูล) + ")"; }).join(", "))
+			: t("ai.hoursUnknown"));
+	}
+	if (ไม่มีข้อมูล.length) ข้อความ.push(t("ai.attrNoData").replace("{what}", ชื่อคุณสมบัติ(ไม่มีข้อมูล)));
+	ข้อความ.push(t("ai.attrOffer"));
+	return ข้อความ.join(" ");
 }
 
 function ตอบเป็นข้อความ(ข้อความ) {
@@ -813,10 +944,10 @@ function ให้AIตอบ(text, ร้าน, mode, opts) {
 	opts = opts || {};
 	เริ่มคิด();
 	// รอทั้งคำตอบจาก AI และเวลาคิดขั้นต่ำ (AI ตอบไวก็ยังรอให้ครบ 1-2 วิ)
-	Promise.all([ขอคำตอบจากชิมชิม(text, ร้าน, mode), รอคิด()]).then(function(v) {
+	Promise.all([ขอคำตอบจากชิมชิม(text, ร้าน, mode, { asked: opts.asked }), รอคิด()]).then(function(v) {
 		var reply = v[0];
 		คิดเสร็จ();
-		var ข้อความ = reply || สุ่มข้อความสำรองทั่วไป();
+		var ข้อความ = reply || opts.fallback || สุ่มข้อความสำรองทั่วไป();
 		addBotBubble(ข้อความ);
 		เก็บประวัติแชท("model", ข้อความ);
 		if (opts.thenAsk) {
@@ -828,7 +959,8 @@ function ให้AIตอบ(text, ร้าน, mode, opts) {
 	});
 }
 
-function แนะนำร้านตามคำขอ(text) {
+function แนะนำร้านตามคำขอ(text, ถามคุณสมบัติ) {
+	ถามคุณสมบัติ = ถามคุณสมบัติ || [];
 	คำขอ.pending = null;
 	คำขอ.stage = "done";
 	var ผล = ค้นร้านตามคำขอ(คำขอ);
@@ -841,15 +973,16 @@ function แนะนำร้านตามคำขอ(text) {
 		var what = คำขอ.cat && คำขอ.cat !== "any" ? คำขอ.cat[lang()] : สรุปคำขอ(คำขอ);
 		คำขอ.cat = null;
 		หน่วงแล้ว(function() {
-			addBotBubble(t("ai.noShopForCat").replace("{what}", what));
-			เก็บประวัติแชท("model", t("ai.noShopForCat").replace("{what}", what));
+			var ข้อความไม่มี = t("ai.noShopForCat").replace("{what}", what) + หมายเหตุคุณสมบัติ(ถามคุณสมบัติ);
+			addBotBubble(ข้อความไม่มี);
+			เก็บประวัติแชท("model", ข้อความไม่มี);
 			ถามข้อต่อไป("cat");
 		});
 		return;
 	}
 
 	เริ่มคิด();
-	Promise.all([ขอคำตอบจากชิมชิม(text, ผล.items, "recommend", { relaxed: ผล.relaxed }), รอคิด()]).then(function(v) {
+	Promise.all([ขอคำตอบจากชิมชิม(text, ผล.items, "recommend", { relaxed: ผล.relaxed, asked: ถามคุณสมบัติ }), รอคิด()]).then(function(v) {
 		var reply = v[0];
 		คิดเสร็จ();
 		var สรุป = สรุปคำขอ(คำขอ);
@@ -860,6 +993,7 @@ function แนะนำร้านตามคำขอ(text) {
 		if (!reply && ผล.relaxed.length) {
 			ข้อความ += " " + t("ai.relaxedNote").replace("{what}", ผล.relaxed.map(function(k) { return t("ai.slotName_" + k); }).join(", "));
 		}
+		if (!reply) ข้อความ += หมายเหตุคุณสมบัติ(ถามคุณสมบัติ);
 		addBotBubble(ข้อความ);
 		เก็บประวัติแชท("model", ข้อความ);
 		setTimeout(function() {

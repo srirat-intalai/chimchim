@@ -116,7 +116,12 @@ function updateHeroBadges() {
     var item = mhState.ranked[mhState.currentIndex];
     if (!item) return;
     document.getElementById('mhMatchVal').textContent = matchHeadline(item.m);
-    document.getElementById('mhDistVal').textContent = distanceText(item.r.ระยะทาง);
+    // ระยะจริงจากหมุดร้านถึงตำแหน่งผู้ใช้ ถ้ามีพิกัดทั้งสองฝั่ง ไม่งั้นบอกตามจริงว่าเป็นระยะจากมหาลัย
+    var dist = ข้อมูลระยะทาง(item.r);
+    document.getElementById('mhDistVal').textContent = distanceText(dist.meters);
+    var distLbl = document.getElementById('mhDistLbl');
+    distLbl.textContent = ป้ายที่มาระยะทาง(dist);
+    distLbl.removeAttribute('data-i18n');
 }
 function renderMatchHero() {
     var wrap = document.getElementById('matchHero');

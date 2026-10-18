@@ -409,3 +409,52 @@ create policy "likes_seed_posts_delete_own" on public.likes_seed_posts for delet
 -- ผู้ใช้ทั่วไปแก้ค่านี้ไม่ได้ (policy update ของ comments ให้แก้ได้เฉพาะคอมเมนต์ตัวเอง และแอปไม่ส่งคอลัมน์นี้)
 -- =====================================================================
 alter table public.comments add column if not exists is_hidden boolean not null default false;
+
+-- =====================================================================
+-- Phase 11 — จำกัดรูปต่อโพสต์/รีวิว "ไม่เกิน 10 รูป" ฝั่งฐานข้อมูลด้วย
+-- (กันคนยิง request ตรงด้วย anon key ข้ามการจำกัดในหน้าเว็บ)
+-- ปลอดภัยกับข้อมูลเดิม: ไม่ลบ/ไม่แก้แถวไหนเลย และใช้ NOT VALID = ตรวจเฉพาะแถวที่ insert/update ใหม่
+-- โพสต์/รีวิวเก่าที่มีรูปเดียว (หรือไม่มีรูป) ใช้งานได้ตามเดิมทุกอย่าง
+-- รันซ้ำได้ (drop constraint if exists ก่อนสร้างใหม่)
+-- =====================================================================
+-- ตรวจทุกรูป: เป็นรูป data URL (image/...) หรือลิงก์ http(s) และแต่ละรูปไม่เกิน ~1.5MB ตัวอักษร
+create or replace function public.chimchim_images_ok(imgs text[])
+returns boolean language sql immutable as $$
+  select imgs is null or (
+    coalesce(cardinality(imgs), 0) <= 10
+    and not exists (
+      select 1 from unnest(imgs) as u(src)
+      where src is null
+         or not (src like 'data:image/%' or src like 'https://%' or src like 'http://%' or src like 'img/%')
+         or octet_length(src) > 1600000
+    )
+  );
+$$;
+
+alter table public.posts drop constraint if exists posts_images_limit;
+alter table public.posts add constraint posts_images_limit
+  check (cardinality(images) between 1 and 10 and public.chimchim_images_ok(images)) not valid;
+
+alter table public.reviews drop constraint if exists reviews_images_limit;
+alter table public.reviews add constraint reviews_images_limit
+  check (public.chimchim_images_ok(images)) not valid;
+
+-- =====================================================================
+-- Phase 12 — บันทึกโพสต์ (ปุ่มบุ๊กมาร์กในหน้าดูโพสต์ → แท็บ "บันทึกไว้" ในโปรไฟล์)
+-- post_key = id โพสต์จริง (ตัวเลข เป็นข้อความ) หรือโพสต์ตัวอย่างของร้านตั้งต้น ("bu-…-postN")
+-- ไม่แตะตาราง/ข้อมูลเดิม รันซ้ำได้
+-- =====================================================================
+create table if not exists public.saved_posts (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  post_key text not null check (post_key ~ '^([0-9]+|bu-[a-z0-9-]+-post[0-9]+)$'),
+  created_at timestamptz not null default now(),
+  primary key (user_id, post_key)
+);
+alter table public.saved_posts enable row level security;
+-- รายการที่บันทึกเป็นเรื่องส่วนตัว เห็นได้เฉพาะเจ้าของ
+drop policy if exists "saved_posts_select_own" on public.saved_posts;
+drop policy if exists "saved_posts_insert_own" on public.saved_posts;
+drop policy if exists "saved_posts_delete_own" on public.saved_posts;
+create policy "saved_posts_select_own" on public.saved_posts for select using (auth.uid() = user_id);
+create policy "saved_posts_insert_own" on public.saved_posts for insert with check (auth.uid() = user_id);
+create policy "saved_posts_delete_own" on public.saved_posts for delete using (auth.uid() = user_id);

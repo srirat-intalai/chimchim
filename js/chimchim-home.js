@@ -265,7 +265,7 @@ renderRecommendedRow();
             return blob.indexOf(q) !== -1;
         }).slice(0, 4);
         var foodHtml = foodMatches.map(function(r) {
-            return '<a class="spitem" href="restaurant.html?id=' + r.id + '"><img src="' + r.รูป + '" alt=""/><div><div class="sptit">' + escapeHtml(r.เมนู) + '</div><div class="spsub">' + escapeHtml(r.ร้าน) + '</div></div></a>';
+            return '<a class="spitem" href="restaurant.html?id=' + r.id + '"><img src="' + safeImgSrc(r.รูป) + '" alt=""/><div><div class="sptit">' + escapeHtml(r.เมนู) + '</div><div class="spsub">' + escapeHtml(r.ร้าน) + '</div></div></a>';
         }).join("");
 
         var seenShops = {};
@@ -276,15 +276,10 @@ renderRecommendedRow();
             return true;
         }).slice(0, 4);
         var shopHtml = shopMatches.map(function(r) {
-            return '<a class="spitem" href="restaurant.html?id=' + r.id + '"><img src="' + r.รูป + '" alt=""/><div><div class="sptit">' + escapeHtml(r.ร้าน) + '</div><div class="spsub">' + catLabel(r.หมวด) + ' • ฿' + r.ราคาต่ำ + '–' + r.ราคาสูง + '</div></div></a>';
+            return '<a class="spitem" href="restaurant.html?id=' + r.id + '"><img src="' + safeImgSrc(r.รูป) + '" alt=""/><div><div class="sptit">' + escapeHtml(r.ร้าน) + '</div><div class="spsub">' + catLabel(r.หมวด) + ' • ฿' + r.ราคาต่ำ + '–' + r.ราคาสูง + '</div></div></a>';
         }).join("");
 
         var people = [];
-        นักรีวิวเด่น.forEach(function(คน) {
-            if (คน.ชื่อ.toLowerCase().indexOf(q) !== -1) {
-                people.push({ id: คน.id, name: คน.ชื่อ, sub: t("publicprofile.foodExplorerLevel") + คน.ระดับ, color: คน.สี });
-            }
-        });
         // getUsers() เป็นแค่ cache ในเครื่องนี้ (คนที่เคยเห็นมาก่อนเท่านั้น) ไม่ใช่ทุกคนที่สมัครจริง
         // เลยค้นหาเพิ่มจาก Supabase จริงด้านล่างด้วย (ดู searchPeopleFromSupabase) ผลจะโผล่มาเพิ่มทีหลังแบบ progressive
         getUsers().forEach(function(u) {

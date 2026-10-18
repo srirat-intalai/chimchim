@@ -59,12 +59,36 @@
 
          <p class="sdesc mb-3" id="ppBio" style="font-size:.85rem;"></p>
 
+         <!-- Food DNA ของนักชิมคนนี้ (สาธารณะ) — แสดงเฉพาะโปรไฟล์ผู้ใช้ที่ทำแบบทดสอบแล้ว -->
+         <section class="ppdna" id="ppDna" hidden aria-labelledby="ppDnaTit">
+            <div class="ppdna-head">
+               <h2 class="ppdna-tit" id="ppDnaTit"><i class="fas fa-dna"></i><span data-i18n="publicprofile.foodDna">Food DNA</span></h2>
+               <span class="ppdna-match" id="ppDnaMatch" hidden></span>
+            </div>
+            <div class="ppdna-rows" id="ppDnaRows"></div>
+         </section>
+
          <button class="btn-red profbtn" id="ppFollowBtn"><i class="fas fa-user-plus"></i><span data-i18n="common.follow">Follow</span></button>
 
-         <div class="profcard">
-            <div class="profcardtit"><i class="fas fa-image me-1"></i><span data-i18n="publicprofile.recentPosts">โพสต์ล่าสุด</span></div>
+         <!-- แท็บ โพสต์ / รีวิว — แสดงเฉพาะโปรไฟล์ร้านค้า (โปรไฟล์นักชิมยังเป็นการ์ดโพสต์ล่าสุดแบบเดิม) -->
+         <div class="proftabs ppshoptabs" id="ppShopTabs" role="tablist" data-i18n-aria="publicprofile.shopTabs" aria-label="โพสต์และรีวิวของร้าน" hidden>
+            <button type="button" class="proftab active" role="tab" id="ppTabPosts" data-pptab="posts" aria-controls="ppPostsCard" aria-selected="true" data-i18n-title="publicprofile.tabPosts" title="โพสต์"><i class="fas fa-table-cells"></i></button>
+            <button type="button" class="proftab" role="tab" id="ppTabReviews" data-pptab="reviews" aria-controls="ppReviewsPane" aria-selected="false" tabindex="-1" data-i18n-title="publicprofile.tabReviews" title="รีวิว"><i class="fas fa-pen"></i></button>
+         </div>
+
+         <div class="profcard" id="ppPostsCard" role="tabpanel" aria-labelledby="ppTabPosts">
+            <div class="profcardtit" id="ppPostsTit"><i class="fas fa-image me-1"></i><span data-i18n="publicprofile.recentPosts">โพสต์ล่าสุด</span></div>
             <div class="ppgrid" id="ppPostGrid"></div>
             <p id="ppEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:20px 0;" hidden data-i18n="publicprofile.noPosts">ยังไม่มีโพสต์</p>
+         </div>
+
+         <div class="ppreviewspane" id="ppReviewsPane" role="tabpanel" aria-labelledby="ppTabReviews" hidden>
+            <div id="ppReviewList"></div>
+            <p class="ppreviewsloading" id="ppReviewsLoading" hidden><i class="fas fa-spinner fa-spin"></i></p>
+            <div class="ppreviewsempty" id="ppReviewsEmpty" hidden>
+               <i class="fas fa-pen" aria-hidden="true"></i>
+               <p data-i18n="publicprofile.noReviews">ร้านนี้ยังไม่มีรีวิว</p>
+            </div>
          </div>
       </div>
 

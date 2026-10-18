@@ -16,7 +16,8 @@
 import "dotenv/config";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
+// ชื่อเดียวกับที่ server.js ใช้ก็ได้ (SUPABASE_SERVICE_ROLE_KEY) — คีย์ตัวเดียวกัน
+const SECRET_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SECRET_KEY) {
 	console.error("[admin-view-reports] ต้องตั้งค่า SUPABASE_URL และ SUPABASE_SECRET_KEY ใน .env ก่อน (ดูวิธีใช้ด้านบนของไฟล์นี้)");
@@ -31,7 +32,8 @@ async function sbAdminGet(path) {
 	return res.json();
 }
 
-const REASON_LABEL = { spam: "สแปม", inappropriate: "ไม่เหมาะสม", fake: "ข้อมูลเท็จ", other: "อื่น ๆ" };
+// ตรงกับเหตุผลที่อนุญาตใน SQL Phase 8 (moderation_reports_reason_check)
+const REASON_LABEL = { spam: "สแปม", inappropriate: "ไม่เหมาะสม", fake: "ข้อมูลเท็จ", harassment: "คุกคาม/กลั่นแกล้ง", hate: "สร้างความเกลียดชัง", violence: "ความรุนแรง", copyright: "ละเมิดลิขสิทธิ์", wrong_info: "ข้อมูลร้านไม่ถูกต้อง", other: "อื่น ๆ" };
 
 async function main() {
 	const reports = await sbAdminGet("moderation_reports?select=*&order=created_at.desc");
@@ -52,19 +54,24 @@ async function main() {
 	console.log("พบรายงานทั้งหมด " + reports.length + " รายการ ครอบคลุม " + entries.length + " ชิ้นเนื้อหา\n");
 
 	for (const entry of entries) {
-		var table = entry.targetType === "post" ? "posts" : "shops";
+		var table = { post: "posts", shop: "shops", comment: "comments" }[entry.targetType] || "shops";
 		var content = null;
 		try {
-			var rows = await sbAdminGet(table + "?id=eq." + entry.targetId + "&select=*");
+			var rows = await sbAdminGet(table + "?id=eq." + encodeURIComponent(entry.targetId) + "&select=*");
 			content = rows[0] || null;
 		} catch (e) {
 			// เนื้อหาอาจถูกลบไปแล้ว — ไม่เป็นไร แค่โชว์ id เฉย ๆ ต่อ
 		}
 
 		var hidden = content ? content.is_hidden : null;
-		var label = entry.targetType === "post"
-			? (content ? "โพสต์ #" + entry.targetId + " — \"" + (content.caption || "").slice(0, 40) + "\"" : "โพสต์ #" + entry.targetId + " (ถูกลบไปแล้ว)")
-			: (content ? "ร้าน #" + entry.targetId + " — " + content.shop_name + " (" + content.menu_name + ")" : "ร้าน #" + entry.targetId + " (ถูกลบไปแล้ว)");
+		var label;
+		if (entry.targetType === "post") {
+			label = content ? "โพสต์ #" + entry.targetId + " — \"" + (content.caption || "").slice(0, 40) + "\"" : "โพสต์ #" + entry.targetId + " (ถูกลบไปแล้ว)";
+		} else if (entry.targetType === "comment") {
+			label = content ? "คอมเมนต์ #" + entry.targetId + " — \"" + (content.text || "").slice(0, 40) + "\"" : "คอมเมนต์ #" + entry.targetId + " (ถูกลบไปแล้ว)";
+		} else {
+			label = content ? "ร้าน #" + entry.targetId + " — " + content.shop_name + " (" + content.menu_name + ")" : "ร้าน #" + entry.targetId + " (ถูกลบไปแล้ว)";
+		}
 
 		console.log(label);
 		console.log("  รายงานทั้งหมด: " + entry.reports.length + " ครั้ง" + (hidden === true ? " 🔒 ถูกซ่อนอัตโนมัติแล้ว (ถึงเกณฑ์ 3 รายงาน)" : hidden === false ? " 👁️ ยังไม่ถูกซ่อน" : ""));

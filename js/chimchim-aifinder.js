@@ -14,6 +14,40 @@ function อัปเดตสถานะแชทว่าง() {
 	aiChatWrap.classList.toggle("is-empty", !aiChatBody.querySelector(".chatbubble.user"));
 }
 
+/* --- เลย์เอาต์เต็มจอพอดีหน้าจอ: เลื่อนเฉพาะรายการข้อความ แท่นพิมพ์อยู่ล่างเสมอ
+   วัดความสูงหัวแอปจริง + ใช้ความสูง visualViewport (มือถือ: คีย์บอร์ดเปิดแล้วพื้นที่หดตาม ไม่บังช่องพิมพ์) --- */
+function ปรับความสูงหน้าแชท() {
+	var top = document.querySelector(".apptop");
+	var root = document.documentElement.style;
+	root.setProperty("--ai-top", (top ? top.offsetHeight : 64) + "px");
+	if (window.visualViewport) root.setProperty("--ai-vh", window.visualViewport.height + "px");
+}
+ปรับความสูงหน้าแชท();
+window.addEventListener("resize", ปรับความสูงหน้าแชท);
+if (window.visualViewport) {
+	window.visualViewport.addEventListener("resize", function() {
+		ปรับความสูงหน้าแชท();
+		if (aiChatBody) aiChatBody.scrollTop = aiChatBody.scrollHeight;
+	});
+}
+
+/* --- ช่องพิมพ์หลายบรรทัด: สูงขึ้นตามข้อความ (ไม่เกิน ~5 บรรทัด) / Enter = ส่ง, Shift+Enter = ขึ้นบรรทัดใหม่ --- */
+function ปรับความสูงช่องพิมพ์() {
+	if (!aiChatInput || aiChatInput.tagName !== "TEXTAREA") return;
+	aiChatInput.style.height = "auto";
+	aiChatInput.style.height = Math.min(aiChatInput.scrollHeight, 120) + "px";
+}
+if (aiChatInput) {
+	aiChatInput.addEventListener("input", ปรับความสูงช่องพิมพ์);
+	aiChatInput.addEventListener("keydown", function(e) {
+		if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+			e.preventDefault();
+			if (typeof aiChatForm.requestSubmit === "function") aiChatForm.requestSubmit();
+			else aiChatForm.dispatchEvent(new Event("submit", { cancelable: true }));
+		}
+	});
+}
+
 /* -----------------------------------------------------
    คลังคำแนะนำเริ่มบทสนทนา (Quick Suggestions) — สุ่มใหม่ทุกครั้ง ไม่ตายตัว
    แบ่งเป็นหมวด: รสชาติ / ราคา / สถานที่-ระยะทาง / ประเภทอาหาร / Random
@@ -56,6 +90,24 @@ function สุ่มQuickSuggestions(n) {
 	return เลือกได้.slice(0, n);
 }
 
+/* --- ชิปเริ่มต้นหน้าแรก (Smart Suggestion Chips) — ชุดคงที่ 6 อัน แสดงไม่เกิน 6 รวมปุ่ม "แบบเดิมเลย"
+   ชิปแนวอาหารที่ยังไม่มีร้านในพื้นที่จะไม่แสดง (กดแล้วจะไม่เจอ "ไม่มีร้าน") แตะแล้วส่งข้อความเข้าระบบเดิมผ่าน ส่งข้อความ() --- */
+var AI_STARTER_CHIPS = [
+	{ key: "ai.chipRandom", icon: "fa-shuffle" },
+	{ key: "ai.chipJapanese", icon: "fa-fish" },
+	{ key: "ai.chipNearMe", icon: "fa-location-dot" },
+	{ key: "ai.chipNoodles", icon: "fa-bowl-rice" },
+	{ key: "ai.chipFriends", icon: "fa-user-group" },
+	{ key: "ai.chipBudget150", icon: "fa-wallet" }
+];
+var AI_STARTER_MAX = 6;
+function ชิปเริ่มต้นที่ใช้ได้() {
+	return AI_STARTER_CHIPS.filter(function(c) {
+		var p = แยกคำขอจากข้อความ(t(c.key).toLowerCase());
+		return !p.cat || ร้านทั้งหมดที่ค้นได้().some(function(r) { return p.cat.cats.indexOf(r.หมวด) !== -1; });
+	});
+}
+
 function renderQuickSuggestions() {
 	aiSuggestRow.innerHTML = "";
 	var mem = โหลดความจำ();
@@ -78,12 +130,18 @@ function renderQuickSuggestions() {
 		same.addEventListener("click", function() { ส่งข้อความ(t("ai.sameAsLast")); });
 		aiSuggestRow.appendChild(same);
 	}
-	สุ่มQuickSuggestions(4).forEach(function(s) {
+	// หน้าแรก (ยังไม่เริ่มคุย) ใช้ชิปชุดคงที่ / ระหว่างคุยแล้วกลับมาสถานะว่าง ใช้คำแนะนำสุ่มจากคลังเดิม
+	var starter = aiChatWrap && aiChatWrap.classList.contains("is-empty");
+	var room = AI_STARTER_MAX - (mem.lastRequest ? 1 : 0);
+	var list = starter
+		? ชิปเริ่มต้นที่ใช้ได้().slice(0, room).map(function(c) { return { text: t(c.key), icon: c.icon }; })
+		: สุ่มQuickSuggestions(Math.min(4, room)).map(function(s) { return { text: s.text, icon: "fa-wand-magic-sparkles" }; });
+	list.forEach(function(s) {
 		var chip = document.createElement("button");
 		chip.type = "button";
 		chip.className = "chatchip";
-		chip.textContent = s.text;
-		chip.insertAdjacentHTML("beforeend", '<i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>');
+		chip.innerHTML = '<i class="fas ' + s.icon + '" aria-hidden="true"></i>';
+		chip.appendChild(document.createTextNode(s.text));
 		chip.addEventListener("click", function() {
 			ส่งข้อความ(s.text);
 		});
@@ -121,8 +179,23 @@ function จดบันทึกลงแชท(entry) {
 /* -----------------------------------------------------
    วาดข้อความ/การ์ดผลลัพธ์ในแชท
 ----------------------------------------------------- */
+var เลื่อนเองล่าสุด = 0;
 function เลื่อนแชทลงล่าง() {
+	เลื่อนเองล่าสุด = Date.now();
 	aiChatBody.scrollTop = aiChatBody.scrollHeight;
+}
+// พื้นที่ข้อความหด/ขยาย (ปุ่มคำตอบโผล่, ช่องพิมพ์สูงขึ้น, คีย์บอร์ดเปิด) → ถ้าดูข้อความล่าสุดอยู่ ให้ติดล่างต่อไป
+// ไม่งั้นข้อความล่าสุดโดนแท่นพิมพ์ดันจนตกขอบ ถ้าผู้ใช้เลื่อนขึ้นไปอ่านของเก่าอยู่ จะไม่ดึงลงให้
+var แชทติดล่าง = true;
+aiChatBody.addEventListener("scroll", function() {
+	// อีเวนต์ scroll ที่เกิดจากโค้ดเลื่อนเอง (มาช้ากว่าหนึ่งเฟรม ตอนนั้นแท่นพิมพ์อาจดันพื้นที่แล้ว) ไม่นับเป็นผู้ใช้เลื่อนขึ้น
+	if (Date.now() - เลื่อนเองล่าสุด < 300) return;
+	แชทติดล่าง = aiChatBody.scrollHeight - aiChatBody.scrollTop - aiChatBody.clientHeight < 60;
+});
+if ("ResizeObserver" in window) {
+	new ResizeObserver(function() {
+		if (แชทติดล่าง) เลื่อนแชทลงล่าง();
+	}).observe(aiChatBody);
 }
 function addUserBubble(text) {
 	var el = document.createElement("div");
@@ -161,7 +234,7 @@ function addResultCards(ร้านพร้อมคะแนน) {
 		var card = document.createElement("div");
 		card.className = "chatcard";
 		card.innerHTML =
-			'<img src="' + ร้าน.รูป + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
+			'<img src="' + safeImgSrc(ร้าน.รูป) + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
 			'<div class="chatcard-body">' +
 				'<span class="chatcard-match" data-match-score="' + item.คะแนน + '">' + matchBadgeText(item.คะแนน) + '</span>' +
 				'<div class="chatcard-title">' + escapeHtml(ร้าน.เมนู) + '</div>' +
@@ -219,7 +292,7 @@ var AI_TASTE_RULES = [
 	{ re: /หวาน|sweet/, th: "หวาน", en: "Sweet" }
 ];
 var AI_ANY_RE = /อะไรก็ได้|แล้วแต่|ไม่จำกัด|ไม่เกี่ยง|ได้หมด|anything|whatever|no limit|any/;
-var AI_SKIP_RE = /แนะนำเลย|เลือกให้เลย|ข้ามคำถาม|ข้าม|สุ่มเลย|สุ่มให้|just recommend|skip/;
+var AI_SKIP_RE = /แนะนำเลย|เลือกให้เลย|ข้ามคำถาม|ข้าม|สุ่มเลย|สุ่มให้|just recommend|surprise me|skip/;
 var AI_RESET_RE = /อย่างอื่น|เปลี่ยนใจ|เริ่มใหม่|หาใหม่|something else|start over/;
 var AI_FOOD_RE = /กิน|หิว|ร้าน|เมนู|อาหาร|แนะนำ|มื้อ|ข้าว|eat|hungry|food|restaurant|meal|craving/;
 var AI_SLOT_ORDER = ["cat", "taste", "people", "budget"];
@@ -773,6 +846,7 @@ function ส่งข้อความ(text) {
 	if (typeof logEvent === "function") logEvent("ai_chat_message_sent", {});
 	addUserBubble(text);
 	aiChatInput.value = "";
+	ปรับความสูงช่องพิมพ์();
 	เก็บประวัติแชท("user", text);
 
 	// นอกขอบเขตชัดเจน → ปฏิเสธสั้น ๆ (ครั้งถัดไปติดกันใช้ประโยคสั้นลง) ไม่ล้างสิ่งที่คุยเรื่องอาหารค้างไว้

@@ -12,6 +12,21 @@ function escapeHtml(str) {
 	return div.innerHTML.replace(/"/g, "&quot;");
 }
 
+/* --- URL รูปที่มาจากข้อมูลผู้ใช้/ฐานข้อมูล (รูปโพสต์ รูปร้าน รูปโปรไฟล์) ต้องผ่านสองฟังก์ชันนี้ก่อนต่อเข้า HTML/CSS เสมอ
+   กัน Stored XSS: ใครก็แก้ค่า image_url / images ในฐานข้อมูลเองได้ผ่าน API เช่น ใส่ x" onerror="… ถ้าต่อสตริงตรง ๆ
+   สคริปต์จะไปรันบนเครื่องคนอื่นที่เปิดดู — รับเฉพาะรูป data:image, http(s)://, blob: และ path รูปภายในแอป (img/…) --- */
+var CHIMCHIM_SAFE_IMG_RE = /^(data:image\/[a-z0-9.+-]+[;,]|https?:\/\/|blob:|(\.\/)?img\/)/i;
+function safeImgSrc(url) {
+	var u = url == null ? "" : String(url).trim();
+	return CHIMCHIM_SAFE_IMG_RE.test(u) ? escapeHtml(u) : "";
+}
+// สำหรับใส่ใน url('…') ของ CSS — เข้ารหัสอักขระที่หลุดออกจากเครื่องหมายคำพูด/วงเล็บได้
+function cssUrl(url) {
+	var u = url == null ? "" : String(url).trim();
+	if (!CHIMCHIM_SAFE_IMG_RE.test(u)) return "";
+	return u.replace(/[\\'"()\s<>]/g, function(c) { return encodeURIComponent(c); });
+}
+
 // ผูกกล่องอัปโหลดรูปเอง (input type=file) เข้ากับ hidden input ที่เก็บค่าจริง (data URL) + รูปพรีวิว
 // ใช้ร่วมกันได้ทุกฟอร์มที่ให้ผู้ใช้อัปโหลดรูปเอง (รูปเพจร้าน, รูปเมนูเด่นตอนโพสต์ร้าน) แทนดรอปดาวน์เลือกรูปสต็อกเดิม
 // บีบอัด + ย่อขนาดรูปก่อนเก็บเป็น base64 ในเครื่องเสมอ — รูปจากกล้องมือถือจริงมักใหญ่ 3-8MB/รูป
@@ -154,12 +169,12 @@ function แจ้งปัญหาการเลือกรูป(p) {
 }
 
 // ผู้ใช้คนนี้ต้องบันทึกขึ้นเซิร์ฟเวอร์ให้สำเร็จก่อนถึงจะนับว่าโพสต์/รีวิวสำเร็จไหม
-// (มี Supabase + เป็นบัญชี Supabase จริง (id เป็น UUID) หรือไม่ได้ล็อกอิน — รีวิวแบบไม่ล็อกอิน RLS อนุญาต)
+// (มี Supabase + เป็นบัญชี Supabase จริง (id เป็น UUID) — รีวิว/โพสต์ต้องล็อกอินก่อนเสมอ)
 // บัญชีทดลองแบบ localStorage ล้วน (id ไม่ใช่ UUID) เขียนขึ้นเซิร์ฟเวอร์ไม่ได้อยู่แล้ว จึงบันทึกในเครื่องอย่างเดียวเหมือนเดิม
 function ต้องบันทึกขึ้นเซิร์ฟเวอร์() {
 	if (typeof sbClient === "undefined" || !sbClient) return false;
 	var s = getSession();
-	return !s || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.id);
+	return !!s && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.id);
 }
 
 /* --- ดูรูปขนาดใหญ่ (แกลเลอรีเต็มจอ ปัดซ้าย-ขวา / ปุ่มลูกศรบน Desktop / Esc ปิด) — ใช้กับรูปแนบรีวิว --- */
@@ -196,7 +211,7 @@ function openPhotoViewer(images, startIndex) {
 	}
 	var strip2 = box.querySelector(".pvw-strip");
 	strip2.innerHTML = images.map(function(src) {
-		return '<div class="pvw-slide"><img src="' + escapeHtml(src) + '" alt=""/></div>';
+		return '<div class="pvw-slide"><img src="' + safeImgSrc(src) + '" alt=""/></div>';
 	}).join("");
 	box.dataset.total = images.length;
 	box.classList.toggle("single", images.length < 2);
@@ -826,42 +841,6 @@ function reconcileShopNumId(oldNumId, newNumId) {
 }
 
 /* =====================================================================
-   ข้อมูลเสริมของร้าน (เวลาเปิด-ปิด + โปรโมชั่น) — เพื่อให้หน้าโปรไฟล์ร้านและ
-   ฟีดอัปเดตใน Following ดูมีชีวิตชีวา ใช้สูตรคงที่จาก id ร้าน (ไม่ต้องเก็บ state)
-   จะได้ผลลัพธ์เดิมทุกครั้งไม่ว่าจะรีเฟรชกี่รอบ ใช้ได้ทั้งร้านตัวอย่างและร้านที่ชุมชนโพสต์
-   ===================================================================== */
-var เวลาเปิดตัวอย่าง = {
-	th: ["10:00 – 20:00 น.", "08:00 – 18:00 น.", "11:00 – 22:00 น.", "09:00 – 19:00 น.", "17:00 – 01:00 น."],
-	en: ["10:00 AM – 8:00 PM", "8:00 AM – 6:00 PM", "11:00 AM – 10:00 PM", "9:00 AM – 7:00 PM", "5:00 PM – 1:00 AM"]
-};
-var โปรโมชั่นตัวอย่าง = {
-	th: [
-		{ icon: "🎉", text: "ลด 10% เมื่อสั่งผ่านแอป ChimChim" },
-		{ icon: "🍜", text: "ซื้อ 1 แถม 1 ทุกวันจันทร์" },
-		{ icon: "🔥", text: "เมนูใหม่ประจำสัปดาห์นี้ ลองเลย!" },
-		{ icon: "🎁", text: "สะสมแต้มครบ 10 ครั้ง รับฟรี 1 เมนู" },
-		{ icon: "📢", text: "เปิดสาขาใหม่ใกล้มหาลัยของคุณแล้ว!" }
-	],
-	en: [
-		{ icon: "🎉", text: "10% off when you order through the ChimChim app" },
-		{ icon: "🍜", text: "Buy 1 get 1 free every Monday" },
-		{ icon: "🔥", text: "New menu item this week — try it!" },
-		{ icon: "🎁", text: "Collect 10 stamps, get 1 free item" },
-		{ icon: "📢", text: "New branch just opened near your university!" }
-	]
-};
-function getShopExtra(id) {
-	var h = Math.abs((id * 2654435761) % 2147483647);
-	var lang = getLang();
-	var เวลา = เวลาเปิดตัวอย่าง[lang] || เวลาเปิดตัวอย่าง.en;
-	var โปรโมชั่น = โปรโมชั่นตัวอย่าง[lang] || โปรโมชั่นตัวอย่าง.en;
-	return {
-		hours: เวลา[h % เวลา.length],
-		promo: โปรโมชั่น[Math.floor(h / 7) % โปรโมชั่น.length]
-	};
-}
-
-/* =====================================================================
    รีวิวร้าน (เก็บแยกตาม id ร้าน)
    ===================================================================== */
 function getReviews(shopId) {
@@ -1154,7 +1133,7 @@ function buildLikeRow(ร้าน) {
 	row.className = "profshoprow";
 	row.style.cursor = "pointer";
 	row.innerHTML =
-		'<img src="' + ร้าน.รูป + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
+		'<img src="' + safeImgSrc(ร้าน.รูป) + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
 		'<div style="flex:1;min-width:0;">' +
 			'<div class="profshopnm">' + escapeHtml(ร้าน.เมนู) + "</div>" +
 			'<div class="profshopmeta">' + escapeHtml(ร้าน.ร้าน) + " · " + catEmoji(ร้าน.หมวด) + " " + escapeHtml(catLabel(ร้าน.หมวด)) + "</div>" +
@@ -1172,7 +1151,7 @@ function buildReviewItem(r) {
 	item.className = "profreviewitem";
 	item.innerHTML =
 		'<div class="profreviewrow">' +
-			'<img src="' + ร้าน.รูป + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
+			'<img src="' + safeImgSrc(ร้าน.รูป) + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
 			'<div style="flex:1;min-width:0;">' +
 				'<div class="profshopnm">' + escapeHtml(ร้าน.ร้าน) + "</div>" +
 				'<div class="profshopmeta">🎯 ' + avgScore + t("restaurant.avgScoreSuffix") + "</div>" +
@@ -1518,7 +1497,7 @@ function buildMiniCard(ร้าน, onClick) {
 	card.setAttribute("data-id", ร้าน.id);
 	card.innerHTML =
 		'<div class="mimg">' +
-			'<img src="' + ร้าน.รูป + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
+			'<img src="' + safeImgSrc(ร้าน.รูป) + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
 			'<div class="mmatch" data-match-score="' + คะแนน + '">' + matchBadgeText(คะแนน) + "</div>" +
 			'<div class="mhrt"><i class="far fa-heart"></i></div>' +
 		"</div>" +
@@ -1541,6 +1520,17 @@ function buildMiniCard(ร้าน, onClick) {
 
 /* --- Follow นักรีวิว/เพื่อนในชุมชน (แยกจาก Follow ร้าน) --- */
 var CHIMCHIM_FOLLOWED_USERS_KEY = "chimchim_followed_users";
+// นักรีวิวตัวอย่าง (id "seed-…") ถูกลบออกจากแอปแล้ว — ล้างการติดตาม/ถูกใจโพสต์ที่ค้างอยู่ในเครื่อง ไม่ให้นับเกินหรือโชว์แถวว่าง
+(function ล้างนักรีวิวตัวอย่างที่ค้าง() {
+	[["chimchim_followed_users", /^seed-/], ["chimchim_post_likes", /^seed-/]].forEach(function(x) {
+		try {
+			var list = JSON.parse(localStorage.getItem(x[0]));
+			if (!Array.isArray(list)) return;
+			var kept = list.filter(function(id) { return !x[1].test(String(id)); });
+			if (kept.length !== list.length) localStorage.setItem(x[0], JSON.stringify(kept));
+		} catch (e) {}
+	});
+})();
 function getFollowedUsers() {
 	try {
 		return JSON.parse(localStorage.getItem(CHIMCHIM_FOLLOWED_USERS_KEY)) || [];

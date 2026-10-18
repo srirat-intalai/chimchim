@@ -3412,3 +3412,380 @@ body.appshell,
 }
 .profsavedgrid:empty { display: none; }
 .profsavedgrid .ppost { background: var(--rf-fill); cursor: pointer; }
+
+/* =====================================================================
+   หน้า AI Food Finder — เลย์เอาต์กระชับแบบผู้ช่วยแชท (เฉพาะ body.aipage ไม่กระทบหน้าอื่น)
+   - สูงพอดีจอ: หัวแอป → พื้นที่แชท (เลื่อนเฉพาะข้อความ) → แท่นพิมพ์ → เว้นที่ให้แถบเมนูลอยด้านล่าง
+   - ยังไม่เริ่มคุย: มาสคอตเล็ก + หัวข้อ + ชิปแนะนำเรียงแนวนอนขึ้นบรรทัดอัตโนมัติ อยู่กลางพื้นที่
+   ===================================================================== */
+body.aipage {
+  --ai-nav-space: calc(88px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: 0;
+}
+body.aipage .aichat-wrap {
+  height: calc(var(--ai-vh, 100dvh) - var(--ai-top, 64px) - var(--ai-nav-space));
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px 0;
+  overflow: hidden;
+}
+@supports not (height: 100dvh) {
+  body.aipage .aichat-wrap { height: calc(var(--ai-vh, 100vh) - var(--ai-top, 64px) - var(--ai-nav-space)); }
+}
+
+/* ---- ส่วนต้อนรับ (เฉพาะตอนยังไม่คุย) ---- */
+body.aipage .aihero {
+  padding: 0 4px;
+  margin: auto 0 0;
+}
+body.aipage .aihero .aiorb {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 14px;
+  animation: none;
+  box-shadow: inset 0 -6px 14px rgba(78, 47, 151, 0.4), inset 0 5px 10px rgba(255, 255, 255, 0.55), 0 10px 22px -10px rgba(104, 66, 181, 0.5);
+}
+body.aipage .aihero .aiorb::after { inset: -10px; }
+body.aipage .aihero-tit {
+  font-size: 1.45rem;
+  margin: 0 0 6px;
+}
+body.aipage .aihero-sub {
+  font-size: 0.88rem;
+  max-width: 320px;
+}
+body.aipage .aihero-memory {
+  margin-top: 10px;
+  box-shadow: none;
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+
+/* ---- หัวแบบย่อระหว่างคุย ---- */
+body.aipage .aichat-top { padding: 0 0 8px; flex-shrink: 0; }
+body.aipage .aichat-pill { padding: 3px 12px 3px 3px; box-shadow: none; }
+body.aipage .aichat-pill .aichat-hi { font-size: 0.8rem; }
+body.aipage .aiorb-sm { width: 24px; height: 24px; }
+
+/* ---- รายการข้อความ: ส่วนหลักของหน้า เลื่อนได้ในตัว ---- */
+body.aipage .aichat-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  gap: 8px;
+  padding: 4px 0 12px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 12px);
+}
+/* ลูกในรายการข้อความห้ามหดตามความสูง (การ์ดร้านเคยโดนบีบเหลือครึ่งใบ) */
+body.aipage .aichat-body > * { flex-shrink: 0; }
+body.aipage .chatbubble {
+  max-width: 84%;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  padding: 10px 14px;
+  border-radius: 18px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+body.aipage .chatbubble.bot,
+[data-theme="dark"] body.aipage .chatbubble.bot {
+  align-self: flex-start;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  box-shadow: none;
+  border-bottom-left-radius: 6px;
+}
+body.aipage .chatbubble.user {
+  align-self: flex-end;
+  box-shadow: none;
+  border-bottom-right-radius: 6px;
+}
+body.aipage .chatbubble.user + .chatbubble.bot,
+body.aipage .chatbubble.bot + .chatbubble.user { margin-top: 6px; }
+body.aipage .chattyping {
+  align-self: flex-start;
+  box-shadow: none;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border-bottom-left-radius: 6px;
+}
+body.aipage .chatcard { box-shadow: none; }
+
+/* ---- แท่นพิมพ์ (ชิป + ช่องพิมพ์) ติดล่างพื้นที่แชท ---- */
+body.aipage .aichat-dock {
+  flex-shrink: 0;
+  padding: 6px 0 10px;
+}
+body.aipage .aichat-suggestrow {
+  gap: 6px;
+  padding: 0 0 8px;
+}
+/* ระหว่างคุย: ปุ่มคำตอบเป็นแถวเดียวเลื่อนข้าง (ไม่กินพื้นที่ข้อความ) ขอบขวาจางบอกว่ายังมีต่อ */
+body.aipage .aichat-wrap:not(.is-empty) .aichat-suggestrow,
+body.aipage .aichat-wrap:not(.is-empty) .aichat-suggestrow.is-answers {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 85%, transparent);
+  mask-image: linear-gradient(to right, #000 85%, transparent);
+  padding-right: 24px;
+}
+body.aipage .aichat-suggestrow:empty { display: none; }
+body.aipage .chatchip {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 7px 13px;
+  font-size: 0.82rem;
+  gap: 6px;
+  box-shadow: none;
+  white-space: nowrap;
+}
+body.aipage .chatchip i { font-size: 0.75rem; color: var(--rf-brand); }
+body.aipage .chatchip:hover { transform: none; }
+body.aipage .chatchip:active { transform: scale(0.97); }
+body.aipage .chatchip:focus-visible { outline: 2px solid var(--rf-brand); outline-offset: 2px; }
+body.aipage .chatchip-same i { color: inherit; }
+
+/* ยังไม่เริ่มคุย: ส่วนต้อนรับ + ชิปอยู่กลางพื้นที่ว่าง ชิปขึ้นบรรทัดใหม่อัตโนมัติ จัดกึ่งกลาง */
+/* แท่นพิมพ์ "แตกตัว" (display: contents) ให้ชิปกับช่องพิมพ์เป็นลูกของคอลัมน์หลักโดยตรง
+   → ส่วนต้อนรับ (margin-top:auto) + ชิป (margin-bottom:auto) อยู่กึ่งกลางพื้นที่ ช่องพิมพ์ชิดล่าง */
+body.aipage .aichat-wrap.is-empty .aichat-dock { display: contents; }
+body.aipage .aichat-wrap.is-empty .aichat-suggestrow {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 440px;
+  margin: 18px auto auto;
+  padding: 0;
+  flex-shrink: 0;
+}
+body.aipage .aichat-wrap.is-empty .aichat-inputbar { margin: 16px 0 10px; flex-shrink: 0; }
+
+/* ---- ช่องพิมพ์หลายบรรทัด ปุ่มส่งด้านขวา ---- */
+body.aipage .aichat-inputbar {
+  display: flex;
+  align-items: flex-end;
+  margin: 0;
+  padding: 5px 5px 5px 14px;
+  border-radius: 24px;
+  box-shadow: none;
+}
+body.aipage .aichat-inputbar textarea,
+[data-theme="dark"] body.aipage .aichat-inputbar textarea {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--rf-ink);
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  padding: 9px 4px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+body.aipage .aichat-inputbar textarea::placeholder { color: var(--rf-ink-2); opacity: 0.8; }
+body.aipage .aichat-inputbar button {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  box-shadow: none;
+}
+body.aipage .aichat-inputbar button:focus-visible { outline: 2px solid var(--rf-brand); outline-offset: 2px; }
+
+/* จอเตี้ย (มือถือแนวนอน/คีย์บอร์ดเปิด): ซ่อนมาสคอต ให้เหลือพื้นที่พิมพ์ */
+@media (max-height: 560px) {
+  body.aipage .aihero .aiorb { display: none; }
+  body.aipage .aihero-sub { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.aipage .chatchip:active { transform: none; }
+}
+
+/* =====================================================================
+   โปรไฟล์ร้านค้า (public-profile.html): แท็บ โพสต์ / รีวิว + รายการรีวิว
+   ใช้แถบแท็บแบบเดียวกับหน้าโปรไฟล์ตัวเอง (.proftabs) — เส้นใต้+ไอคอนสีม่วงบอกแท็บที่เลือก
+   ===================================================================== */
+.ppshoptabs { margin-top: 16px; }
+.ppshoptabs .proftab { font-size: 1.15rem; }
+.ppshoptabs + #ppPostsCard { padding-top: 2px; }
+/* กันหน้ากระโดดตอนสลับแท็บ: พื้นที่เนื้อหาสูงอย่างน้อยราวครึ่งจอเสมอ */
+#ppPostsCard:has(+ .ppreviewspane),
+.ppreviewspane { min-height: 50vh; }
+
+.ppreviewspane { padding: 6px 0 12px; }
+.ppreview {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rf-line);
+}
+.ppreview:last-child { border-bottom: none; }
+.ppreview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ppreview-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+a.ppreview-who:focus-visible { outline: 2px solid var(--rf-brand); outline-offset: 2px; border-radius: 10px; }
+.ppreview-avt {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--avatar-grad) center / cover no-repeat;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.ppreview-avt[style*="background-image"] { background-color: var(--rf-fill); }
+.ppreview-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+.ppreview-meta b {
+  font-size: 0.88rem;
+  color: var(--rf-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ppreview-meta time { font-size: 0.72rem; color: var(--rf-ink-2); }
+.ppreview-score {
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--rf-ink);
+  background: var(--rf-fill);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.ppreview-score i { color: var(--rf-brand); font-size: 0.72rem; }
+.ppreview-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 8px 0 0 48px;
+  font-size: 0.72rem;
+  color: var(--rf-ink-2);
+}
+.ppreview-txt {
+  margin: 6px 0 0 48px;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--rf-ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ppreview .rdreviewimgs { margin: 8px 0 0 48px; }
+.ppreviewsloading {
+  text-align: center;
+  color: var(--rf-ink-2);
+  padding: 40px 0;
+  margin: 0;
+}
+.ppreviewsloading[hidden],
+.ppreviewsempty[hidden] { display: none; }
+.ppreviewsempty {
+  text-align: center;
+  padding: 48px 12px;
+  color: var(--rf-ink-2);
+}
+.ppreviewsempty i {
+  font-size: 1.3rem;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rf-line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rf-ink-2);
+  margin-bottom: 10px;
+}
+.ppreviewsempty p { margin: 0; font-size: 0.88rem; }
+
+/* โปรโมชั่น: ซ่อนทั้งกล่องเมื่อร้านไม่ได้กรอก (ไม่แสดงโปรโมชั่นตัวอย่างแทนแล้ว) */
+.rdpromobox[hidden] { display: none; }
+
+/* ---- Food DNA บนโปรไฟล์สาธารณะของนักชิม ---- */
+.ppdna {
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+}
+.ppdna[hidden] { display: none; }
+.ppdna-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.ppdna-tit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--rf-ink);
+}
+.ppdna-tit i { color: var(--rf-brand); }
+.ppdna-match {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--rf-brand);
+  background: var(--rf-brand-tint);
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.ppdna-match[hidden] { display: none; }
+.ppdna-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.ppdna-lbl { font-size: 0.72rem; color: var(--rf-ink-2); }
+.ppdna-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ppdna-chip {
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--rf-fill);
+  color: var(--rf-ink);
+}
+.ppdna-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 0.78rem;
+  color: var(--rf-ink-2);
+  padding-top: 2px;
+}
+.ppdna-stats i { color: var(--rf-brand); margin-right: 2px; }
+.ppdna-stats b { color: var(--rf-ink); }

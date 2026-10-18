@@ -16,7 +16,7 @@ function showConfirmDialog(opts) {
 		overlay.setAttribute("role", "alertdialog");
 		overlay.setAttribute("aria-modal", "true");
 		var visual = opts.image
-			? '<div class="ccdialog-thumb"><img src="' + opts.image + '" alt=""/><span><i class="fas fa-trash-can"></i></span></div>'
+			? '<div class="ccdialog-thumb"><img src="' + safeImgSrc(opts.image) + '" alt=""/><span><i class="fas fa-trash-can"></i></span></div>'
 			: '<div class="ccdialog-icon"><i class="fas fa-' + (opts.icon || "trash-can") + '"></i></div>';
 		overlay.innerHTML =
 			'<div class="ccdialog-box">' +
@@ -94,7 +94,7 @@ function refreshAuthUI() {
 			if (avatarIco) {
 				if (me && me.avatar) {
 					avatarIco.textContent = "";
-					avatarLink.style.background = "var(--cream2) center/cover no-repeat url('" + me.avatar + "')";
+					avatarLink.style.background = "var(--cream2) center/cover no-repeat url('" + cssUrl(me.avatar) + "')";
 				} else {
 					avatarIco.textContent = session.name.charAt(0).toUpperCase();
 					avatarLink.style.background = "";
@@ -551,7 +551,7 @@ document.addEventListener("keydown", function(e) {
 		var strip = document.getElementById("pvImgStrip");
 		var dots = document.getElementById("pvDots");
 		strip.innerHTML = images.map(function(src) {
-			return '<img src="' + src + '" alt=""/>';
+			return '<img src="' + safeImgSrc(src) + '" alt=""/>';
 		}).join("");
 		if (images.length > 1) {
 			dots.hidden = false;
@@ -571,7 +571,7 @@ document.addEventListener("keydown", function(e) {
 		document.getElementById("pvCap").textContent = post.caption || "";
 		var avatarEl = document.getElementById("pvAvatar");
 		if (post.posterAvatarUrl) {
-			avatarEl.style.background = "var(--cream2) center/cover no-repeat url('" + post.posterAvatarUrl + "')";
+			avatarEl.style.background = "var(--cream2) center/cover no-repeat url('" + cssUrl(post.posterAvatarUrl) + "')";
 			avatarEl.textContent = "";
 		} else {
 			avatarEl.style.background = post.posterColor || "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))";
@@ -682,11 +682,11 @@ function buildFeedItemEl(item) {
 		el.className = "feeditem card-enter";
 
 		var avatarHtml = item.posterAvatarUrl
-			? '<div class="feedavatar" style="background:var(--cream2) center/cover no-repeat url(\'' + item.posterAvatarUrl + '\')"></div>'
+			? '<div class="feedavatar" style="background:var(--cream2) center/cover no-repeat url(\'' + cssUrl(item.posterAvatarUrl) + '\')"></div>'
 			: '<div class="feedavatar" style="background:' + item.posterColor + '">' + escapeHtml((item.posterName || "?").trim().charAt(0).toUpperCase()) + '</div>';
 
 		var imgsHtml = item.images.map(function(src) {
-			return '<img src="' + src + '" alt=""/>';
+			return '<img src="' + safeImgSrc(src) + '" alt=""/>';
 		}).join("");
 		var dotsHtml = item.images.length > 1
 			? '<div class="feeddots">' + item.images.map(function(_, i) { return '<span class="' + (i === 0 ? "active" : "") + '"></span>'; }).join("") + '</div>'

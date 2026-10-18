@@ -458,3 +458,42 @@ drop policy if exists "saved_posts_delete_own" on public.saved_posts;
 create policy "saved_posts_select_own" on public.saved_posts for select using (auth.uid() = user_id);
 create policy "saved_posts_insert_own" on public.saved_posts for insert with check (auth.uid() = user_id);
 create policy "saved_posts_delete_own" on public.saved_posts for delete using (auth.uid() = user_id);
+
+-- =====================================================================
+-- Phase 13 — ล็อกสถานะ "ถูกซ่อน" (is_hidden) ไม่ให้เจ้าของเนื้อหาปลดซ่อนเองผ่าน API
+-- เดิม policy update ของ posts/shops/comments อนุญาตให้เจ้าของแก้แถวตัวเองได้ทุกคอลัมน์ รวมถึง is_hidden
+-- → โพสต์/ร้าน/คอมเมนต์ที่โดนรายงานจนถูกซ่อน เจ้าของยิง request ตั้ง is_hidden = false กลับได้เอง
+-- trigger นี้คงค่าเดิมไว้ถ้าผู้แก้เป็นผู้ใช้ทั่วไป (anon/authenticated) ส่วนระบบซ่อนอัตโนมัติ (ฟังก์ชัน security definer)
+-- และเซิร์ฟเวอร์ AI ที่ใช้ service role ยังเปลี่ยนได้ตามปกติ — ไม่แตะข้อมูลเดิม รันซ้ำได้
+-- =====================================================================
+create or replace function public.chimchim_lock_is_hidden()
+returns trigger language plpgsql as $$
+begin
+  if new.is_hidden is distinct from old.is_hidden and current_user in ('anon', 'authenticated') then
+    new.is_hidden := old.is_hidden;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists posts_lock_is_hidden on public.posts;
+create trigger posts_lock_is_hidden before update on public.posts
+  for each row execute function public.chimchim_lock_is_hidden();
+drop trigger if exists shops_lock_is_hidden on public.shops;
+create trigger shops_lock_is_hidden before update on public.shops
+  for each row execute function public.chimchim_lock_is_hidden();
+drop trigger if exists comments_lock_is_hidden on public.comments;
+create trigger comments_lock_is_hidden before update on public.comments
+  for each row execute function public.chimchim_lock_is_hidden();
+
+-- =====================================================================
+-- Phase 14 — ต้องล็อกอินก่อนถึงจะรีวิวได้ + ล้างการติดตามนักรีวิวตัวอย่างที่ถูกลบออกจากแอป
+-- เดิม reviews_insert_own อนุญาต user_id is null (รีวิวแบบไม่ล็อกอิน) → ใครก็ยิงรีวิวปลอม/สแปมด้วย anon key ได้
+-- รีวิวเก่าที่มีอยู่แล้ว (รวมรีวิวแบบไม่ล็อกอินเดิม) ไม่ถูกลบหรือแก้ไข — มีผลเฉพาะการเพิ่มรีวิวใหม่ รันซ้ำได้
+-- =====================================================================
+drop policy if exists "reviews_insert_own" on public.reviews;
+create policy "reviews_insert_own" on public.reviews for insert
+  with check (auth.uid() is not null and auth.uid() = user_id);
+
+-- นักรีวิวตัวอย่าง 8 คน (id "seed-…") ไม่มีในแอปแล้ว การติดตามที่ชี้ไปหาคนเหล่านี้เป็นข้อมูลค้างที่ไม่มีเจ้าของจริง
+delete from public.follows where target_type = 'profile' and target_id like 'seed-%';

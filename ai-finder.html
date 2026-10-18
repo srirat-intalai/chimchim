@@ -21,7 +21,7 @@
       <link rel="stylesheet" href="css/style.css" />
       <link rel="stylesheet" href="css/chimchim-refresh.css" />
    </head>
-   <body class="appshell">
+   <body class="appshell aipage">
       <header class="apptop">
          <a href="home.html" class="apptop-logo">
             <div class="aico"><img src="img/Dino/8.png" alt="CHIMCHIM"/></div>
@@ -54,11 +54,11 @@
       </header>
 
       <div class="aichat-wrap is-empty" id="aiChatWrap">
-         <!-- หน้าแรกตอนยังไม่เริ่มคุย: ลูกแก้วเรืองแสง + หัวข้อใหญ่ + คำถามแนะนำเรียงกลางจอ -->
+         <!-- หน้าแรกตอนยังไม่เริ่มคุย: มาสคอตเล็ก + หัวข้อ + ชิปแนะนำ (ซ่อนทั้งก้อนเมื่อเริ่มคุย ให้พื้นที่แชทเป็นหลัก) -->
          <div class="aihero">
             <div class="aiorb"><img src="img/Dino/7.png" alt="ChimChim AI"/></div>
-            <h1 class="aihero-tit"><span data-i18n="ai.heroTitle1">ไม่รู้จะกินอะไร?</span><span class="aihero-grad" data-i18n="ai.heroTitle2">ให้ชิมชิมช่วยคิด</span></h1>
-            <p class="aihero-sub" data-i18n="ai.greetingSub">คุยกับ ChimChim ได้เลย ถามอะไรก็ได้ ไม่ใช่แค่เรื่องกิน</p>
+            <h1 class="aihero-tit" data-i18n="ai.heroTitleNew">วันนี้อยากกินอะไร?</h1>
+            <p class="aihero-sub" data-i18n="ai.heroSubNew">บอกความอยากมา เดี๋ยวเราช่วยหาให้</p>
             <p class="aihero-memory" id="aiHeroMemory" hidden></p>
          </div>
 
@@ -70,14 +70,16 @@
             </div>
          </div>
 
-         <div class="aichat-body" id="aiChatBody"></div>
+         <div class="aichat-body" id="aiChatBody" role="log" aria-live="polite"></div>
 
-         <div class="aichat-suggestrow" id="aiSuggestRow"></div>
-
-         <form class="aichat-inputbar" id="aiChatForm">
-            <input type="text" id="aiChatInput" data-i18n-ph="ai.inputPlaceholder" placeholder="พิมพ์อะไรก็ได้ เช่น อยากกินเผ็ด ๆ งบไม่เกิน 150 บาท" autocomplete="off"/>
-            <button type="submit" id="aiChatSend"><i class="fas fa-paper-plane"></i></button>
-         </form>
+         <!-- แท่นพิมพ์: ชิปแนะนำ/ปุ่มคำตอบ + ช่องพิมพ์ ติดอยู่ล่างพื้นที่แชทเสมอ (อยู่เหนือแถบเมนูล่าง ไม่โดนบัง) -->
+         <div class="aichat-dock">
+            <div class="aichat-suggestrow" id="aiSuggestRow"></div>
+            <form class="aichat-inputbar" id="aiChatForm">
+               <textarea id="aiChatInput" rows="1" data-i18n-ph="ai.inputPlaceholderShort" placeholder="อยากกินอะไร เช่น เผ็ด ๆ งบ 150" autocomplete="off" enterkeyhint="send" data-i18n-aria="ai.inputLabel" aria-label="พิมพ์ข้อความถึงชิมชิม"></textarea>
+               <button type="submit" id="aiChatSend" data-i18n-aria="ai.sendLabel" aria-label="ส่ง"><i class="fas fa-arrow-up"></i></button>
+            </form>
+         </div>
       </div>
 
       <nav class="appnav">

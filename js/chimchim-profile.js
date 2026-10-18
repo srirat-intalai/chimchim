@@ -58,7 +58,7 @@ if (!session) {
 	function refreshProfileHeader(u) {
 		var avatarEl = document.getElementById("profAvatar");
 		if (u.avatar) {
-			avatarEl.style.background = "var(--cream2) center/cover no-repeat url('" + u.avatar + "')";
+			avatarEl.style.background = "var(--cream2) center/cover no-repeat url('" + cssUrl(u.avatar) + "')";
 			avatarEl.textContent = "";
 		} else {
 			avatarEl.style.background = "";
@@ -191,7 +191,7 @@ function initMyPosts() {
 		chosenImages.forEach(function(src, idx) {
 			var thumb = document.createElement("div");
 			thumb.className = "postimgthumb" + (idx === 0 ? " iscover" : "");
-			thumb.innerHTML = '<img src="' + src + '" alt=""/>' +
+			thumb.innerHTML = '<img src="' + safeImgSrc(src) + '" alt=""/>' +
 				(idx === 0 ? '<span class="postimgcover">' + t("profile.coverPhoto") + '</span>' : "") +
 				'<button type="button" title="' + t("common.removePhoto") + '"><i class="fas fa-times"></i></button>';
 			thumb.querySelector("button").addEventListener("click", function(e) {
@@ -379,7 +379,7 @@ function renderMyPosts() {
 		var el = document.createElement("div");
 		el.className = "ppost card-enter";
 		el.innerHTML =
-			'<img src="' + images[0] + '" alt=""/>' +
+			'<img src="' + safeImgSrc(images[0]) + '" alt=""/>' +
 			(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
 			'<div class="ppostcap">' + escapeHtml(p.caption) + '</div>' +
 			// ปุ่ม ⋯ มุมขวาบนปุ่มเดียว รวม แก้ไข/ลบ ไว้ในเมนู (เดิมเป็นปุ่มดินสอ + ✕ แยกกัน และ ✕ ลบทันทีไม่ถามก่อน)
@@ -446,7 +446,7 @@ function setupFollowSheet(me, onFollowChanged) {
 	function isUuid(id) { return /^[0-9a-f-]{36}$/i.test(String(id)); }
 	function avatarHtml(row) {
 		return row.avatar
-			? '<span class="fsrow-avatar" style="background-image:url(\'' + row.avatar + '\')"></span>'
+			? '<span class="fsrow-avatar" style="background-image:url(\'' + cssUrl(row.avatar) + '\')"></span>'
 			: '<span class="fsrow-avatar fsrow-letter">' + escapeHtml((row.name || "?").trim().charAt(0).toUpperCase()) + "</span>";
 	}
 	// แปลง id ที่ติดตามอยู่ → ข้อมูลแถว (ชื่อ รูป ลิงก์) — หาไม่เจอคืน null
@@ -454,10 +454,6 @@ function setupFollowSheet(me, onFollowChanged) {
 		if (/^bu-/.test(id)) {
 			var bu = หาเพจร้านBUจากId(id.slice(3));
 			return bu ? { key: id, kind: "user", name: bu.name, avatar: bu.avatar, sub: t("following.restaurants"), link: "public-profile.html?u=" + encodeURIComponent(id) } : null;
-		}
-		if (/^seed-/.test(id) && typeof หานักรีวิวจากId === "function") {
-			var c = หานักรีวิวจากId(id);
-			return c ? { key: id, kind: "user", name: c.ชื่อ, avatar: null, sub: t("following.foodie"), link: "public-profile.html?u=" + encodeURIComponent(id) } : null;
 		}
 		if (typeof getPageById === "function") {
 			var page = getPageById(id);
@@ -706,7 +702,7 @@ function renderProfileActivity() {
 		tile.className = "ppost";
 		tile.setAttribute("role", "button");
 		tile.tabIndex = 0;
-		tile.innerHTML = '<img src="' + escapeHtml(item.images[0] || "") + '" alt=""/>' +
+		tile.innerHTML = '<img src="' + safeImgSrc(item.images[0] || "") + '" alt=""/>' +
 			(item.images.length > 1 ? '<i class="fas fa-clone ppostmulti"></i>' : "");
 		function open() {
 			openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl, posterId: item.userId });

@@ -10,7 +10,7 @@ function buildPersonCard(person) {
 	var col = document.createElement('div');
 	col.className = 'col-6';
 	var avatarInner = person.avatarImg
-		? '<img src="' + person.avatarImg + '" alt="" style="width:100%;height:100%;object-fit:cover;"/>'
+		? '<img src="' + safeImgSrc(person.avatarImg) + '" alt="" style="width:100%;height:100%;object-fit:cover;"/>'
 		: '<span style="font-size:3rem;font-weight:800;color:#fff;">' + escapeHtml(person.name.charAt(0).toUpperCase()) + '</span>';
 	col.innerHTML =
 		'<div class="chcard">' +

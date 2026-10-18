@@ -20,9 +20,11 @@ if (!revร้าน) {
 	document.getElementById("revShopName").textContent = revร้าน.ร้าน;
 	document.getElementById("revShopDish").textContent = revร้าน.เมนู;
 
+	// รีวิวได้เฉพาะผู้ที่ล็อกอินแล้ว — ยังไม่ล็อกอินส่งกลับหน้าร้านพร้อมเปิดหน้าต่างเข้าสู่ระบบ
+	// (ฐานข้อมูลบังคับซ้ำอีกชั้นด้วย RLS: SQL Phase 14)
 	var meSession = getSession();
 	if (!meSession) {
-		document.getElementById("revNameRow").hidden = false;
+		window.location.replace("restaurant.html?id=" + revร้าน.id + "&login=review");
 	}
 
 	var scores = { taste: 0, atmosphere: 0, service: 0 };
@@ -37,7 +39,7 @@ if (!revร้าน) {
 		chosenReviewImages.forEach(function(src, idx) {
 			var thumb = document.createElement("div");
 			thumb.className = "postimgthumb";
-			thumb.innerHTML = '<img src="' + src + '" alt=""/><button type="button" title="' + t("common.removePhoto") + '" aria-label="' + t("common.removePhoto") + '"><i class="fas fa-times"></i></button>';
+			thumb.innerHTML = '<img src="' + safeImgSrc(src) + '" alt=""/><button type="button" title="' + t("common.removePhoto") + '" aria-label="' + t("common.removePhoto") + '"><i class="fas fa-times"></i></button>';
 			thumb.querySelector("img").addEventListener("click", function() { openPhotoViewer(chosenReviewImages, idx); });
 			thumb.querySelector("button").addEventListener("click", function() {
 				chosenReviewImages.splice(idx, 1);
@@ -159,7 +161,8 @@ if (!revร้าน) {
 			return;
 		}
 
-		var author = meSession ? meSession.name : (document.getElementById("reviewAuthor").value.trim() || t("common.anonymousFoodie"));
+		if (!getSession()) { window.location.replace("restaurant.html?id=" + revร้าน.id + "&login=review"); return; }
+		var author = meSession.name;
 
 		addReview(revร้าน.id, {
 			taste: scores.taste,
@@ -167,7 +170,7 @@ if (!revร้าน) {
 			service: scores.service,
 			text: document.getElementById("reviewText").value.trim(),
 			author: author,
-			userId: meSession ? meSession.id : null,
+			userId: meSession.id,
 			date: new Date().toISOString(),
 			images: images
 		}).then(function(result) { onSaved(result, "home.html?reviewed=1"); });

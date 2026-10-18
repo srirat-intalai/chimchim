@@ -65,13 +65,15 @@ function renderShopDetail() {
 	});
 	document.getElementById("rdTags").innerHTML = tagsHtml;
 
-	/* --- เวลาเปิด-ปิด + โปรโมชั่น (ใช้ค่าที่เจ้าของร้านกรอกเองถ้ามี ไม่งั้นใช้ค่าเสริมอัตโนมัติ) --- */
-	var เสริม = getShopExtra(ร้านปัจจุบัน.id);
-	document.getElementById("rdHours").textContent = ร้านปัจจุบัน.เวลาเปิดกำหนดเอง || เสริม.hours;
-	var promoText = ร้านปัจจุบัน.โปรโมชั่นกำหนดเอง || เสริม.promo.text;
-	var promoIcon = ร้านปัจจุบัน.โปรโมชั่นกำหนดเอง ? "🎉" : เสริม.promo.icon;
-	document.getElementById("rdPromoItem").innerHTML =
-		'<span class="rdpromoicon">' + promoIcon + "</span><span>" + escapeHtml(promoText) + "</span>";
+	/* --- เวลาเปิด-ปิด + โปรโมชั่น — แสดงเฉพาะที่เจ้าของร้านกรอกเองเท่านั้น
+	   (เดิมร้านที่ไม่ได้กรอกจะได้เวลา/โปรโมชั่นตัวอย่างจาก getShopExtra ซึ่งดูเหมือนข้อมูลจริงของร้าน ทำให้ผู้ใช้เข้าใจผิด) --- */
+	document.getElementById("rdHours").textContent = ร้านปัจจุบัน.เวลาเปิดกำหนดเอง || t("restaurant.hoursUnknown");
+	var promoText = ร้านปัจจุบัน.โปรโมชั่นกำหนดเอง || "";
+	document.getElementById("rdPromoBox").hidden = !promoText;
+	if (promoText) {
+		document.getElementById("rdPromoItem").innerHTML =
+			'<span class="rdpromoicon">🎉</span><span>' + escapeHtml(promoText) + "</span>";
+	}
 
 	/* --- ปุ่มถูกใจ (หัวใจบน hero) — บันทึกจริงเหมือนฟีดโซเชียล พร้อมยอดไลก์ --- */
 	var saveBtn = document.getElementById("rdSaveBtn");
@@ -162,8 +164,14 @@ function renderShopDetail() {
 		window.open("https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q), "_blank");
 	});
 
-	/* --- ปุ่มเขียนรีวิว --- */
-	document.getElementById("rdReviewBtn").href = "review.html?id=" + ร้านปัจจุบัน.id;
+	/* --- ปุ่มเขียนรีวิว — ต้องล็อกอินก่อน (ไม่ล็อกอินกดแล้วเปิดหน้าต่างเข้าสู่ระบบแทน) --- */
+	var rdReviewBtn = document.getElementById("rdReviewBtn");
+	rdReviewBtn.href = "review.html?id=" + ร้านปัจจุบัน.id;
+	rdReviewBtn.addEventListener("click", function(e) {
+		if (ต้องล็อกอินก่อนไหม()) e.preventDefault();
+	});
+	// เปิดหน้าเขียนรีวิวตรง ๆ โดยยังไม่ล็อกอิน → review.html ส่งกลับมาที่นี่พร้อม ?login=review ให้เด้งหน้าต่างเข้าสู่ระบบ
+	if (new URLSearchParams(window.location.search).get("login") === "review") ต้องล็อกอินก่อนไหม();
 
 	/* --- แท็บภาพรวม / รีวิว --- */
 	var RD_TAB_PANE_MAP = { overview: "rdPaneOverview", reviews: "rdPaneReviews", posts: "rdPanePosts" };
@@ -200,7 +208,7 @@ function renderShopDetail() {
 			var reviewImages = Array.isArray(r.images) ? r.images.filter(Boolean) : (r.images ? [r.images] : []);
 			var reviewImgsHtml = reviewImages.length
 				? '<div class="rdreviewimgs" role="list">' + reviewImages.map(function(src, i) {
-					return '<button type="button" class="rdreviewimg" role="listitem" data-idx="' + i + '" aria-label="' + escapeHtml(t("photos.openN").replace("{i}", i + 1).replace("{n}", reviewImages.length)) + '"><img src="' + escapeHtml(src) + '" alt="" loading="lazy"/></button>';
+					return '<button type="button" class="rdreviewimg" role="listitem" data-idx="' + i + '" aria-label="' + escapeHtml(t("photos.openN").replace("{i}", i + 1).replace("{n}", reviewImages.length)) + '"><img src="' + safeImgSrc(src) + '" alt="" loading="lazy"/></button>';
 				}).join("") + '</div>' +
 				(reviewImages.length > 1 ? '<div class="rdreviewimgn"><i class="fas fa-images"></i> ' + escapeHtml(t("common.photoCount").replace("{n}", reviewImages.length)) + '</div>' : "")
 				: "";
@@ -280,7 +288,7 @@ function renderShopDetail() {
 			var el = document.createElement("div");
 			el.className = "ppost card-enter";
 			el.innerHTML =
-				'<img src="' + images[0] + '" alt=""/>' +
+				'<img src="' + safeImgSrc(images[0]) + '" alt=""/>' +
 				(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
 				'<div class="ppostcap">' + escapeHtml(p.caption || "") + '</div>';
 			el.addEventListener("click", function() {

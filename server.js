@@ -50,7 +50,7 @@ async function generateWithRetry(request) {
    ALLOWED_ORIGINS=https://srirat-intalai.github.io (คั่นด้วย comma ถ้ามีหลาย origin)
    ไม่งั้นเว็บจริงจะเรียก API นี้ไม่ได้เลย (โดน CORS บล็อก)
    ===================================================================== */
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "http://localhost:5500,http://127.0.0.1:5500,http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080,http://127.0.0.1:8080")
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "http://localhost:5500,http://127.0.0.1:5500,http://localhost:5501,http://127.0.0.1:5501,http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080,http://127.0.0.1:8080")
 	.split(",")
 	.map(function(s) { return s.trim(); })
 	.filter(Boolean);
@@ -78,8 +78,11 @@ const aiRateLimit = rateLimit({
 });
 
 const app = express();
+// บน Render เซิร์ฟเวอร์อยู่หลัง proxy 1 ชั้น — ต้องเชื่อ X-Forwarded-For ชั้นแรก ไม่งั้น req.ip เป็น IP ของ proxy
+// แล้ว rate limit ด้านบนจะนับผู้ใช้ทุกคนรวมเป็นคนเดียว (ทั้งแอปแชร์โควตา 20 ครั้ง/นาทีร่วมกัน)
+app.set("trust proxy", 1);
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: "64kb" }));
 
 app.get("/api/health", function(req, res) {
 	res.json({ ok: true, model: MODEL });
@@ -239,7 +242,8 @@ app.post("/api/chat-reply", aiRateLimit, async function(req, res) {
    และรัน SQL Phase 8 + Phase 10 ใน supabase/schema.sql ก่อน
    ===================================================================== */
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+// รับได้ทั้งชื่อ SUPABASE_SERVICE_ROLE_KEY และ SUPABASE_SECRET_KEY (ชื่อที่ใช้ในสคริปต์แอดมิน/SETUP.md) — คีย์ตัวเดียวกัน
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || "";
 const MODERATION_HIDE_CONFIDENCE = 0.7;
 
 async function sbAdmin(path, options) {

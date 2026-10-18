@@ -5676,7 +5676,7 @@ body.appshell {
 }
 .profcardbtn .profcardtit::after {
   content: "\f105";
-  font-family: "Font Awesome 6 Free";
+  font-family: "Font Awesome 6 Pro";
   font-weight: 900;
   color: #ccc;
   font-size: 0.8rem;

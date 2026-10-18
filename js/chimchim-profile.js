@@ -658,30 +658,98 @@ function showProfileTab(tab) {
 }
 
 // แท็บ ร้านที่ถูกใจ / รีวิว / บันทึกไว้ + ตัวเลขบนแท็บ (โพสต์นับใน renderMyPosts)
+/* --- ช่องในตาราง (แบบ IG/TikTok): โพสต์ / ร้าน / รีวิว — ทุกช่องสี่เหลี่ยมจัตุรัสเท่ากัน รูปเต็มช่อง (object-fit: cover) --- */
+function profGridTile(opts) {
+	var tile = document.createElement("button");
+	tile.type = "button";
+	tile.className = "profgtile" + (opts.extraClass ? " " + opts.extraClass : "");
+	tile.setAttribute("aria-label", opts.label || "");
+	tile.innerHTML = opts.html;
+	tile.addEventListener("click", opts.onOpen);
+	return tile;
+}
+function profPostTile(item) {
+	return profGridTile({
+		label: item.caption || item.posterName || "",
+		html: '<img src="' + safeImgSrc(item.images[0] || "") + '" alt="" loading="lazy"/>' +
+			(item.images.length > 1 ? '<i class="fas fa-clone profgtile-ico" aria-hidden="true"></i>' : ""),
+		onOpen: function() {
+			openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl, posterId: item.userId });
+		}
+	});
+}
+function profShopTile(ร้าน) {
+	return profGridTile({
+		label: ร้าน.ร้าน,
+		html: '<img src="' + safeImgSrc(ร้าน.รูป) + '" alt="" loading="lazy"/>' +
+			'<i class="fas fa-store profgtile-ico" aria-hidden="true"></i>' +
+			'<span class="profgtile-cap">' + escapeHtml(ร้าน.ร้าน) + "</span>",
+		onOpen: function() { window.location.href = "restaurant.html?id=" + ร้าน.id; }
+	});
+}
+// รีวิว: ใช้รูปที่แนบในรีวิวเป็นภาพหลัก ไม่มีรูป = การ์ดข้อความ (ไม่ใช้รูปร้านแทน ไม่สร้างรูปปลอม)
+function profReviewTile(r, ร้าน) {
+	var avg = Math.round((r.taste + r.atmosphere + r.service) / 3 * 10) / 10;
+	var score = '<span class="profgtile-score"><i class="fas fa-star" aria-hidden="true"></i>' + avg + "</span>";
+	var html = r.images.length
+		? '<img src="' + safeImgSrc(r.images[0]) + '" alt="" loading="lazy"/>' + score +
+			(r.images.length > 1 ? '<i class="fas fa-clone profgtile-ico" aria-hidden="true"></i>' : "") +
+			'<span class="profgtile-cap">' + escapeHtml(ร้าน.ร้าน) + "</span>"
+		: '<span class="profgtile-text">' +
+				'<b>' + escapeHtml(ร้าน.ร้าน) + "</b>" +
+				'<span class="profgtile-quote">' + escapeHtml(r.text || t("restaurant.noReviewText")) + "</span>" +
+			"</span>" + score;
+	return profGridTile({
+		label: ร้าน.ร้าน + " " + avg,
+		extraClass: r.images.length ? "" : "is-text",
+		html: html,
+		onOpen: function() { openMyReviewDetail(r, ร้าน); }
+	});
+}
+// รายละเอียดรีวิว (ป๊อปอัปเดิมของหน้าโปรไฟล์): ร้าน คะแนน 3 ด้าน ข้อความ รูป (กดดูใหญ่ได้) + ไปหน้าร้าน
+function openMyReviewDetail(r, ร้าน) {
+	var avg = Math.round((r.taste + r.atmosphere + r.service) / 3 * 10) / 10;
+	var box = document.createElement("div");
+	box.className = "profrevdetail";
+	box.innerHTML =
+		'<div class="profrevdetail-shop"><img src="' + safeImgSrc(ร้าน.รูป) + '" alt=""/><div><b>' + escapeHtml(ร้าน.ร้าน) + "</b><span>" +
+			escapeHtml(new Date(r.date).toLocaleDateString(getLang() === "th" ? "th-TH" : "en-GB", { day: "numeric", month: "short", year: "numeric" })) + "</span></div>" +
+			'<span class="profgtile-score is-static"><i class="fas fa-star" aria-hidden="true"></i>' + avg + "</span></div>" +
+		'<div class="profrevdetail-sub"><span>' + escapeHtml(t("review.taste")) + " " + r.taste + "</span><span>" + escapeHtml(t("review.atmosphere")) + " " + r.atmosphere + "</span><span>" + escapeHtml(t("review.service")) + " " + r.service + "</span></div>" +
+		'<p class="profrevdetail-txt">' + escapeHtml(r.text || t("restaurant.noReviewText")) + "</p>" +
+		(r.images.length ? '<div class="rdreviewimgs">' + r.images.map(function(src, i) {
+			return '<button type="button" class="rdreviewimg" data-idx="' + i + '"><img src="' + safeImgSrc(src) + '" alt=""/></button>';
+		}).join("") + "</div>" : "") +
+		'<a class="rdghost" style="width:100%;margin-top:14px;" href="restaurant.html?id=' + ร้าน.id + '"><i class="fas fa-store me-1"></i><span>' + escapeHtml(t("profile.openShop")) + "</span></a>";
+	box.querySelectorAll(".rdreviewimg").forEach(function(btn) {
+		btn.addEventListener("click", function() { openPhotoViewer(r.images, parseInt(btn.getAttribute("data-idx"), 10)); });
+	});
+	openProfDetailPop('<i class="fas fa-pen me-2"></i>' + escapeHtml(t("profile.tabReviews")), box);
+}
+
+// แท็บ ถูกใจ / รีวิว / บันทึกไว้ + ตัวเลขบนแท็บ (โพสต์นับใน renderMyPosts) — ข้อมูลจริงของผู้ที่ล็อกอินอยู่เท่านั้น
 function renderProfileActivity() {
 	var session = getSession();
 	if (!session || !document.getElementById("profTabs")) return;
 
-	var liked = ร้านจากรายการId(getLikedShops());
-	var likeList = document.getElementById("profLikesList");
-	likeList.innerHTML = "";
-	liked.forEach(function(ร้าน) { likeList.appendChild(buildLikeRow(ร้าน)); });
-	document.getElementById("profLikesEmpty").hidden = liked.length > 0;
-	document.getElementById("ptabCountLikes").textContent = liked.length;
+	// ถูกใจ = โพสต์ที่กดถูกใจ + ร้านที่กดถูกใจ
+	var likedPosts = typeof โพสต์ที่ถูกใจ === "function" ? โพสต์ที่ถูกใจ() : [];
+	var likedShops = ร้านจากรายการId(getLikedShops());
+	var likeGrid = document.getElementById("profLikesList");
+	likeGrid.innerHTML = "";
+	likedPosts.forEach(function(item) { likeGrid.appendChild(profPostTile(item)); });
+	likedShops.forEach(function(ร้าน) { likeGrid.appendChild(profShopTile(ร้าน)); });
+	var likeCount = likedPosts.length + likedShops.length;
+	document.getElementById("profLikesEmpty").hidden = likeCount > 0;
+	document.getElementById("ptabCountLikes").textContent = likeCount;
 
-	var reviewList = document.getElementById("profReviewsList");
-	reviewList.innerHTML = "";
+	var reviewGrid = document.getElementById("profReviewsList");
+	reviewGrid.innerHTML = "";
 	var shownReviews = 0;
 	getReviewsByUser(session.id).forEach(function(r) {
-		var item = buildReviewItem(r);
-		if (!item) return; // ร้านของรีวิวนี้หาไม่เจอแล้ว (ถูกลบ) — ไม่นับ
-		item.classList.add("profreviewlink");
-		item.setAttribute("role", "link");
-		item.tabIndex = 0;
-		function go() { window.location.href = "restaurant.html?id=" + r.shopId; }
-		item.addEventListener("click", go);
-		item.addEventListener("keydown", function(e) { if (e.key === "Enter") go(); });
-		reviewList.appendChild(item);
+		var ร้าน = หาร้านจากId(r.shopId);
+		if (!ร้าน) return; // ร้านของรีวิวนี้หาไม่เจอแล้ว (ถูกลบ) — ไม่นับ
+		reviewGrid.appendChild(profReviewTile(r, ร้าน));
 		shownReviews++;
 	});
 	var reviewEmpty = document.getElementById("profReviewsEmpty");
@@ -689,37 +757,20 @@ function renderProfileActivity() {
 	// ยังไม่มีรีวิวในเครื่อง + กำลังดึงจาก Supabase → แสดงว่ากำลังโหลด แทนการบอกว่าไม่มี
 	if (!shownReviews && profReviewsLoading) {
 		reviewEmpty.hidden = true;
-		reviewList.innerHTML = '<p class="profpane-empty"><i class="fas fa-spinner fa-spin"></i></p>';
+		reviewGrid.innerHTML = '<p class="profpane-empty profgrid-full"><i class="fas fa-spinner fa-spin"></i></p>';
 	}
 	document.getElementById("ptabCountReviews").textContent = shownReviews;
 
-	// บันทึกไว้ = โพสต์ที่บันทึก (ตารางรูป 3 ช่อง) + ร้านที่บันทึก (รายการ) นับรวมกันบนแท็บ
+	// บันทึกไว้ = โพสต์ที่บันทึก + ร้านที่บันทึก ในตารางเดียว
 	var savedPosts = typeof โพสต์ที่บันทึกไว้ === "function" ? โพสต์ที่บันทึกไว้() : [];
-	var postGrid = document.getElementById("profSavedPosts");
-	postGrid.innerHTML = "";
-	savedPosts.forEach(function(item) {
-		var tile = document.createElement("div");
-		tile.className = "ppost";
-		tile.setAttribute("role", "button");
-		tile.tabIndex = 0;
-		tile.innerHTML = '<img src="' + safeImgSrc(item.images[0] || "") + '" alt=""/>' +
-			(item.images.length > 1 ? '<i class="fas fa-clone ppostmulti"></i>' : "");
-		function open() {
-			openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl, posterId: item.userId });
-		}
-		tile.addEventListener("click", open);
-		tile.addEventListener("keydown", function(e) { if (e.key === "Enter") open(); });
-		postGrid.appendChild(tile);
-	});
-	var saved = ร้านจากรายการId(getSavedShops());
-	var saveList = document.getElementById("profSavesList");
-	saveList.innerHTML = "";
-	saved.forEach(function(ร้าน) { saveList.appendChild(buildLikeRow(ร้าน)); });
-	var both = savedPosts.length > 0 && saved.length > 0;
-	document.getElementById("profSavedPostsTit").hidden = !both;
-	document.getElementById("profSavedShopsTit").hidden = !both;
-	document.getElementById("profSavesEmpty").hidden = (saved.length + savedPosts.length) > 0;
-	document.getElementById("ptabCountSaves").textContent = saved.length + savedPosts.length;
+	var savedShops = ร้านจากรายการId(getSavedShops());
+	var saveGrid = document.getElementById("profSavesList");
+	saveGrid.innerHTML = "";
+	savedPosts.forEach(function(item) { saveGrid.appendChild(profPostTile(item)); });
+	savedShops.forEach(function(ร้าน) { saveGrid.appendChild(profShopTile(ร้าน)); });
+	var saveCount = savedPosts.length + savedShops.length;
+	document.getElementById("profSavesEmpty").hidden = saveCount > 0;
+	document.getElementById("ptabCountSaves").textContent = saveCount;
 }
 
 function setupProfileTabs(me) {

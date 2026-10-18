@@ -293,7 +293,9 @@ create policy "posts_update_own" on public.posts for update using (auth.uid() = 
 
 -- reviews: เดิมมีแค่ select/insert (เขียนได้อย่างเดียว แก้/ลบไม่ได้เลย) — ฟีเจอร์แก้ไข/ลบรีวิวของตัวเอง
 -- (updateReview/deleteReview) เลยต้องเพิ่ม policy นี้ก่อน ไม่งั้นจะถูก RLS บล็อกเหมือนที่เจอกับ posts มาก่อน
+drop policy if exists "reviews_update_own" on public.reviews;
 create policy "reviews_update_own" on public.reviews for update using (auth.uid() = user_id);
+drop policy if exists "reviews_delete_own" on public.reviews;
 create policy "reviews_delete_own" on public.reviews for delete using (auth.uid() = user_id);
 
 -- =====================================================================
@@ -362,6 +364,7 @@ create policy "saved_shops_delete_own" on public.saved_shops for delete using (a
 -- =====================================================================
 -- Phase 7 — แก้ไขคอมเมนต์ของตัวเอง (ลบได้อยู่แล้วจาก comments_delete_own ด้านบน)
 -- =====================================================================
+drop policy if exists "comments_update_own" on public.comments;
 create policy "comments_update_own" on public.comments for update
   using (auth.uid() = author_id) with check (auth.uid() = author_id);
 
@@ -399,8 +402,11 @@ create table if not exists public.likes_seed_posts (
 );
 alter table public.likes_seed_posts enable row level security;
 -- นับไลก์ได้ทุกคน (เหมือน likes_posts) / กดหรือเลิกกดได้เฉพาะของตัวเอง
+drop policy if exists "likes_seed_posts_select_all" on public.likes_seed_posts;
 create policy "likes_seed_posts_select_all" on public.likes_seed_posts for select using (true);
+drop policy if exists "likes_seed_posts_insert_own" on public.likes_seed_posts;
 create policy "likes_seed_posts_insert_own" on public.likes_seed_posts for insert with check (auth.uid() = user_id);
+drop policy if exists "likes_seed_posts_delete_own" on public.likes_seed_posts;
 create policy "likes_seed_posts_delete_own" on public.likes_seed_posts for delete using (auth.uid() = user_id);
 
 -- =====================================================================
@@ -455,8 +461,11 @@ alter table public.saved_posts enable row level security;
 drop policy if exists "saved_posts_select_own" on public.saved_posts;
 drop policy if exists "saved_posts_insert_own" on public.saved_posts;
 drop policy if exists "saved_posts_delete_own" on public.saved_posts;
+drop policy if exists "saved_posts_select_own" on public.saved_posts;
 create policy "saved_posts_select_own" on public.saved_posts for select using (auth.uid() = user_id);
+drop policy if exists "saved_posts_insert_own" on public.saved_posts;
 create policy "saved_posts_insert_own" on public.saved_posts for insert with check (auth.uid() = user_id);
+drop policy if exists "saved_posts_delete_own" on public.saved_posts;
 create policy "saved_posts_delete_own" on public.saved_posts for delete using (auth.uid() = user_id);
 
 -- =====================================================================
@@ -497,3 +506,11 @@ create policy "reviews_insert_own" on public.reviews for insert
 
 -- นักรีวิวตัวอย่าง 8 คน (id "seed-…") ไม่มีในแอปแล้ว การติดตามที่ชี้ไปหาคนเหล่านี้เป็นข้อมูลค้างที่ไม่มีเจ้าของจริง
 delete from public.follows where target_type = 'profile' and target_id like 'seed-%';
+
+-- =====================================================================
+-- Phase 15 — พิกัดจริงของร้านตั้งต้น (ใส่เฉพาะร้านที่ยืนยันหมุดได้จากแหล่งจริงแล้ว)
+-- 101 ร้านยำมะม่วงปูม้า ป้าใจดี — หมุด Google Maps ของร้าน (ซ.รังสิตภิรมย์ ข้าง ม.กรุงเทพ รังสิต)
+-- ไม่ทับพิกัดที่มีอยู่แล้ว รันซ้ำได้
+-- =====================================================================
+update public.shops set lat = 14.0409189, lng = 100.6146675, distance_m = 970
+  where id = 101 and lat is null;

@@ -1118,7 +1118,9 @@ function getReviewsByUser(userId) {
 					service: r.service,
 					text: r.text,
 					author: r.author,
-					date: r.date
+					date: r.date,
+					images: Array.isArray(r.images) ? r.images.filter(Boolean) : [],
+					remoteId: r.remoteId || null
 				});
 			}
 		});
@@ -1327,11 +1329,23 @@ function toggleSavePost(postId) {
 	return nowSaved;
 }
 // โพสต์ที่บันทึกไว้ที่ยังหาเจอในฟีดจริง (โพสต์ที่ถูกลบ/ถูกซ่อนไปแล้วไม่แสดง และไม่นับ)
-function โพสต์ที่บันทึกไว้() {
+function โพสต์จากรายการId(ids) {
 	var items = getFeedItems();
-	return getSavedPosts().map(function(id) {
+	var seen = {};
+	return ids.map(String).filter(function(id) {
+		if (seen[id]) return false;
+		seen[id] = true;
+		return true;
+	}).map(function(id) {
 		return items.filter(function(it) { return String(it.id) === id; })[0] || null;
 	}).filter(Boolean);
+}
+function โพสต์ที่บันทึกไว้() {
+	return โพสต์จากรายการId(getSavedPosts());
+}
+// โพสต์ที่กดถูกใจ (ใช้ในแท็บถูกใจของหน้าโปรไฟล์) — ล่าสุดก่อน
+function โพสต์ที่ถูกใจ() {
+	return โพสต์จากรายการId(getLikedPosts().slice().reverse());
 }
 
 // รวมคำขอนับไลก์จริงของหลายร้านที่โชว์บนหน้าเดียวกันให้เป็นคำขอ Supabase เดียว (debounce ด้วย setTimeout สั้น ๆ)

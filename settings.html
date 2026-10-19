@@ -97,7 +97,7 @@
          <div class="profcard" id="shopFormCard" hidden>
             <div class="profcardtit"><i class="fas fa-shop me-1"></i><span id="shopFormTitle" data-i18n="shop.postMyShop">Post My Shop</span></div>
             <p class="rowsub" style="margin-top:0;margin-bottom:12px;" data-i18n="shop.formHint">Fill in your shop's details and it'll show up in the Discovery Feed right away.</p>
-            <form id="shopForm" class="apform">
+            <form id="shopForm" class="apform" novalidate>
                <div class="aperr" id="shopErr"></div>
                <label class="flbl" data-i18n="shop.shopName">Shop name</label>
                <input class="fctrl" type="text" id="shopName" placeholder="เช่น ร้านป้าหน่อย ข้าวมันไก่" data-i18n-ph="shop.shopNamePlaceholder" required/>
@@ -158,12 +158,12 @@
                <input type="file" id="shopImageFile" accept="image/*" hidden/>
                <input type="hidden" id="shopImage" required/>
                <label class="flbl" data-i18n="shop.priceLow">Price low (฿)</label>
-               <input class="fctrl" type="number" id="shopPriceLow" min="1" required/>
+               <div class="numfield"><input class="fctrl" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="6" id="shopPriceLow" aria-describedby="shopPriceLowErr" required/><p class="numerr" id="shopPriceLowErr" aria-live="polite"></p></div>
                <label class="flbl" data-i18n="shop.priceHigh">Price high (฿)</label>
-               <input class="fctrl" type="number" id="shopPriceHigh" min="1" required/>
+               <div class="numfield"><input class="fctrl" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="6" id="shopPriceHigh" aria-describedby="shopPriceHighErr" required/><p class="numerr" id="shopPriceHighErr" aria-live="polite"></p></div>
                <label class="flbl" data-i18n="shop.distance">Distance (m)</label>
-               <input class="fctrl" type="number" id="shopDistance" min="0" required/>
-               <button type="button" class="rdghost" id="shopUseLocationBtn" style="width:100%;margin:-4px 0 2px;"><i class="fas fa-location-crosshairs me-1"></i><span data-i18n="shop.useMyLocationForDistance">Use my current location for accurate distance</span></button>
+               <div class="numfield"><input class="fctrl" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="6" id="shopDistance" aria-describedby="shopDistanceErr" required/><p class="numerr" id="shopDistanceErr" aria-live="polite"></p></div>
+               <button type="button" class="rdghost" id="shopUseLocationBtn" style="width:100%;margin:18px 0 2px;"><i class="fas fa-location-crosshairs me-1"></i><span data-i18n="shop.useMyLocationForDistance">Use my current location for accurate distance</span></button>
                <p class="rowsub" id="shopLocationHint" style="margin-top:0;" hidden></p>
                <label class="flbl" data-i18n="shop.nearUni">Near which university</label>
                <select class="fctrl" id="shopUni" required></select>
@@ -181,10 +181,12 @@
 
          <div class="profcard" id="personaCard" hidden>
             <div class="profcardtit"><i class="fas fa-right-left me-1"></i><span data-i18n="settings.postingAs">Posting As</span></div>
-            <div class="settoggle" id="personaToggle">
-               <button type="button" data-persona="self" class="settopt"><i class="fas fa-user"></i><span data-i18n="settings.myself">Myself</span></button>
-               <button type="button" data-persona="page" class="settopt"><i class="fas fa-store"></i><span id="personaPageLabel">My Page</span></button>
-            </div>
+            <!-- ใช้เมนูสลับโปรไฟล์ตัวเดียวกับหน้าโปรไฟล์ (ตรวจสิทธิ์ร้านกับเซิร์ฟเวอร์ก่อนสลับทุกครั้ง) -->
+            <button type="button" class="postingasrow" id="personaSwitchBtn" aria-haspopup="dialog">
+               <span class="postingas-av" id="personaAvatar"></span>
+               <span id="personaPageLabel"></span>
+               <i class="fas fa-chevron-down"></i>
+            </button>
             <p class="rowsub" style="margin-top:10px;margin-bottom:0;" data-i18n="settings.postingAsHint">New posts you add from your profile will be posted as whichever you pick here.</p>
          </div>
 

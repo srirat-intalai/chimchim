@@ -288,9 +288,9 @@ function renderShopDetail() {
 			var el = document.createElement("div");
 			el.className = "ppost card-enter";
 			el.innerHTML =
-				'<img src="' + safeImgSrc(images[0]) + '" alt=""/>' +
+				postCoverHtml(images, p.caption) +
 				(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
-				'<div class="ppostcap">' + escapeHtml(p.caption || "") + '</div>';
+				(images.length ? '<div class="ppostcap">' + escapeHtml(p.caption || "") + '</div>' : "");
 			el.addEventListener("click", function() {
 				openPostView({ id: p.id, images: images, caption: p.caption, posterName: ร้านปัจจุบัน.ร้าน, posterColor: "var(--cream2)", posterAvatarUrl: buShopของร้านนี้ ? buShopของร้านนี้.avatar : null, posterId: p.userId || null });
 			});

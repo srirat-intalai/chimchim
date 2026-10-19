@@ -3952,3 +3952,233 @@ a.ppreview-who:focus-visible { outline: 2px solid var(--rf-brand); outline-offse
 }
 .igbtn { background: var(--rf-fill); }
 .profcardbtn .profcardtit::after { color: var(--rf-ink-2); }
+
+/* =====================================================================
+   โพสต์ข้อความล้วน (ไม่มีรูป) — ช่องในตารางโพสต์เป็นการ์ดข้อความขนาดเท่ารูป, หน้าดูโพสต์ไม่มีแถบรูป
+   ===================================================================== */
+.ppost-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: var(--rf-brand-tint);
+  color: var(--rf-ink);
+  text-align: center;
+}
+[data-theme="dark"] .ppost-text { background: var(--rf-fill); }
+.ppost-text span {
+  font-size: 0.74rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.pvimgstrip[hidden] { display: none; }
+
+/* =====================================================================
+   สลับโปรไฟล์ (แบบ IG) — ปุ่มชื่อ ▾ บนหัวโปรไฟล์, เมนูเลือกโปรไฟล์, สถานะกำลังโหลด/ผิดพลาด, โหมดโปรไฟล์ร้าน
+   ===================================================================== */
+button.profavatar { border: none; padding: 0; cursor: pointer; color: #fff; font: inherit; font-size: 1.6rem; font-weight: 800; }
+.profswitchbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.profswitchbtn .profname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profswitchbtn i { font-size: 0.75rem; color: var(--rf-ink-2); }
+.profswitchbtn:focus-visible, button.profavatar:focus-visible { outline: 2px solid var(--rf-brand); outline-offset: 3px; border-radius: 8px; }
+button.postingasrow { width: 100%; border: none; cursor: pointer; font-family: inherit; text-align: left; }
+.postingas-av {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px !important;
+  border-radius: 50%;
+  background: var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24)) center / cover no-repeat;
+  color: #fff;
+  font-size: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.psw .fsheet-head b.psw-title { flex: 1; font-size: 1rem; color: var(--rf-ink); }
+.psw-row {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--rf-line);
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-height: 56px;
+}
+.psw-row:focus-visible { outline: 2px solid var(--rf-brand); outline-offset: -2px; border-radius: 10px; }
+.psw-row .fsrow-text { flex: 1; }
+.psw-check { font-size: 1.15rem; color: var(--rf-line); flex-shrink: 0; }
+.psw-row.is-active .psw-check { color: var(--rf-brand); }
+.psw.is-busy .psw-row { opacity: 0.55; pointer-events: none; }
+.psw-msg { margin: 0 14px 10px; padding: 10px 12px; border-radius: 12px; background: var(--rf-fill); color: var(--rf-ink); font-size: 0.8rem; }
+.psw-create {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 14px 16px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--rf-fill);
+  color: var(--rf-ink);
+  font-weight: 700;
+  font-size: 0.86rem;
+  text-decoration: none;
+}
+.psw-create[hidden] { display: none; }
+.profstate { text-align: center; padding: 70px 20px; color: var(--rf-ink-2); }
+.profstate-msg { font-size: 0.9rem; margin-bottom: 16px; }
+.profstate-btns { display: flex; flex-direction: column; gap: 10px; max-width: 280px; margin: 0 auto; }
+.profstate-btns[hidden] { display: none; }
+.shopinfolist { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 0.84rem; }
+.shopinfolist dt { color: var(--rf-ink-2); font-weight: 600; }
+.shopinfolist dd { margin: 0; color: var(--rf-ink); overflow-wrap: anywhere; }
+.profstalebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: #fff3cd;
+  color: #5c4400;
+  font-size: 0.8rem;
+}
+.profstalebar button { flex-shrink: 0; border: none; border-radius: 8px; padding: 6px 10px; background: #5c4400; color: #fff; font-weight: 700; cursor: pointer; }
+/* "+ เพิ่มโปรไฟล์" — แถวขนาดเดียวกับแถวโปรไฟล์ ตรึงไว้ล่างสุดของหน้าต่าง (รายการด้านบนเลื่อนได้ในตัว) */
+.psw .fsheet-list { flex: 1 1 auto; min-height: 0; padding-bottom: 6px; }
+.psw .fsheet-list[hidden], .psw-foot[hidden] { display: none; }
+.psw-foot { flex-shrink: 0; padding: 0 14px 14px; border-top: 1px solid var(--rf-line); }
+.psw-foot .psw-add { border-bottom: none; }
+.psw-addico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rf-fill);
+  border: 1px solid var(--rf-line);
+  color: var(--rf-ink);
+  font-size: 1.05rem;
+}
+.psw-add b { font-size: 0.9rem; }
+.psw-type .fsrow-text small { white-space: normal; line-height: 1.35; }
+.psw-row.is-new .fsrow-text small { color: var(--rf-brand); font-weight: 700; }
+.psw-back { margin-right: 2px; }
+
+/* =====================================================================
+   ช่องตัวเลขในฟอร์มร้าน (ราคา/ระยะทาง) — ข้อความเตือนสีแดงลอยอยู่ในช่องว่างใต้ช่อง (18px ก่อนป้ายถัดไป)
+   เตือนขึ้น/หายแล้วเลย์เอาต์ไม่ขยับ ไม่ทับองค์ประกอบอื่น
+   ===================================================================== */
+.numfield { position: relative; }
+.numerr {
+  position: absolute;
+  left: 4px;
+  right: 0;
+  top: calc(100% + 2px);
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  color: #d93025;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+[data-theme="dark"] .numerr { color: #ff6b6b; }
+.fctrl.is-invalid,
+.fctrl.is-invalid:focus { border-color: #d93025; }
+[data-theme="dark"] .fctrl.is-invalid { border-color: #ff6b6b; }
+
+/* =====================================================================
+   หมวดอาหารแบบพิมพ์ค้นหา (ฟอร์มร้านใน Settings) — ช่องหน้าตาเดียวกับ .fctrl อื่น รายการลอยใต้ช่อง เลื่อนได้
+   ===================================================================== */
+.catcombo { position: relative; }
+.catcombo-input { padding-right: 40px; text-overflow: ellipsis; }
+.catcombo-caret {
+  position: absolute;
+  right: 16px;
+  top: calc(50% + 4px); /* .apform .fctrl มี margin-top 8px */
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--rf-ink-2);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.catcombo.is-open .catcombo-caret { transform: translateY(-50%) rotate(180deg); }
+.catcombo-native {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  border: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+}
+.catcombo-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 60;
+  max-height: min(300px, 50vh);
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  border-radius: 13px;
+  box-shadow: 0 14px 34px -12px rgba(15, 8, 30, 0.35);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-margin-bottom: 16px; /* ตอนเลื่อนหน้าให้เห็นรายการ เว้นจากขอบล่างจอนิดหนึ่ง */
+}
+.catcombo-list[hidden] { display: none; }
+.catcombo-group {
+  padding: 10px 10px 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--rf-ink-2);
+}
+.catcombo-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: var(--rf-ink);
+  cursor: pointer;
+}
+.catcombo-opt .fa-check { margin-left: auto; color: var(--rf-brand); font-size: 0.8rem; }
+.catcombo-opt.is-active { background: var(--rf-fill); }
+.catcombo-opt.is-selected { font-weight: 700; }
+@media (hover: hover) { .catcombo-opt:hover { background: var(--rf-fill); } }
+.catcombo-empty { padding: 14px 12px; font-size: 0.84rem; color: var(--rf-ink-2); text-align: center; }
+.catcombo-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

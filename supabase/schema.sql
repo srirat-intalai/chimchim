@@ -514,3 +514,94 @@ delete from public.follows where target_type = 'profile' and target_id like 'see
 -- =====================================================================
 update public.shops set lat = 14.0409189, lng = 100.6146675, distance_m = 970
   where id = 101 and lat is null;
+
+-- =====================================================================
+-- Phase 16 — เก็บรูปโพสต์/รีวิวใน Supabase Storage + โพสต์ข้อความล้วนได้
+-- ปัญหาเดิม: รูปทุกรูปเป็น base64 ยัดในแถว posts/reviews → ถูกดึงไปเก็บใน localStorage ของทุกเครื่องที่เปิดฟีด
+-- จนเครื่องเต็ม แล้วโพสต์ใหม่ขึ้น "บันทึกไม่สำเร็จ ลองลดจำนวนรูป…" ทั้งที่เลือกแค่ไม่กี่รูป
+-- ตอนนี้แอปอัปไฟล์ขึ้น bucket "chimchim-images" แล้วเก็บแค่ URL ในแถว (CHECK เดิมรับ https:// อยู่แล้ว)
+-- ไม่ลบ/ไม่แก้แถวเดิม — โพสต์/รีวิวเก่าที่เป็น base64 ยังแสดงได้ตามเดิม รันซ้ำได้
+-- (ถ้ายังไม่รัน Phase นี้ แอปยังโพสต์รูปได้ด้วยวิธีเดิม แต่โพสต์ข้อความล้วนจะถูกปฏิเสธ)
+-- =====================================================================
+-- bucket สาธารณะ (อ่านรูปผ่าน URL ได้ทุกคนเหมือนรูปในฟีด) จำกัด 5MB/ไฟล์ และรับเฉพาะไฟล์รูป
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('chimchim-images', 'chimchim-images', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+-- ผู้ใช้ที่ล็อกอินอัป/ลบได้เฉพาะไฟล์ในโฟลเดอร์ของตัวเอง (<user id>/posts/... หรือ <user id>/reviews/...)
+-- ไม่มี policy update = เขียนทับไฟล์เดิมไม่ได้ / select เฉพาะของตัวเอง (ใช้ตอนลบ) — การดูรูปใช้ URL สาธารณะ ไม่ต้องผ่าน policy
+drop policy if exists "chimchim_images_insert_own" on storage.objects;
+create policy "chimchim_images_insert_own" on storage.objects for insert to authenticated
+  with check (bucket_id = 'chimchim-images' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "chimchim_images_select_own" on storage.objects;
+create policy "chimchim_images_select_own" on storage.objects for select to authenticated
+  using (bucket_id = 'chimchim-images' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "chimchim_images_delete_own" on storage.objects;
+create policy "chimchim_images_delete_own" on storage.objects for delete to authenticated
+  using (bucket_id = 'chimchim-images' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- รีวิวมีรูปได้ (ซ้ำกับ Phase 6 เผื่อยังไม่เคยรัน — ไม่มีผลถ้ามีคอลัมน์แล้ว)
+alter table public.reviews add column if not exists images text[] default '{}';
+
+-- ฟังก์ชันตรวจรูป (เหมือน Phase 11 ทุกอย่าง — ใส่ซ้ำให้ Phase นี้รันเดี่ยว ๆ ได้)
+create or replace function public.chimchim_images_ok(imgs text[])
+returns boolean language sql immutable as $$
+  select imgs is null or (
+    coalesce(cardinality(imgs), 0) <= 10
+    and not exists (
+      select 1 from unnest(imgs) as u(src)
+      where src is null
+         or not (src like 'data:image/%' or src like 'https://%' or src like 'http://%' or src like 'img/%')
+         or octet_length(src) > 1600000
+    )
+  );
+$$;
+
+-- posts: โพสต์ข้อความล้วนได้ (0-10 รูป แทน 1-10) — ไม่ส่งรูปมา = อาร์เรย์ว่าง
+alter table public.posts alter column images set default '{}';
+alter table public.posts drop constraint if exists posts_images_limit;
+alter table public.posts add constraint posts_images_limit
+  check (coalesce(cardinality(images), 0) <= 10 and public.chimchim_images_ok(images)) not valid;
+alter table public.reviews drop constraint if exists reviews_images_limit;
+alter table public.reviews add constraint reviews_images_limit
+  check (public.chimchim_images_ok(images)) not valid;
+
+-- =====================================================================
+-- Phase 17 — โพสต์ในนามร้านได้เฉพาะเจ้าของร้านจริง (ระบบสลับโปรไฟล์)
+-- เดิม posts_insert_own เช็คแค่ auth.uid() = user_id → ใครก็ใส่ page_id เป็นร้านของคนอื่นแล้วโพสต์ในนามร้านนั้นได้
+-- ตอนนี้ฐานข้อมูลตรวจซ้ำเองว่า page_id (ถ้ามี) เป็นร้านที่ vendor_id = ผู้โพสต์ และร้านไม่ถูกซ่อน/ปิดใช้งาน
+-- ไม่เชื่อค่า "โปรไฟล์ที่ใช้งานอยู่" จากหน้าเว็บ — ไม่แตะแถวเดิม (โพสต์เก่าทุกโพสต์ยังอยู่ครบ) รันซ้ำได้
+-- =====================================================================
+create or replace function public.chimchim_can_post_as_shop(shop_id bigint)
+returns boolean language sql stable security definer set search_path = public as $$
+  select shop_id is null or exists (
+    select 1 from public.shops s
+    where s.id = shop_id and s.vendor_id = auth.uid() and not s.is_hidden
+  );
+$$;
+
+drop policy if exists "posts_insert_own" on public.posts;
+create policy "posts_insert_own" on public.posts for insert
+  with check (auth.uid() = user_id and public.chimchim_can_post_as_shop(page_id));
+
+-- แก้ไขโพสต์: ต้องเป็นเจ้าของโพสต์ และถ้าย้าย/คงไว้ในนามร้าน ร้านนั้นต้องเป็นของตัวเองด้วย
+drop policy if exists "posts_update_own" on public.posts;
+create policy "posts_update_own" on public.posts for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id and public.chimchim_can_post_as_shop(page_id));
+
+-- =====================================================================
+-- Phase 18 — ตัวเลขของร้าน (ราคา/ระยะทาง) ต้องถูกต้องเสมอ แม้ยิง API ข้ามหน้าเว็บ
+-- คอลัมน์เป็น int อยู่แล้ว (ตัวอักษรเข้าไม่ได้) เพิ่มกติกาเดียวกับหน้า Settings (validateShopNumbers ใน core.js):
+-- ราคา 1–100,000 บาท / ราคาต่ำ ≤ ราคาสูง / ระยะทาง 0–100,000 เมตร (ไม่ติดลบ)
+-- NOT VALID = ตรวจเฉพาะแถวที่ insert/update ใหม่ ไม่แตะร้านเดิม (ร้านตั้งต้นทั้งหมดอยู่ในช่วงนี้อยู่แล้ว) รันซ้ำได้
+-- =====================================================================
+alter table public.shops drop constraint if exists shops_price_range;
+alter table public.shops add constraint shops_price_range
+  check (price_low between 1 and 100000 and price_high between 1 and 100000 and price_low <= price_high) not valid;
+alter table public.shops drop constraint if exists shops_distance_range;
+alter table public.shops add constraint shops_distance_range
+  check (distance_m between 0 and 100000) not valid;

@@ -376,7 +376,7 @@ function migrateOrphanedLocalData(newUserId, email) {
 				postsChanged = true;
 			}
 		});
-		if (postsChanged) localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+		if (postsChanged) savePostsLocal(posts);
 
 		try {
 			var allReviews = JSON.parse(localStorage.getItem(CHIMCHIM_REVIEWS_KEY)) || {};
@@ -635,10 +635,13 @@ function saveShops(list) {
 }
 
 // ร้านของฉัน (ผูกกับ vendorId ของบัญชีที่ล็อกอินอยู่) — ใช้บอกว่าจะสร้างร้านใหม่ หรือแก้ไขร้านเดิม
+// มีหลายร้าน: คืนร้านที่กำลังใช้งานเป็นโปรไฟล์อยู่ก่อน (แก้ข้อมูลร้านจาก Settings = แก้ร้านที่เลือกไว้ ไม่ใช่ร้านแรกเสมอ)
 function getMyShop() {
 	var me = getMe();
 	if (!me) return null;
-	return getShops().filter(function(s) { return s.vendorId === me.id; })[0] || null;
+	var mine = getShops().filter(function(s) { return s.vendorId === me.id; });
+	var active = getActivePersona();
+	return mine.filter(function(s) { return String(s.numId) === active; })[0] || mine[0] || null;
 }
 // สุ่ม id เลขที่ไม่ชนกับร้านชุมชนที่มีอยู่แล้ว (ตั้งตอนสร้างร้านครั้งแรกเลย จะได้เป็นค่าคงที่ถาวร
 // ไม่ต้องพึ่ง index ในอาร์เรย์ที่ขยับได้เวลามีร้านใหม่มาแทรก — กันไลก์/follow/รีวิวเดิมหลุดจากร้าน)
@@ -650,11 +653,48 @@ function generateUniqueShopNumId() {
 	} while (used.indexOf(id) !== -1);
 	return id;
 }
+/* --- ตัวเลขของร้าน (ราคา/ระยะทาง) — กติกาเดียวกับ CHECK ในฐานข้อมูล (SQL Phase 18)
+   รับได้ทั้งข้อความจากช่องกรอก หรือตัวเลข: ต้องเป็นเลข 0-9 ล้วน ไม่ว่าง ไม่ติดลบ อยู่ในช่วง และราคาต่ำ ≤ ราคาสูง
+   คืน { ok: true, values } หรือ { ok: false, field, key, min, max } (key = ข้อความ i18n ที่บอกผู้ใช้) --- */
+var CHIMCHIM_SHOP_NUMBER_RULES = {
+	priceLow: { min: 1, max: 100000 },
+	priceHigh: { min: 1, max: 100000 },
+	distance: { min: 0, max: 100000 } // เมตร (≤ 100 กม.)
+};
+function checkShopNumber(field, raw) {
+	var rule = CHIMCHIM_SHOP_NUMBER_RULES[field];
+	var str = raw == null ? "" : String(raw).trim();
+	if (!str) return { ok: false, field: field, key: "shop.numRequired" };
+	if (/^-\d+$/.test(str)) return { ok: false, field: field, key: "shop.numNoNegative" };
+	if (!/^\d+$/.test(str)) return { ok: false, field: field, key: "shop.numOnlyDigits" };
+	var n = parseInt(str, 10);
+	if (n < rule.min || n > rule.max) return { ok: false, field: field, key: "shop.numRange", min: rule.min, max: rule.max };
+	return { ok: true, value: n };
+}
+function validateShopNumbers(data) {
+	var values = {};
+	var fields = ["priceLow", "priceHigh", "distance"];
+	for (var i = 0; i < fields.length; i++) {
+		var r = checkShopNumber(fields[i], data[fields[i]]);
+		if (!r.ok) return r;
+		values[fields[i]] = r.value;
+	}
+	if (values.priceLow > values.priceHigh) return { ok: false, field: "priceLow", key: "shop.priceOrderError" };
+	return { ok: true, values: values };
+}
+
 function createOrUpdateMyShop(data) {
 	var me = getMe();
 	if (!me) return null;
+	// ด่านสุดท้ายฝั่งหน้าเว็บ — ค่าผิดไม่ถูกบันทึกแม้เรียกฟังก์ชันนี้ตรง ๆ (ฟอร์มตรวจและบอกผู้ใช้ไปก่อนแล้ว)
+	var nums = validateShopNumbers(data);
+	if (!nums.ok) return null;
+	data.priceLow = nums.values.priceLow;
+	data.priceHigh = nums.values.priceHigh;
+	data.distance = nums.values.distance;
 	var shops = getShops();
-	var existing = shops.filter(function(s) { return s.vendorId === me.id; })[0];
+	var target = getMyShop();
+	var existing = target ? shops.filter(function(s) { return s.numId === target.numId; })[0] : null;
 	if (existing) {
 		existing.name = data.name;
 		existing.dish = data.dish;
@@ -698,19 +738,58 @@ function createOrUpdateMyShop(data) {
 	if (!saveShops(shops)) return null;
 	return existing;
 }
+// สร้างโปรไฟล์ร้านค้า "ใหม่" (จากเมนู + เพิ่มโปรไฟล์) — ไม่แตะร้านเดิมที่มีอยู่ ติด pendingInsert ไว้จนกว่าจะขึ้นเซิร์ฟเวอร์
+// (sbSaveMyShop เห็นแล้ว insert แถวใหม่ / reconcileShopNumId ล้างธงให้หลังได้ id จริง) คืน null ถ้าเครื่องเต็ม
+function createNewShop(data) {
+	var me = getMe();
+	if (!me) return null;
+	var nums = validateShopNumbers(data);
+	if (!nums.ok) return null;
+	data.priceLow = nums.values.priceLow;
+	data.priceHigh = nums.values.priceHigh;
+	data.distance = nums.values.distance;
+	var shops = getShops();
+	var shop = {
+		numId: generateUniqueShopNumId(),
+		vendorId: me.id,
+		vendorName: me.name,
+		name: data.name,
+		dish: data.dish,
+		cat: data.cat,
+		img: data.img,
+		priceLow: data.priceLow,
+		priceHigh: data.priceHigh,
+		distance: data.distance,
+		uni: data.uni,
+		desc: data.desc,
+		hours: data.hours,
+		promo: data.promo,
+		lat: typeof data.lat === "number" ? data.lat : null,
+		lng: typeof data.lng === "number" ? data.lng : null,
+		pendingInsert: true
+	};
+	shops.push(shop);
+	if (!saveShops(shops)) return null;
+	logEvent("shop_posted", { shopId: shop.numId });
+	return shop;
+}
+// ถอนร้านที่เพิ่งสร้างในเครื่องออก (ส่งขึ้นเซิร์ฟเวอร์ไม่สำเร็จ) — กดสร้างใหม่แล้วจะไม่มีร้านซ้ำค้างอยู่
+function discardLocalShop(numId) {
+	saveShops(getShops().filter(function(s) { return s.numId !== numId; }));
+}
 // ลบร้านของฉันทิ้งถาวร (กู้คืนไม่ได้) — ลบทั้งในเครื่องนี้และ Supabase จริง โพสต์ในนามร้านนี้ถูกลบตามไปด้วย
 // (ฝั่ง Supabase cascade เองผ่าน posts.page_id -> shops(id) on delete cascade, ฝั่งเครื่องนี้ลบเองตรงนี้เลย)
 function deleteMyShop() {
 	var me = getMe();
 	if (!me) return;
 	var shops = getShops();
-	var mine = shops.filter(function(s) { return s.vendorId === me.id; })[0];
+	var mine = getMyShop();
 	if (!mine) return;
-	saveShops(shops.filter(function(s) { return s.vendorId !== me.id; }));
+	saveShops(shops.filter(function(s) { return s.numId !== mine.numId; }));
 	var idx = รายการร้าน.findIndex(function(r) { return r.id === mine.numId; });
 	if (idx !== -1) รายการร้าน.splice(idx, 1);
 	var posts = getAllPosts().filter(function(p) { return p.pageId !== mine.numId; });
-	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+	savePostsLocal(posts);
 	if (getActivePersona() === String(mine.numId)) setActivePersona("self");
 	if (typeof sbDeleteMyShop === "function") sbDeleteMyShop(mine.numId);
 }
@@ -827,7 +906,7 @@ function reconcileShopNumId(oldNumId, newNumId) {
 			postsChanged = true;
 		}
 	});
-	if (postsChanged) localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+	if (postsChanged) savePostsLocal(posts);
 
 	if (getActivePersona() === String(oldNumId)) {
 		setActivePersona(String(newNumId));
@@ -835,7 +914,10 @@ function reconcileShopNumId(oldNumId, newNumId) {
 
 	var shops = getShops();
 	shops.forEach(function(s) {
-		if (s.numId === oldNumId) s.numId = newNumId;
+		if (s.numId === oldNumId) {
+			s.numId = newNumId;
+			delete s.pendingInsert; // ขึ้นเซิร์ฟเวอร์แล้ว ครั้งหน้าอัปเดตแถวนี้ ไม่ insert ซ้ำ
+		}
 	});
 	saveShops(shops);
 }
@@ -852,32 +934,51 @@ function getReviews(shopId) {
 	}
 }
 // คืน Promise<{ ok, reason }> — ok=false แปลว่ายังบันทึกไม่ครบ ผู้เรียกต้องแจ้งผู้ใช้ ห้ามบอกว่าส่งสำเร็จ
-// reason: "storage" (เครื่องเต็ม) / "server" (ส่งขึ้น Supabase ไม่สำเร็จ) / "images_column" (ยังไม่ได้รัน SQL ช่องรูป)
-function addReview(shopId, review) {
+// reason: "storage" (เครื่องเต็ม — บัญชีทดลองในเครื่อง) / "images_column" (ยังไม่ได้รัน SQL ช่องรูป) / "images_limit"
+// / "offline" / "network" / "auth" / "upload" / "server"
+// บัญชี Supabase จริง: อัปรูปเข้า Storage ก่อน แล้วรีวิวเก็บแค่ URL (ไม่ใช่ base64 ที่ทำให้เครื่องเต็ม — ดู savePostsLocal)
+function addReview(shopId, review, onProgress) {
+	if (review.images) review.images = review.images.filter(Boolean).slice(0, CHIMCHIM_MAX_IMAGES);
+	var mustReachServer = ต้องบันทึกขึ้นเซิร์ฟเวอร์();
+	var upload = (mustReachServer && typeof sbUploadImages === "function" && review.images && review.images.length)
+		? sbUploadImages(review.images, "reviews", onProgress)
+		: Promise.resolve({ urls: review.images, paths: [] });
+	return upload.then(function(up) {
+		if (up.error) return { ok: false, reason: up.error };
+		if (review.images) review.images = up.urls;
+		return saveReviewAfterUpload(shopId, review, mustReachServer, up.paths);
+	});
+}
+function saveReviewAfterUpload(shopId, review, mustReachServer, uploadedPaths) {
 	var all;
 	try {
 		all = JSON.parse(localStorage.getItem(CHIMCHIM_REVIEWS_KEY)) || {};
 	} catch (e) {
 		all = {};
 	}
-	if (review.images) review.images = review.images.slice(0, CHIMCHIM_MAX_IMAGES);
 	if (!all[shopId]) all[shopId] = [];
 	// localId ใช้แค่ชั่วคราวเพื่อหารีวิวนี้เจอตอน push ขึ้น Supabase เสร็จแล้วมาแปะ remoteId จริงให้ (ดูด้านล่าง)
 	var localId = "rev" + Date.now() + Math.random().toString(36).slice(2, 6);
 	review.localId = localId;
 	all[shopId].unshift(review);
+	var storedLocally = true;
 	try {
 		localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
 	} catch (e) {
-		return Promise.resolve({ ok: false, reason: "storage" });
+		storedLocally = false;
+		// บัญชีทดลองในเครื่อง: เครื่องคือที่เก็บเดียว เต็ม = บันทึกไม่ได้จริง / บัญชีจริง: ส่งขึ้นเซิร์ฟเวอร์ต่อได้
+		if (!mustReachServer) return { ok: false, reason: "storage" };
 	}
-	var mustReachServer = ต้องบันทึกขึ้นเซิร์ฟเวอร์();
 	// คืน Promise ให้ผู้เรียกรอจน push ขึ้น Supabase เสร็จก่อนเปลี่ยนหน้า — ถ้าเปลี่ยนหน้าทันที request จะโดนยกเลิก
 	// กลางทาง รีวิวไม่ขึ้นเครื่องอื่น และไม่เคยได้ remoteId (ปุ่มแก้ไขรีวิวเลยไม่โผล่)
 	if (typeof sbSubmitReview !== "function") return Promise.resolve({ ok: true });
 	return sbSubmitReview(shopId, review).then(function(res) {
 		if (res && res.saved && res.saved.remoteId) {
-			tagReviewRemoteId(shopId, localId, res.saved.remoteId);
+			if (storedLocally) {
+				tagReviewRemoteId(shopId, localId, res.saved.remoteId);
+			} else {
+				try { mergeRemoteReviewsIntoLocal(shopId, [res.saved]); } catch (e) {}
+			}
 			logEvent("review_submitted", { shopId: shopId });
 			return { ok: true };
 		}
@@ -886,8 +987,11 @@ function addReview(shopId, review) {
 			return { ok: true };
 		}
 		// เซิร์ฟเวอร์ไม่รับ → ถอนรีวิวในเครื่องออก ไม่ให้ขึ้นเหมือนสำเร็จ (ฟอร์มยังเก็บข้อมูลไว้ให้กดส่งใหม่)
-		deleteReview(shopId, { localId: localId });
-		return { ok: false, reason: (res && res.error) || "server" };
+		// + ลบรูปที่เพิ่งอัปไปทิ้ง (เน็ตหลุดตอนรอคำตอบไม่ลบ เผื่อแถวขึ้นไปแล้วจริง)
+		var reason = (res && res.error) || "server";
+		if (reason !== "network" && reason !== "offline" && typeof sbRemoveImages === "function") sbRemoveImages(uploadedPaths);
+		if (storedLocally) deleteReview(shopId, { localId: localId });
+		return { ok: false, reason: reason };
 	});
 }
 // รอ promise ไม่เกิน ms มิลลิวินาที — กันเน็ตช้า/ค้างจนผู้ใช้ติดอยู่หน้าเดิมไม่ได้ไปไหน
@@ -919,45 +1023,57 @@ function tagReviewRemoteId(shopId, localId, remoteId) {
 	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
 }
 // แก้ไข/ลบรีวิวของตัวเอง — ใช้ได้เฉพาะรีวิวที่ sync ขึ้น Supabase แล้วเท่านั้น (มี remoteId จริง)
-// คืน Promise<{ ok, reason }> เหมือน addReview — ถ้าเซิร์ฟเวอร์ไม่รับ จะคืนค่ารีวิวในเครื่องกลับเป็นของเดิม
-function updateReview(shopId, remoteId, patch) {
-	var all;
-	try {
-		all = JSON.parse(localStorage.getItem(CHIMCHIM_REVIEWS_KEY)) || {};
-	} catch (e) {
-		all = {};
-	}
-	if (Array.isArray(patch.images)) patch.images = patch.images.slice(0, CHIMCHIM_MAX_IMAGES);
-	var list = all[shopId] || [];
-	var before = null;
-	var i;
-	for (i = 0; i < list.length; i++) {
-		if (String(list[i].remoteId) === String(remoteId)) {
-			before = JSON.parse(JSON.stringify(list[i]));
-			if (typeof patch.taste === "number") list[i].taste = patch.taste;
-			if (typeof patch.atmosphere === "number") list[i].atmosphere = patch.atmosphere;
-			if (typeof patch.service === "number") list[i].service = patch.service;
-			if (typeof patch.text === "string") list[i].text = patch.text;
-			if (Array.isArray(patch.images)) list[i].images = patch.images;
-			break;
-		}
-	}
-	all[shopId] = list;
-	try {
-		localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
-	} catch (e) {
-		return Promise.resolve({ ok: false, reason: "storage" });
-	}
-	if (typeof sbUpdateReview !== "function") return Promise.resolve({ ok: true });
+// คืน Promise<{ ok, reason }> เหมือน addReview — อัปรูปใหม่ก่อน แล้วอัปเดตแถว สำเร็จค่อยแก้ในเครื่อง
+// ไม่สำเร็จ = รีวิวเดิมไม่ถูกแตะ (บัญชีทดลองในเครื่องแก้ในเครื่องอย่างเดียวเหมือนเดิม)
+function updateReview(shopId, remoteId, patch, onProgress) {
+	if (Array.isArray(patch.images)) patch.images = patch.images.filter(Boolean).slice(0, CHIMCHIM_MAX_IMAGES);
 	var mustReachServer = ต้องบันทึกขึ้นเซิร์ฟเวอร์();
-	return sbUpdateReview(remoteId, patch).then(function(res) {
-		if (res && res.ok) return { ok: true };
-		if (!mustReachServer) return { ok: true };
-		if (before) {
-			list[i] = before;
-			try { localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all)); } catch (e) {}
+	var oldImages = ((getReviewByRemoteId(shopId, remoteId) || {}).images || []).slice();
+	function applyLocal() {
+		var all;
+		try {
+			all = JSON.parse(localStorage.getItem(CHIMCHIM_REVIEWS_KEY)) || {};
+		} catch (e) {
+			all = {};
 		}
-		return { ok: false, reason: (res && res.error) || "server" };
+		(all[shopId] || []).forEach(function(r) {
+			if (String(r.remoteId) !== String(remoteId)) return;
+			if (typeof patch.taste === "number") r.taste = patch.taste;
+			if (typeof patch.atmosphere === "number") r.atmosphere = patch.atmosphere;
+			if (typeof patch.service === "number") r.service = patch.service;
+			if (typeof patch.text === "string") r.text = patch.text;
+			if (Array.isArray(patch.images)) r.images = patch.images;
+		});
+		try {
+			localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
+			return true;
+		} catch (e) {
+			return false;
+		}
+	}
+	if (typeof sbUpdateReview !== "function" || !mustReachServer) {
+		if (!applyLocal()) return Promise.resolve({ ok: false, reason: "storage" });
+		if (typeof sbUpdateReview === "function") sbUpdateReview(remoteId, patch);
+		return Promise.resolve({ ok: true });
+	}
+	var upload = (Array.isArray(patch.images) && patch.images.length && typeof sbUploadImages === "function")
+		? sbUploadImages(patch.images, "reviews", onProgress)
+		: Promise.resolve({ urls: patch.images, paths: [] });
+	return upload.then(function(up) {
+		if (up.error) return { ok: false, reason: up.error };
+		if (Array.isArray(patch.images)) patch.images = up.urls;
+		return sbUpdateReview(remoteId, patch).then(function(res) {
+			if (!(res && res.ok)) {
+				var reason = (res && res.error) || "server";
+				if (reason !== "network" && reason !== "offline") sbRemoveImages(up.paths);
+				return { ok: false, reason: reason };
+			}
+			applyLocal(); // แค่แคช — เซิร์ฟเวอร์อัปเดตแล้ว
+			if (Array.isArray(patch.images)) {
+				sbDeleteImagesIfUnused(oldImages.filter(function(u) { return patch.images.indexOf(u) === -1; }));
+			}
+			return { ok: true };
+		});
 	});
 }
 // ลบรีวิวของตัวเอง — ระบุตัวด้วย remoteId ถ้า sync ขึ้น Supabase แล้ว ไม่งั้นใช้ localId (รีวิวที่ยังค้างอยู่ในเครื่องนี้
@@ -1017,7 +1133,11 @@ function mergeRemoteReviewsIntoLocal(shopId, remoteReviews) {
 	});
 	local.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
 	all[shopId] = local;
-	localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
+	try {
+		localStorage.setItem(CHIMCHIM_REVIEWS_KEY, JSON.stringify(all));
+	} catch (e) {
+		// เครื่องเต็ม — รีวิวของคนอื่นเป็นแค่แคช เปิดหน้าร้านครั้งหน้าดึงใหม่ได้ ไม่ต้องทำให้หน้าพัง
+	}
 }
 /* =====================================================================
    เลเวลนักชิม — XP คิดจากกิจกรรมจริงของผู้ใช้ในแอป (ไม่มีตัวเลขสมมติ)
@@ -1616,11 +1736,45 @@ function หมุนเวียนตามวันนี้(list, getId, n) 
    โพสต์ของสมาชิก (ภาพ + แคปชั่น) — โชว์ในหน้าโปรไฟล์ตัวเอง และหน้าโปรไฟล์สาธารณะ
    เวอร์ชันย่อของฟีเจอร์คอมมูนิตี้ (ยังไม่รองรับสตอรี่/รีล/วิดีโอในเวอร์ชันนี้)
    ===================================================================== */
+// ต้นเหตุจริงของ "บันทึกไม่สำเร็จ ลองลดจำนวนรูป…": localStorage ทั้งเว็บได้แค่ ~5.2 ล้านตัวอักษร (Chrome/Safari)
+// แต่โพสต์ของ "ทุกคน" ที่ sync มาจากฟีดถูกเก็บไว้ในเครื่องพร้อมรูป base64 เต็ม ๆ — โพสต์เดียวก็หลายแสนตัวอักษร
+// พอแคชฟีดโตจนเกือบเต็ม โพสต์ใหม่แค่ 1-4 รูปก็ setItem ไม่ผ่าน แล้วฟอร์มล้มก่อนส่งขึ้นเซิร์ฟเวอร์ด้วยซ้ำ
+// ตอนนี้: เขียนผ่าน savePostsLocal() ที่เดียว ถ้าเต็ม → เก็บชุดเต็มไว้ในหน่วยความจำของหน้านี้ (หน้าจอยังเห็นครบ)
+// แล้วเขียนลงเครื่องเฉพาะส่วนที่ "หายแล้วกู้ไม่ได้" (โพสต์ที่ยังไม่ขึ้นเซิร์ฟเวอร์) — โพสต์ที่ sync แล้วดึงใหม่ได้เสมอ
+var chimchimPostsInMemory = null;
+window.addEventListener("storage", function(e) {
+	if (e.key === CHIMCHIM_POSTS_KEY) chimchimPostsInMemory = null; // แท็บอื่นเขียนชุดใหม่แล้ว เลิกใช้ของในหน่วยความจำ
+});
 function getAllPosts() {
+	if (chimchimPostsInMemory) return JSON.parse(chimchimPostsInMemory);
 	try {
 		return JSON.parse(localStorage.getItem(CHIMCHIM_POSTS_KEY)) || [];
 	} catch (e) {
 		return [];
+	}
+}
+// คืน true ถ้าโพสต์ที่มีแค่ในเครื่องนี้ (ยังไม่มี remoteId) ถูกบันทึกครบทุกโพสต์ — false = เครื่องเต็มจริง ๆ
+function savePostsLocal(posts) {
+	var json = JSON.stringify(posts);
+	try {
+		localStorage.setItem(CHIMCHIM_POSTS_KEY, json);
+		chimchimPostsInMemory = null;
+		return true;
+	} catch (e) {}
+	chimchimPostsInMemory = json;
+	// ชุดย่อ: โพสต์ที่ sync แล้วแต่รูปเป็น base64 (ก้อนใหญ่) ไม่ต้องเก็บ — เปิดหน้าใหม่จะดึงจากเซิร์ฟเวอร์มาเอง
+	var lite = posts.filter(function(p) {
+		return !p.remoteId || !getPostImages(p).some(function(src) { return /^data:/.test(src); });
+	});
+	try {
+		localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(lite));
+		return true;
+	} catch (e) {}
+	try {
+		localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts.filter(function(p) { return !p.remoteId; })));
+		return true;
+	} catch (e) {
+		return false;
 	}
 }
 // โพสต์ส่วนตัวของผู้ใช้เท่านั้น (ไม่รวมโพสต์ที่โพสต์ในนาม "เพจร้าน" ของเขา — ดู getPostsByPage)
@@ -1631,39 +1785,55 @@ function getPostsByPage(pageId) {
 	return getAllPosts().filter(function(p) { return p.pageId === pageId; });
 }
 // pageId ใส่เฉพาะตอนโพสต์ในนามเพจร้าน (ไม่ใส่ = โพสต์ในนามตัวเอง) userId เก็บไว้เสมอเพื่อ audit/คำนวณ XP
-// images รับได้ทั้ง string เดียว (รูปเดียว) หรืออาร์เรย์ (โพสต์ได้หลายรูปในโพสต์เดียวเหมือน IG)
-// คืน Promise<{ ok, reason }> — ok=false: "storage" (localStorage เต็ม) หรือ "server" (Supabase ไม่รับ/รูปไม่ครบ)
-// ผู้เรียกต้องรอผลนี้ก่อนบอกผู้ใช้ว่าโพสต์สำเร็จ (เดิมคืน true ทันทีแล้วส่งขึ้นเซิร์ฟเวอร์แบบไม่รอ ถ้าพังผู้ใช้ไม่รู้เลย)
-// บัญชีทดลองในเครื่อง (ดู ต้องบันทึกขึ้นเซิร์ฟเวอร์) ยังเก็บในเครื่องอย่างเดียวได้เหมือนเดิม
-function addPost(userId, images, caption, pageId) {
-	var imgList = (Array.isArray(images) ? images.filter(Boolean) : [images]).slice(0, CHIMCHIM_MAX_IMAGES);
-	var posts = getAllPosts();
-	var localId = "post" + Date.now();
-	posts.unshift({ id: localId, userId: userId, pageId: pageId || null, images: imgList, img: imgList[0], caption: caption, date: new Date().toISOString() });
-	try {
-		localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
-	} catch (e) {
-		return Promise.resolve({ ok: false, reason: "storage" });
-	}
-	if (typeof sbSavePost !== "function") {
+// images รับได้ทั้ง string เดียว (รูปเดียว) หรืออาร์เรย์ 0-10 รูป (0 รูป = โพสต์ข้อความล้วน)
+// คืน Promise<{ ok, reason }> — reason: "storage" (เครื่องเต็ม เฉพาะบัญชีทดลองในเครื่อง) / "offline" / "network"
+// / "auth" (เซสชันหมด/ไม่มีสิทธิ์) / "upload" / "images_limit" / "text_only" / "server" — ผู้เรียกต้องรอผลนี้ก่อนบอกว่าสำเร็จ
+// บัญชี Supabase จริง: เซิร์ฟเวอร์ก่อนเสมอ (อัปรูปเข้า Storage → insert แถวพร้อม URL) สำเร็จแล้วค่อยเก็บแคชลงเครื่อง
+// เครื่องเต็มจึงไม่ทำให้โพสต์ล้มอีก / insert ถูกปฏิเสธ → ลบรูปที่เพิ่งอัปทิ้ง ไม่มีไฟล์ค้าง
+// onProgress({ stage: "uploading", done, total } | { stage: "saving" }) ใช้โชว์สถานะบนปุ่ม
+function addPost(userId, images, caption, pageId, onProgress) {
+	var imgList = (Array.isArray(images) ? images : [images]).filter(Boolean).slice(0, CHIMCHIM_MAX_IMAGES);
+	var progress = typeof onProgress === "function" ? onProgress : function() {};
+	var newPost = { id: "post" + Date.now(), userId: userId, pageId: pageId || null, images: imgList, img: imgList[0], caption: caption || "", date: new Date().toISOString() };
+	function succeeded() {
 		logEvent("post_created", { pageId: pageId || null });
-		return Promise.resolve({ ok: true });
+		return { ok: true };
 	}
-	var mustReachServer = ต้องบันทึกขึ้นเซิร์ฟเวอร์();
-	// ผลักโพสต์ขึ้น Supabase จริงทันที ให้คนอื่นเห็นในฟีดข้ามเครื่องได้เลย
-	return sbSavePost({ userId: userId, pageId: pageId || null, images: imgList, caption: caption }).then(function(saved) {
-		var complete = !!(saved && Array.isArray(saved.images) && saved.images.length === imgList.length);
-		if (complete) reconcilePostId(localId, String(saved.id));
-		if (complete || !mustReachServer) {
-			logEvent("post_created", { pageId: pageId || null });
-			return { ok: true };
+	// บัญชีทดลองในเครื่อง (ไม่มี Supabase / id ไม่ใช่ UUID — RLS ไม่รับอยู่แล้ว) เก็บในเครื่องอย่างเดียว
+	if (typeof sbUploadImages !== "function" || !ต้องบันทึกขึ้นเซิร์ฟเวอร์()) {
+		var posts = getAllPosts();
+		posts.unshift(newPost);
+		if (!savePostsLocal(posts)) {
+			chimchimPostsInMemory = null;
+			return Promise.resolve({ ok: false, reason: "storage" });
 		}
-		// บันทึกไม่ครบ → ถอนโพสต์ในเครื่องออก (ถ้าแถวขึ้นไปแต่รูปไม่ครบ ลบแถวนั้นทิ้งด้วย) ฟอร์มยังเก็บรูป/แคปชั่นไว้ให้ลองใหม่
-		if (saved && saved.id && typeof sbDeletePost === "function") sbDeletePost(saved.id);
-		try {
-			localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(getAllPosts().filter(function(p) { return p.id !== localId; })));
-		} catch (e) {}
-		return { ok: false, reason: "server" };
+		return Promise.resolve(succeeded());
+	}
+	// โพสต์ในนามร้าน: ถามเซิร์ฟเวอร์ก่อนว่ายังเป็นเจ้าของร้านนี้จริง (ไม่เชื่อค่าในหน้าเว็บ) — RLS Phase 17 บังคับซ้ำ
+	var checkShop = pageId && typeof sbCheckCanPostAsShop === "function" ? sbCheckCanPostAsShop(pageId) : Promise.resolve({ ok: true });
+	return checkShop.then(function(chk) {
+		if (chk.error) return { error: chk.error };
+		return sbUploadImages(imgList, "posts", progress);
+	}).then(function(up) {
+		if (up.error) return { ok: false, reason: up.error };
+		progress({ stage: "saving" });
+		return sbInsertPost({ userId: userId, pageId: pageId || null, images: up.urls, caption: newPost.caption }).then(function(res) {
+			if (res.error) {
+				// เซิร์ฟเวอร์ปฏิเสธแน่ ๆ → ลบรูปที่เพิ่งอัปทิ้ง (เป็นไฟล์ใหม่ของโพสต์นี้เท่านั้น ไม่มีโพสต์อื่นใช้)
+				// ไม่รู้ผล (เน็ตหลุดตอนรอคำตอบ) → ไม่ลบ เผื่อแถวขึ้นไปแล้วจริง ดีกว่าโพสต์ขึ้นแต่รูปหาย
+				if (res.sent) sbRemoveImages(up.paths);
+				return { ok: false, reason: res.error };
+			}
+			newPost.id = String(res.saved.id);
+			newPost.remoteId = newPost.id;
+			newPost.images = up.urls;
+			newPost.img = up.urls[0];
+			if (res.saved.created_at) newPost.date = res.saved.created_at;
+			var posts = getAllPosts().filter(function(p) { return p.id !== newPost.id; });
+			posts.unshift(newPost);
+			savePostsLocal(posts); // แค่แคช — ข้อมูลจริงอยู่บนเซิร์ฟเวอร์แล้ว เต็มก็ไม่เป็นไร
+			return succeeded();
+		});
 	});
 }
 // คืนอาร์เรย์รูปของโพสต์เสมอ ไม่ว่าโพสต์นั้นจะเป็นโพสต์เก่า (มีแค่ img เดียว) หรือใหม่ (มี images หลายรูป)
@@ -1671,11 +1841,16 @@ function getPostImages(p) {
 	if (p.images && p.images.length) return p.images;
 	return p.img ? [p.img] : [];
 }
+// ภาพปกโพสต์ในตาราง (โปรไฟล์/หน้าร้าน) — โพสต์ข้อความล้วนโชว์เป็นการ์ดข้อความแทน ไม่ใช้รูปปลอม
+function postCoverHtml(images, caption) {
+	if (images.length) return '<img src="' + safeImgSrc(images[0]) + '" alt=""/>';
+	return '<div class="ppost-text"><span>' + escapeHtml(caption || "") + "</span></div>";
+}
 function deletePost(postId) {
 	var posts = getAllPosts();
 	var target = posts.filter(function(p) { return p.id === postId; })[0];
 	posts = posts.filter(function(p) { return p.id !== postId; });
-	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+	savePostsLocal(posts);
 	// ลบโพสต์แล้วลบคอมเมนต์ที่ผูกกับโพสต์นั้นทิ้งไปด้วย กันคอมเมนต์ค้างเป็นขยะ
 	var allComments;
 	try {
@@ -1685,40 +1860,54 @@ function deletePost(postId) {
 	}
 	delete allComments[postId];
 	localStorage.setItem(CHIMCHIM_COMMENTS_KEY, JSON.stringify(allComments));
-	if (target && target.remoteId && typeof sbDeletePost === "function") sbDeletePost(target.remoteId);
+	if (target && target.remoteId && typeof sbDeletePost === "function") {
+		// ลบไฟล์รูปใน Storage ด้วย แต่หลังลบแถวสำเร็จแล้วเท่านั้น (ลบแถวไม่ผ่าน = โพสต์ยังอยู่ รูปต้องอยู่)
+		sbDeletePost(target.remoteId).then(function(ok) {
+			if (ok && typeof sbDeleteImagesIfUnused === "function") sbDeleteImagesIfUnused(getPostImages(target));
+		});
+	}
 }
-// แก้ไขโพสต์เดิม (รูป/แคปชั่น) — แก้ได้เฉพาะเจ้าของโพสต์อยู่แล้วในทางปฏิบัติ เพราะเรียกจากหน้า "โพสต์ของฉัน" เท่านั้น
-// คืน true/false เหมือน addPost (ดูคอมเมนต์ที่ addPost ว่าทำไมต้องเช็คค่านี้)
-// คืน Promise<{ ok, reason }> เหมือน addPost — ถ้าเซิร์ฟเวอร์ไม่รับ จะคืนโพสต์ในเครื่องกลับเป็นของเดิม
-function updatePost(postId, patch) {
-	var posts = getAllPosts();
-	var i, target = null, before = null;
-	if (patch.images) patch.images = patch.images.slice(0, CHIMCHIM_MAX_IMAGES);
-	for (i = 0; i < posts.length; i++) {
-		if (posts[i].id === postId) {
-			before = JSON.parse(JSON.stringify(posts[i]));
-			if (patch.images) {
-				posts[i].images = patch.images;
-				posts[i].img = patch.images[0];
+// แก้ไขโพสต์เดิม (รูป/แคปชั่น) — แก้ได้เฉพาะเจ้าของโพสต์ (เรียกจากหน้า "โพสต์ของฉัน" + RLS posts_update_own)
+// คืน Promise<{ ok, reason }> เหมือน addPost — โพสต์ที่ sync แล้ว: อัปรูปใหม่ → อัปเดตแถว → สำเร็จค่อยแก้แคชในเครื่อง
+// ไม่สำเร็จ = โพสต์เดิมไม่ถูกแตะเลย (ทั้งบนเซิร์ฟเวอร์และในเครื่อง)
+function updatePost(postId, patch, onProgress) {
+	var progress = typeof onProgress === "function" ? onProgress : function() {};
+	var target = getAllPosts().filter(function(p) { return p.id === postId; })[0];
+	if (!target) return Promise.resolve({ ok: false, reason: "server" });
+	var images = patch.images ? patch.images.filter(Boolean).slice(0, CHIMCHIM_MAX_IMAGES) : getPostImages(target);
+	var caption = typeof patch.caption === "string" ? patch.caption : (target.caption || "");
+	function applyLocal(finalImages) {
+		var posts = getAllPosts();
+		posts.forEach(function(p) {
+			if (p.id === postId) {
+				p.images = finalImages;
+				p.img = finalImages[0];
+				p.caption = caption;
 			}
-			if (typeof patch.caption === "string") posts[i].caption = patch.caption;
-			target = posts[i];
-			break;
+		});
+		return savePostsLocal(posts);
+	}
+	if (!(target.remoteId && typeof sbUploadImages === "function" && ต้องบันทึกขึ้นเซิร์ฟเวอร์())) {
+		if (!applyLocal(images)) {
+			chimchimPostsInMemory = null;
+			return Promise.resolve({ ok: false, reason: "storage" });
 		}
+		return Promise.resolve({ ok: true });
 	}
-	try {
-		localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
-	} catch (e) {
-		return Promise.resolve({ ok: false, reason: "storage" });
-	}
-	if (!(target && target.remoteId && typeof sbSavePost === "function")) return Promise.resolve({ ok: true });
-	var mustReachServer = ต้องบันทึกขึ้นเซิร์ฟเวอร์();
-	return sbSavePost(target).then(function(saved) {
-		var complete = !!(saved && Array.isArray(saved.images) && saved.images.length === target.images.length);
-		if (complete || !mustReachServer) return { ok: true };
-		posts[i] = before;
-		try { localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts)); } catch (e) {}
-		return { ok: false, reason: "server" };
+	var oldImages = getPostImages(target).slice();
+	return sbUploadImages(images, "posts", progress).then(function(up) {
+		if (up.error) return { ok: false, reason: up.error };
+		progress({ stage: "saving" });
+		return sbUpdatePost(target.remoteId, { images: up.urls, caption: caption }).then(function(res) {
+			if (res.error) {
+				if (res.sent) sbRemoveImages(up.paths);
+				return { ok: false, reason: res.error };
+			}
+			applyLocal(up.urls);
+			// รูปที่ถูกเอาออกจากโพสต์นี้ → ลบไฟล์ (ข้ามรูปที่ยังมีโพสต์/รีวิวอื่นใช้อยู่)
+			sbDeleteImagesIfUnused(oldImages.filter(function(u) { return up.urls.indexOf(u) === -1; }));
+			return { ok: true };
+		});
 	});
 }
 // ผสานโพสต์จริงของทุกคนจาก Supabase เข้ากับ localStorage เครื่องนี้ — แทนที่โพสต์เดิมถ้า id ตรงกัน (ข้อมูลใหม่กว่า)
@@ -1736,14 +1925,14 @@ function mergeRemotePostsIntoLocal(remotePosts) {
 		// userName/userAvatar มาจาก join กับ profiles ตอนดึงจาก Supabase (ดู sbPostRowToLocal) — เก็บติดไว้ที่โพสต์เลย
 		// กันปัญหาโพสต์ของคนอื่นที่เครื่องนี้ไม่เคยเห็นมาก่อน (ไม่มีใน getUsers() ในเครื่องนี้) ขึ้นเป็นชื่อกลาง ๆ
 		// "นักชิม ChimChim" ทั้งที่จริงมีชื่อจริงอยู่แล้วบน Supabase (ดู getFeedItems())
-		var withRemoteId = { id: remote.id, remoteId: remote.id, userId: remote.userId, userName: remote.userName || null, userAvatar: remote.userAvatar || null, pageId: remote.pageId, images: remote.images, img: remote.images[0], caption: remote.caption, date: remote.date };
+		var withRemoteId = { id: remote.id, remoteId: remote.id, userId: remote.userId, userName: remote.userName || null, userAvatar: remote.userAvatar || null, pageId: remote.pageId, images: remote.images || [], img: (remote.images || [])[0], caption: remote.caption, date: remote.date };
 		if (idx !== -1) { posts[idx] = withRemoteId; } else { posts.push(withRemoteId); }
 	});
 	// เอาโพสต์ที่เคย sync ไปแล้ว (มี remoteId) แต่ไม่อยู่ในชุดล่าสุดจาก Supabase ออกทิ้ง — แปลว่าโดนลบ/โดนซ่อน
 	// จากเครื่องอื่นไปจริง ๆ แล้ว (ไม่งั้นจะค้างเป็นโพสต์ผีในเครื่องนี้ตลอดไป) โพสต์ที่ยังไม่เคย sync (ไม่มี remoteId) ไม่แตะ
 	posts = posts.filter(function(p) { return !p.remoteId || remoteIds[p.remoteId]; });
 	posts.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
-	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+	savePostsLocal(posts);
 }
 // ย้าย id ชั่วคราวที่สร้างในเครื่อง (ตอน addPost ก่อนรู้ id จริงจาก Supabase) ไปเป็น id จริงทุกจุดที่อ้างถึง
 // โพสต์นั้น (คอมเมนต์/ไลก์) เหมือนกับ reconcileShopNumId ตอน sync ร้าน
@@ -1753,7 +1942,7 @@ function reconcilePostId(oldId, newId) {
 	posts.forEach(function(p) {
 		if (p.id === oldId) { p.id = newId; p.remoteId = newId; }
 	});
-	localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+	savePostsLocal(posts);
 
 	var allComments;
 	try {
@@ -2221,12 +2410,92 @@ function savePages(list) {
 function getPageById(id) {
 	return getPages().filter(function(p) { return p.id === id; })[0] || null;
 }
-// "โพสต์ในนามใคร" ตอนนี้ — "self" (ค่าเริ่มต้น) หรือ numId ของร้านตัวเอง (เดิมเป็น id ของเพจร้าน)
+// โปรไฟล์ที่ใช้งานอยู่ (Active Profile) — "self" (ค่าเริ่มต้น) หรือ numId ของร้านตัวเอง (เดิมเป็น id ของเพจร้าน)
+// ค่านี้ใน localStorage เป็นแค่ "จำว่าเลือกอะไรไว้ล่าสุด" ไม่ใช่หลักฐานสิทธิ์ — ต้องผ่าน resolveActiveProfile()
+// ที่ตรวจกับเซิร์ฟเวอร์ก่อนใช้ทุกครั้ง และฐานข้อมูลตรวจซ้ำตอนโพสต์ (RLS Phase 17)
 function getActivePersona() {
-	return localStorage.getItem(CHIMCHIM_ACTIVE_PERSONA_KEY) || "self";
+	try {
+		return localStorage.getItem(CHIMCHIM_ACTIVE_PERSONA_KEY) || "self";
+	} catch (e) {
+		return "self";
+	}
 }
 function setActivePersona(v) {
-	localStorage.setItem(CHIMCHIM_ACTIVE_PERSONA_KEY, v);
+	try { localStorage.setItem(CHIMCHIM_ACTIVE_PERSONA_KEY, v || "self"); } catch (e) {}
+}
+
+/* --- รายการร้านของฉันสำหรับเมนูสลับโปรไฟล์ ---
+   แคชไว้แค่ "แสดงผล" ตอนเปิดเมนู (ชื่อ/รูปขึ้นทันที) — ตัวจริงยืนยันกับเซิร์ฟเวอร์ใหม่ทุกครั้งผ่าน loadMyShopsVerified()
+   แคชผูกกับ id ผู้ใช้ เปลี่ยนบัญชีแล้วไม่หยิบร้านของบัญชีก่อนมาโชว์ --- */
+var CHIMCHIM_MY_SHOPS_CACHE_KEY = "chimchim_my_shops_cache";
+function getMyShopsForDisplay() {
+	var me = getSession();
+	if (!me) return [];
+	var list = getShops().filter(function(s) { return s.vendorId === me.id; });
+	try {
+		var cache = JSON.parse(localStorage.getItem(CHIMCHIM_MY_SHOPS_CACHE_KEY));
+		if (cache && cache.userId === me.id) {
+			cache.shops.forEach(function(s) {
+				if (!list.some(function(x) { return String(x.numId) === String(s.numId); })) list.push(s);
+			});
+		}
+	} catch (e) {}
+	return list;
+}
+// ร้านที่ผู้ใช้มีสิทธิ์จัดการ "จริง" — บัญชี Supabase: ถามเซิร์ฟเวอร์ (shops.vendor_id = uid ในเซสชัน)
+// บัญชีทดลองในเครื่อง (ไม่มีเซิร์ฟเวอร์ ข้อมูลทุกอย่างอยู่ในเครื่องนี้อยู่แล้ว): ร้านในเครื่องที่ vendorId ตรงกับตัวเอง
+// คืน Promise<{ shops } | { error }>
+function loadMyShopsVerified() {
+	var me = getSession();
+	if (!me) return Promise.resolve({ error: "auth" });
+	if (!(typeof sbFetchMyShops === "function" && ต้องบันทึกขึ้นเซิร์ฟเวอร์())) {
+		return Promise.resolve({ shops: getShops().filter(function(s) { return s.vendorId === me.id; }) });
+	}
+	return sbFetchMyShops().then(function(res) {
+		if (res.shops) {
+			try {
+				localStorage.setItem(CHIMCHIM_MY_SHOPS_CACHE_KEY, JSON.stringify({ userId: me.id, shops: res.shops.map(function(s) {
+					return { numId: s.numId, vendorId: s.vendorId, name: s.name, img: s.img, cat: s.cat };
+				}) }));
+			} catch (e) {}
+		}
+		return res;
+	});
+}
+// ตรวจโปรไฟล์ที่ต้องการใช้ (requested: "self" | numId ร้าน | ไม่ส่ง = ใช้ค่าที่จำไว้) กับสิทธิ์จริง
+// คืน Promise<{ profile: { type: "self" } | { type: "shop", shop }, notice?, error? }>
+//   notice "shop_forbidden" = ขอร้านที่ไม่ใช่ของตัวเอง/ไม่มีอยู่/ถูกปิด → ไม่เปลี่ยนค่าที่จำไว้ ใช้โปรไฟล์ที่จำไว้แทน (ถ้ายังใช้ได้)
+//   notice "shop_unavailable" = ร้านที่จำไว้ใช้ไม่ได้แล้ว (ถูกลบ/เสียสิทธิ์/ถูกปิด) → กลับเป็นโปรไฟล์ส่วนตัว
+//   error = ตรวจสิทธิ์ไม่สำเร็จ (เน็ต/เซสชัน) — ผู้เรียกต้องไม่แสดงข้อมูลร้าน และไม่บันทึกอะไรในนามร้าน
+function resolveActiveProfile(requested) {
+	var stored = getActivePersona();
+	var want = requested ? String(requested) : stored;
+	if (want === "self" && stored === "self") return Promise.resolve({ profile: { type: "self" } });
+	return loadMyShopsVerified().then(function(res) {
+		if (res.error) {
+			// ขอโปรไฟล์ส่วนตัวมาตรง ๆ ไม่ต้องรอสิทธิ์ร้าน
+			if (want === "self") { setActivePersona("self"); return { profile: { type: "self" } }; }
+			return { error: res.error };
+		}
+		function find(id) { return res.shops.filter(function(s) { return String(s.numId) === String(id); })[0] || null; }
+		if (want === "self") {
+			setActivePersona("self");
+			return { profile: { type: "self" } };
+		}
+		var shop = find(want);
+		if (shop) {
+			setActivePersona(String(shop.numId));
+			return { profile: { type: "shop", shop: shop } };
+		}
+		if (requested && String(requested) !== stored) {
+			// ขอร้านที่ไม่มีสิทธิ์ (เช่น เปิดลิงก์ตรง) — คงโปรไฟล์ที่จำไว้ (ถ้ายังใช้ได้)
+			var keep = stored === "self" ? null : find(stored);
+			if (!keep) setActivePersona("self");
+			return { profile: keep ? { type: "shop", shop: keep } : { type: "self" }, notice: "shop_forbidden" };
+		}
+		setActivePersona("self");
+		return { profile: { type: "self" }, notice: "shop_unavailable" };
+	});
 }
 
 /* --- รวม "เพจร้านอาหาร" (ระบบเก่า แยกจากร้าน) เข้ากับ "ร้านของฉัน" ให้เป็นอันเดียว
@@ -2276,7 +2545,7 @@ function migratePageIntoShop() {
 			postsChanged = true;
 		}
 	});
-	if (postsChanged) localStorage.setItem(CHIMCHIM_POSTS_KEY, JSON.stringify(posts));
+	if (postsChanged) savePostsLocal(posts);
 
 	// ถ้ากำลังตั้งค่าโพสต์ในนามเพจเก่าอยู่ สลับมาชี้ร้านใหม่แทนให้อัตโนมัติ
 	if (getActivePersona() === myPage.id) {

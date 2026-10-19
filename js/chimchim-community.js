@@ -91,7 +91,14 @@ function refreshAuthUI() {
 		if (avatarLink) {
 			avatarLink.hidden = false;
 			var me = typeof getMe === "function" ? getMe() : null;
-			if (avatarIco) {
+			// รูปบนแถบบนเป็นของโปรไฟล์ที่ใช้งานอยู่ (เหมือน IG) — ร้านจากแคชแสดงผลเท่านั้น สิทธิ์จริงตรวจตอนเปิดโปรไฟล์
+			var activeShop = activeShopForDisplay();
+			if (activeShop) {
+				if (avatarIco) avatarIco.textContent = activeShop.img ? "" : (activeShop.name || "?").charAt(0).toUpperCase();
+				avatarLink.style.background = activeShop.img ? "var(--cream2) center/cover no-repeat url('" + cssUrl(activeShop.img) + "')" : "";
+				avatarLink.title = activeShop.name || "";
+			} else if (avatarIco) {
+				avatarLink.title = "";
 				if (me && me.avatar) {
 					avatarIco.textContent = "";
 					avatarLink.style.background = "var(--cream2) center/cover no-repeat url('" + cssUrl(me.avatar) + "')";
@@ -105,6 +112,189 @@ function refreshAuthUI() {
 		if (loginBtn) loginBtn.hidden = false;
 		if (avatarLink) avatarLink.hidden = true;
 	}
+}
+
+function activeShopForDisplay() {
+	if (typeof getActivePersona !== "function") return null;
+	var persona = getActivePersona();
+	if (persona === "self") return null;
+	return getMyShopsForDisplay().filter(function(sh) { return String(sh.numId) === persona; })[0] || null;
+}
+
+/* =====================================================================
+   เมนูสลับโปรไฟล์ (แบบ IG) — บัญชีส่วนตัว + ร้านทุกร้านที่เป็นเจ้าของจริง
+   รายการร้านจากแคชขึ้นก่อนให้เห็นทันที แล้วตรวจกับเซิร์ฟเวอร์ใหม่ (loadMyShopsVerified) — ร้านที่ไม่ผ่านถูกเอาออก
+   เลือกแล้ว: ตรวจสิทธิ์ (resolveActiveProfile) → จำไว้ → เปิดหน้าโปรไฟล์ของโปรไฟล์นั้น (โหลดใหม่ทั้งหน้า ไม่มีข้อมูลเก่าค้าง)
+   opts.beforeSwitch() → Promise<boolean> ให้หน้าที่เรียกถามก่อนทิ้งงานที่ค้าง (เช่น โพสต์ที่กำลังเขียน)
+   ===================================================================== */
+var profileSwitchSeq = 0;
+function openProfileSwitcher(opts) {
+	opts = opts || {};
+	var me = getSession();
+	if (!me) return;
+	var old = document.getElementById("profSwitchSheet");
+	if (old) old.remove();
+	var sheet = document.createElement("div");
+	sheet.className = "fsheet psw";
+	sheet.id = "profSwitchSheet";
+	sheet.innerHTML =
+		'<div class="fsheet-box" role="dialog" aria-modal="true">' +
+			'<div class="fsheet-handle" aria-hidden="true"></div>' +
+			'<div class="fsheet-head"><button type="button" class="fsheet-close psw-back" hidden><i class="fas fa-arrow-left"></i></button><b class="psw-title"></b>' +
+				'<button type="button" class="fsheet-close psw-x" aria-label="' + escapeHtml(t("common.close")) + '"><i class="fas fa-xmark"></i></button></div>' +
+			// รายการโปรไฟล์เลื่อนได้ในตัว ส่วนปุ่ม "+ เพิ่มโปรไฟล์" อยู่นอกรายการ = อยู่ล่างสุดของหน้าต่างเสมอ ไม่หลุดจอแม้มีหลายโปรไฟล์
+			'<div class="fsheet-list psw-list" role="listbox"></div>' +
+			'<div class="fsheet-list psw-types" hidden></div>' +
+			'<p class="psw-msg" role="status" aria-live="polite" hidden></p>' +
+			'<div class="psw-foot"><button type="button" class="fsrow psw-row psw-add">' +
+				'<span class="fsrow-avatar psw-addico"><i class="fas fa-plus" aria-hidden="true"></i></span>' +
+				'<span class="fsrow-text"><b></b></span></button></div>' +
+		"</div>";
+	sheet.querySelector(".psw-title").textContent = t("switcher.title");
+	sheet.querySelector(".psw-add b").textContent = t("switcher.addProfile");
+	sheet.querySelector(".psw-back").setAttribute("aria-label", t("switcher.back"));
+	sheet.setAttribute("aria-label", t("switcher.title"));
+	document.body.appendChild(sheet);
+	var list = sheet.querySelector(".psw-list");
+	var msg = sheet.querySelector(".psw-msg");
+	var lastFocus = document.activeElement;
+	var busy = false;
+
+	function close() {
+		profileSwitchSeq++; // ผลตรวจสิทธิ์ที่ยังค้างอยู่ใช้ไม่ได้แล้ว
+		sheet.classList.remove("open");
+		document.body.style.overflow = "";
+		document.removeEventListener("keydown", onKey);
+		setTimeout(function() { sheet.remove(); }, 200);
+		if (lastFocus && lastFocus.focus) lastFocus.focus();
+	}
+	function onKey(e) { if (e.key === "Escape") close(); }
+	function showMsg(text) {
+		msg.hidden = !text;
+		msg.textContent = text || "";
+	}
+	function row(item, active) {
+		var el = document.createElement("button");
+		el.type = "button";
+		el.className = "fsrow psw-row" + (active ? " is-active" : "");
+		el.setAttribute("role", "option");
+		el.setAttribute("aria-selected", active ? "true" : "false");
+		el.setAttribute("data-key", item.key);
+		el.innerHTML =
+			(item.avatar
+				? '<span class="fsrow-avatar" style="background-image:url(\'' + cssUrl(item.avatar) + '\')"></span>'
+				: '<span class="fsrow-avatar fsrow-letter">' + escapeHtml((item.name || "?").trim().charAt(0).toUpperCase()) + "</span>") +
+			'<span class="fsrow-text"><b></b><small></small></span>' +
+			'<i class="fas ' + (active ? "fa-circle-check" : "fa-circle") + ' psw-check" aria-hidden="true"></i>';
+		el.querySelector("b").textContent = item.name;
+		el.querySelector("small").textContent = item.sub + (active ? " · " + t("switcher.active") : "") + (opts.highlight && String(opts.highlight) === item.key ? " · " + t("switcher.justAdded") : "");
+		if (opts.highlight && String(opts.highlight) === item.key) el.classList.add("is-new");
+		el.addEventListener("click", function() { choose(item.key); });
+		return el;
+	}
+	function render(shops, checking) {
+		var active = getActivePersona();
+		var meFull = (typeof getMe === "function" && getMe()) || me;
+		list.innerHTML = "";
+		list.appendChild(row({ key: "self", name: meFull.name, avatar: meFull.avatar || null, sub: t("switcher.personal") }, active === "self"));
+		shops.forEach(function(sh) {
+			list.appendChild(row({ key: String(sh.numId), name: sh.name, avatar: sh.img || null, sub: t("switcher.shop") + (sh.cat ? " · " + catLabel(sh.cat) : "") }, active === String(sh.numId)));
+		});
+		if (checking) {
+			var wait = document.createElement("p");
+			wait.className = "fsheet-empty psw-checking";
+			wait.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ';
+			wait.appendChild(document.createTextNode(t("switcher.checking")));
+			list.appendChild(wait);
+		}
+	}
+	function choose(key) {
+		// ล็อกทันทีที่แตะ (ก่อนรออะไรทั้งนั้น) — แตะรัว ๆ หลายแถว = ใช้แถวแรกที่แตะเท่านั้น ไม่มีผลลัพธ์สลับไปมา
+		if (busy) return;
+		busy = true;
+		var current = getActivePersona();
+		if (key === current && /profile\.html$/.test(location.pathname) && !opts.forceNavigate) { close(); return; }
+		var go = key === current ? Promise.resolve(true) : (typeof opts.beforeSwitch === "function" ? opts.beforeSwitch() : Promise.resolve(true));
+		go.then(function(yes) {
+			if (!yes) { busy = false; return; }
+			sheet.classList.add("is-busy");
+			showMsg("");
+			var seq = ++profileSwitchSeq;
+			resolveActiveProfile(key).then(function(res) {
+				if (seq !== profileSwitchSeq) return; // กดเลือกอันใหม่/ปิดเมนูไปแล้ว — ผลนี้เก่า ทิ้ง
+				busy = false;
+				sheet.classList.remove("is-busy");
+				if (res.error) { showMsg(t("switcher.loadFailed")); return; }
+				var got = res.profile.type === "self" ? "self" : String(res.profile.shop.numId);
+				if (got !== key) { showMsg(t("switcher.forbidden")); render(verifiedShops || [], false); return; }
+				close();
+				window.location.href = "profile.html?as=" + (got === "self" ? "self" : "shop:" + got);
+			});
+		});
+	}
+
+	var verifiedShops = null;
+	render(getMyShopsForDisplay(), true);
+	document.addEventListener("keydown", onKey);
+	sheet.querySelector(".psw-x").addEventListener("click", close);
+
+	/* --- + เพิ่มโปรไฟล์ → เลือกประเภท (หน้าต่างเดิม เปลี่ยนเนื้อหา มีปุ่มย้อนกลับ) --- */
+	var types = sheet.querySelector(".psw-types");
+	var backBtn = sheet.querySelector(".psw-back");
+	function typeRow(icon, title, desc, onPick) {
+		var el = document.createElement("button");
+		el.type = "button";
+		el.className = "fsrow psw-row psw-type";
+		el.innerHTML = '<span class="fsrow-avatar psw-addico"><i class="fas fa-' + icon + '" aria-hidden="true"></i></span>' +
+			'<span class="fsrow-text"><b></b><small></small></span><i class="fas fa-chevron-right psw-check" aria-hidden="true"></i>';
+		el.querySelector("b").textContent = title;
+		el.querySelector("small").textContent = desc;
+		el.addEventListener("click", onPick);
+		return el;
+	}
+	function showTypes(on) {
+		list.hidden = on;
+		types.hidden = !on;
+		backBtn.hidden = !on;
+		sheet.querySelector(".psw-foot").hidden = on;
+		showMsg("");
+		sheet.querySelector(".psw-title").textContent = t(on ? "switcher.addProfile" : "switcher.title");
+		var focusEl = on ? types.querySelector(".psw-row") : sheet.querySelector(".psw-add");
+		if (focusEl) focusEl.focus();
+	}
+	types.appendChild(typeRow("user", t("switcher.typePersonal"), t("switcher.typePersonalDesc"), function() {
+		// บัญชีส่วนตัวเพิ่ม = อีกอีเมลหนึ่ง (Supabase Auth) — ระบบล็อกอินได้ครั้งละ 1 บัญชี จึงต้องออกจากบัญชีนี้ก่อน
+		showConfirmDialog({ title: t("switcher.addPersonalTitle"), message: t("switcher.addPersonalMsg"), confirmText: t("switcher.addPersonalBtn") }).then(function(yes) {
+			if (!yes) return;
+			setActivePersona("self");
+			clearSession();
+			var done = typeof sbSignOut === "function" ? Promise.resolve(sbSignOut()).catch(function() {}) : Promise.resolve();
+			done.then(function() { window.location.href = "profile.html?auth=register"; });
+		});
+	}));
+	types.appendChild(typeRow("store", t("switcher.typeShop"), t("switcher.typeShopDesc"), function() {
+		// สร้างร้านใหม่ในฟอร์มร้านเดิมของ Settings (โหมดสร้างใหม่ — ไม่แก้ร้านที่มีอยู่)
+		window.location.href = "settings.html?newShop=1#shopFormCard";
+	}));
+	sheet.querySelector(".psw-add").addEventListener("click", function() { showTypes(true); });
+	backBtn.addEventListener("click", function() { showTypes(false); });
+	sheet.addEventListener("click", function(e) { if (e.target === sheet) close(); });
+	document.body.style.overflow = "hidden";
+	requestAnimationFrame(function() { sheet.classList.add("open"); });
+	var seq0 = profileSwitchSeq;
+	loadMyShopsVerified().then(function(res) {
+		if (seq0 !== profileSwitchSeq || !document.body.contains(sheet)) return;
+		if (res.error) {
+			// ตรวจสิทธิ์ไม่ได้ — ไม่โชว์ร้านจากแคช (ไม่รู้ว่ายังมีสิทธิ์ไหม) เหลือบัญชีส่วนตัวให้เลือกได้
+			render([], false);
+			showMsg(t("switcher.loadFailed"));
+			return;
+		}
+		verifiedShops = res.shops;
+		render(res.shops, false);
+	});
+	var first = list.querySelector(".psw-row");
+	if (first) first.focus();
 }
 
 /* --- เปิด/ปิด popup เข้าสู่ระบบ (เฉพาะหน้าที่มี #authPop อยู่จริง) --- */
@@ -547,9 +737,10 @@ document.addEventListener("keydown", function(e) {
 	});
 
 	window.openPostView = function(post) {
-		var images = post.images && post.images.length ? post.images : [post.img];
+		var images = (post.images && post.images.length ? post.images : [post.img]).filter(Boolean);
 		var strip = document.getElementById("pvImgStrip");
 		var dots = document.getElementById("pvDots");
+		strip.hidden = images.length === 0; // โพสต์ข้อความล้วน — ไม่มีแถบรูป
 		strip.innerHTML = images.map(function(src) {
 			return '<img src="' + safeImgSrc(src) + '" alt=""/>';
 		}).join("");
@@ -701,7 +892,8 @@ function buildFeedItemEl(item) {
 				"</div>" +
 				(canReportFeedItem(item) ? '<button type="button" class="feedmore" aria-label="' + t("report.postOptions") + '"><i class="fas fa-ellipsis"></i></button>' : "") +
 			"</div>" +
-			'<div class="feedimgs"><div class="feedimgstrip">' + imgsHtml + "</div>" + dotsHtml + "</div>" +
+			// โพสต์ข้อความล้วนไม่มีกล่องรูป — ข้อความอยู่ใน .feedcap ด้านล่างเหมือนโพสต์ปกติ
+			(item.images.length ? '<div class="feedimgs"><div class="feedimgstrip">' + imgsHtml + "</div>" + dotsHtml + "</div>" : "") +
 			'<div class="feedactions">' +
 				'<button class="feedlikebtn" type="button"><i class="far fa-heart"></i><span></span></button>' +
 				'<button class="feedcommentbtn" type="button"><i class="far fa-comment"></i><span></span></button>' +
@@ -749,7 +941,7 @@ function buildFeedItemEl(item) {
 				dotEls.forEach(function(d, i) { d.classList.toggle("active", i === idx); });
 			});
 		}
-		strip.addEventListener("click", function() {
+		if (strip) strip.addEventListener("click", function() {
 			openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl, posterId: item.userId });
 		});
 

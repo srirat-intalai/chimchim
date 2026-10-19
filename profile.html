@@ -61,10 +61,19 @@
          <button class="btn-red" id="profSignupBtn"><i class="fas fa-user-plus"></i><span data-i18n="profile.signup">สมัครสมาชิก</span></button>
       </div>
 
-      <!-- โชว์เมื่อเข้าสู่ระบบแล้ว -->
+      <!-- กำลังตรวจสิทธิ์/โหลดโปรไฟล์ร้าน หรือโหลดไม่สำเร็จ — ระหว่างนี้ไม่แสดงข้อมูลโปรไฟล์ใดเลย กันเห็นข้อมูลผิดบัญชี -->
+      <div class="profstate" id="profStateBox" role="status" aria-live="polite" hidden>
+         <p class="profstate-msg" id="profStateMsg"></p>
+         <div class="profstate-btns" id="profStateBtns" hidden>
+            <button type="button" class="btn-red" id="profStateRetry"><i class="fas fa-rotate"></i><span data-i18n="profile.retry">ลองใหม่</span></button>
+            <button type="button" class="rdghost" id="profStateSelf" data-i18n="profile.usePersonal">ใช้โปรไฟล์ส่วนตัว</button>
+         </div>
+      </div>
+
+      <!-- โชว์เมื่อเข้าสู่ระบบแล้ว — โปรไฟล์ส่วนตัว หรือโปรไฟล์ร้าน (ตามโปรไฟล์ที่ใช้งานอยู่ ซึ่งตรวจสิทธิ์แล้ว) -->
       <div class="profwrap" id="profContent" hidden>
          <div class="ighead">
-            <div class="profavatar igavatar" id="profAvatar"></div>
+            <button type="button" class="profavatar igavatar" id="profAvatar" data-i18n-aria="switcher.open" aria-label="สลับโปรไฟล์"></button>
             <div class="igstats">
                <div class="igstat"><b id="igStatPosts">0</b><span data-i18n="profile.statPosts">โพสต์</span></div>
                <button type="button" class="igstat igstatbtn" id="igFollowersBtn" aria-haspopup="dialog"><b id="igStatFollowers">0</b><span data-i18n="profile.statFollowers">ผู้ติดตาม</span></button>
@@ -72,7 +81,7 @@
             </div>
          </div>
          <div class="ignamewrap">
-            <div class="profname" id="profName"></div>
+            <button type="button" class="profswitchbtn" id="profSwitchBtn" aria-haspopup="dialog"><span class="profname" id="profName"></span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
             <span class="profrole" id="profRole"></span>
             <div class="profemail" id="profEmail"></div>
             <p class="profbio" id="profBio" hidden></p>
@@ -87,7 +96,16 @@
                <small class="lvlnext" id="profLevelNext"></small>
             </button>
          </div>
-         <div class="igbtnrow">
+         <!-- โปรไฟล์ร้าน: เครื่องมือจัดการร้าน (เห็นเฉพาะเจ้าของร้านที่ตรวจสิทธิ์แล้ว) -->
+         <div class="igbtnrow" id="shopBtnRow" hidden>
+            <a href="settings.html#shopFormCard" class="igbtn" id="shopEditLink" data-i18n="profile.editShop">แก้ไขข้อมูลร้าน</a>
+            <a href="#" class="igbtn" id="shopPageLink"><i class="fas fa-store me-1"></i><span data-i18n="profile.viewShopPage">ดูหน้าร้าน</span></a>
+         </div>
+         <div class="profcard" id="shopInfoCard" hidden>
+            <div class="profcardtit"><i class="fas fa-circle-info me-1"></i><span data-i18n="profile.shopInfo">ข้อมูลร้าน</span></div>
+            <dl class="shopinfolist" id="shopInfoList"></dl>
+         </div>
+         <div class="igbtnrow" id="selfBtnRow">
             <a href="settings.html" class="igbtn" data-i18n="profile.editProfile">แก้ไขโปรไฟล์</a>
             <button type="button" class="igbtn" id="igShareBtn"><i class="fas fa-share me-1"></i><span data-i18n="profile.shareProfile">แชร์โปรไฟล์</span></button>
          </div>
@@ -103,6 +121,7 @@
             <button type="button" class="proftab active" role="tab" id="ptabPosts" data-ptab="posts" aria-controls="profPostsCard" aria-selected="true" data-i18n-title="profile.tabPosts" title="โพสต์ของฉัน"><i class="fas fa-table-cells"></i><span class="proftab-n" id="ptabCountPosts">0</span></button>
             <button type="button" class="proftab" role="tab" id="ptabLikes" data-ptab="likes" aria-controls="ppaneLikes" aria-selected="false" data-i18n-title="profile.tabLikes" title="ถูกใจ"><i class="fas fa-heart"></i><span class="proftab-n" id="ptabCountLikes">0</span></button>
             <button type="button" class="proftab" role="tab" id="ptabReviews" data-ptab="reviews" aria-controls="ppaneReviews" aria-selected="false" data-i18n-title="profile.tabReviews" title="รีวิวของฉัน"><i class="fas fa-pen"></i><span class="proftab-n" id="ptabCountReviews">0</span></button>
+            <button type="button" class="proftab" role="tab" id="ptabShopReviews" data-ptab="shopreviews" aria-controls="ppaneShopReviews" aria-selected="false" data-i18n-title="profile.tabShopReviews" title="รีวิวจากลูกค้า" hidden><i class="fas fa-star"></i><span class="proftab-n" id="ptabCountShopReviews">0</span></button>
             <button type="button" class="proftab" role="tab" id="ptabSaves" data-ptab="saves" aria-controls="ppaneSaves" aria-selected="false" data-i18n-title="profile.tabSaves" title="บันทึกไว้"><i class="fas fa-bookmark"></i><span class="proftab-n" id="ptabCountSaves">0</span></button>
          </div>
 
@@ -114,6 +133,10 @@
             <div class="profgrid" id="profReviewsList"></div>
             <p class="profpane-empty" id="profReviewsEmpty" hidden data-i18n="profile.emptyReviews">คุณยังไม่มีรีวิว</p>
          </div>
+         <div class="profpane" id="ppaneShopReviews" role="tabpanel" aria-labelledby="ptabShopReviews" hidden>
+            <div class="profgrid" id="profShopReviewsList"></div>
+            <p class="profpane-empty" id="profShopReviewsEmpty" hidden data-i18n="profile.emptyShopReviews">ยังไม่มีรีวิวจากลูกค้า</p>
+         </div>
          <div class="profpane" id="ppaneSaves" role="tabpanel" aria-labelledby="ptabSaves" hidden>
             <div class="profgrid" id="profSavesList"></div>
             <p class="profpane-empty" id="profSavesEmpty" hidden data-i18n="profile.emptySaves">คุณยังไม่มีรายการที่บันทึกไว้</p>
@@ -122,11 +145,12 @@
          <!-- แท็บที่ 1 "โพสต์ของฉัน" = การ์ดโพสต์เดิม (ฟอร์มโพสต์ + ตารางรูป + ปุ่ม ⋯) -->
          <div class="profcard profpane" id="profPostsCard" role="tabpanel" aria-labelledby="ptabPosts" hidden>
             <div class="profcardtit"><i class="fas fa-image me-1"></i><span data-i18n="profile.myPosts">โพสต์ของฉัน</span></div>
-            <a href="settings.html" class="postingasrow" id="postingAsRow" hidden>
-               <img id="postingAsAvatar" src="" alt=""/>
+            <!-- บัญชีที่จะใช้โพสต์ — แสดงชัดก่อนเริ่มเขียนเสมอ แตะเพื่อสลับโปรไฟล์ -->
+            <button type="button" class="postingasrow" id="postingAsRow" hidden aria-haspopup="dialog">
+               <span class="postingas-av" id="postingAsAvatar"></span>
                <span id="postingAsLabel"></span>
-               <i class="fas fa-chevron-right"></i>
-            </a>
+               <i class="fas fa-chevron-down"></i>
+            </button>
             <div class="addpostbox" id="addPostToggle"><i class="fas fa-plus fa-lg"></i><span data-i18n="profile.addPost">เพิ่มโพสต์ใหม่</span></div>
             <form id="postForm" class="apform" style="display:none;margin-bottom:14px;">
                <div class="aperr" id="postErr"></div>
@@ -138,7 +162,7 @@
                <div class="postimglist" id="postImgList"></div>
                <p class="postimgbusy" id="postImgBusy" hidden><i class="fas fa-spinner fa-spin"></i> <span data-i18n="photos.preparing">กำลังเตรียมรูป...</span></p>
                <label class="flbl" data-i18n="profile.captionLbl">แคปชั่น</label>
-               <input class="fctrl" type="text" id="postCaption" placeholder="เล่าอะไรสั้น ๆ เกี่ยวกับมื้อนี้..." data-i18n-ph="profile.captionPlaceholder" required/>
+               <input class="fctrl" type="text" id="postCaption" placeholder="เล่าอะไรสั้น ๆ เกี่ยวกับมื้อนี้..." data-i18n-ph="profile.captionPlaceholder"/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2" id="postSubmitBtn"><i class="fas fa-paper-plane"></i><span data-i18n="profile.postBtn">โพสต์</span></button>
             </form>
             <div class="ppgrid" id="myPostGrid"></div>

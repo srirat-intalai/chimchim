@@ -134,7 +134,13 @@ if (!revร้าน) {
 		submitBtn.disabled = true;
 		var submitIcon = submitBtn.querySelector("i");
 		submitIcon.className = "fas fa-spinner fa-spin";
+		var submitLabel = submitBtn.querySelector("span");
+		var submitLabelText = submitLabel.textContent;
 		var images = chosenReviewImages.slice(0, CHIMCHIM_MAX_IMAGES);
+		// สถานะบนปุ่ม: กำลังอัปโหลดรูป x/y → กำลังบันทึก
+		function onProgress(p) {
+			if (p.stage === "uploading") submitLabel.textContent = t("photos.uploadingProgress").replace("{done}", p.done).replace("{total}", p.total);
+		}
 
 		// รอผลบันทึกจริงก่อนเสมอ (ไม่ตัดเวลา) — ถ้าไม่สำเร็จ แจ้งเหตุ ไม่เปลี่ยนหน้า และเก็บข้อมูลในฟอร์มไว้ให้กดส่งใหม่
 		function onSaved(result, nextUrl) {
@@ -148,6 +154,7 @@ if (!revร้าน) {
 			errBox.scrollIntoView({ behavior: "smooth", block: "center" });
 			submitBtn.disabled = false;
 			submitIcon.className = "fas fa-paper-plane";
+			submitLabel.textContent = submitLabelText;
 		}
 
 		if (revExisting) {
@@ -157,7 +164,7 @@ if (!revร้าน) {
 				service: scores.service,
 				text: document.getElementById("reviewText").value.trim(),
 				images: images
-			}).then(function(result) { onSaved(result, "restaurant.html?id=" + revร้าน.id); });
+			}, onProgress).then(function(result) { onSaved(result, "restaurant.html?id=" + revร้าน.id); });
 			return;
 		}
 
@@ -173,6 +180,6 @@ if (!revร้าน) {
 			userId: meSession.id,
 			date: new Date().toISOString(),
 			images: images
-		}).then(function(result) { onSaved(result, "home.html?reviewed=1"); });
+		}, onProgress).then(function(result) { onSaved(result, "home.html?reviewed=1"); });
 	});
 }

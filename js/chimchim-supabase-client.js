@@ -117,6 +117,32 @@ function sbShopToRow(shop, vendorId) {
 		promo: shop.promo || ""
 	};
 }
+// ร้านทั้งหมดที่ "ผู้ใช้ที่ล็อกอินอยู่จริง" เป็นเจ้าของ — ใช้ตรวจสิทธิ์ตอนสลับโปรไฟล์ (ไม่เชื่อรายการในเครื่อง)
+// ใช้ uid จากเซสชัน Supabase ไม่ใช่ id ใน localStorage / ร้านที่ถูกซ่อน (โดนรายงาน/ปิดใช้งาน) ไม่นับว่าใช้งานได้
+// คืน Promise<{ shops } | { error: "auth" | "network" | "offline" | "server" }>
+function sbFetchMyShops() {
+	if (!sbClient) return Promise.resolve({ error: "server" });
+	return sbCurrentUserId().then(function(uid) {
+		var me = getSession();
+		if (!uid || !me || me.id !== uid) return { error: "auth" };
+		return Promise.resolve(sbClient.from("shops").select("*").eq("vendor_id", uid).order("id")).then(function(res) {
+			if (res.error) return { error: sbErrorReason(res.error) };
+			return { shops: (res.data || []).filter(function(r) { return !r.is_hidden && r.vendor_id === uid; }).map(sbShopRowToLocal) };
+		}, function(e) {
+			return { error: sbErrorReason(e) };
+		});
+	});
+}
+// ตรวจกับเซิร์ฟเวอร์อีกครั้งก่อนโพสต์ในนามร้าน (ก่อนอัปรูป — ไม่ต้องอัปทั้งที่จะโดนปฏิเสธ)
+// ฐานข้อมูลบังคับซ้ำด้วย RLS (SQL Phase 17) อยู่แล้ว ตรงนี้เพื่อแจ้งผู้ใช้ได้เร็วและชัด
+function sbCheckCanPostAsShop(shopNumId) {
+	return sbFetchMyShops().then(function(res) {
+		if (res.error) return res;
+		var ok = res.shops.some(function(s) { return String(s.numId) === String(shopNumId); });
+		return ok ? { ok: true } : { error: "shop_forbidden" };
+	});
+}
+
 // ดึงร้านที่ผู้ใช้ทุกคนโพสต์เข้าชุมชนจาก Supabase จริง (ไม่ใช่แค่ในเบราว์เซอร์นี้) — คืน Promise<Array>
 // ล้มเหลว/ยังไม่ได้เชื่อมต่อ ก็แค่คืน [] เงียบ ๆ ไม่ทำให้หน้าเว็บพังเพราะจุดนี้เป็นแค่ส่วนเสริม
 function sbFetchCommunityShops() {
@@ -159,24 +185,78 @@ function syncShopsWithSupabase(onUpdated) {
 	});
 }
 
-// บันทึกร้านของฉันขึ้น Supabase จริง (insert ถ้ายังไม่เคยมี, update ถ้ามีแล้ว) — คืน Promise<localShop|null>
-function sbSaveMyShop(shop) {
-	var me = getMe();
-	if (!me || !sbClient) return Promise.resolve(null);
-	return sbClient.from("shops").select("id").eq("vendor_id", me.id).then(function(existingRes) {
-		var existingId = existingRes.data && existingRes.data[0] && existingRes.data[0].id;
-		var row = sbShopToRow(shop, me.id);
-		var query = existingId
-			? sbClient.from("shops").update(row).eq("id", existingId)
-			: sbClient.from("shops").insert(row);
-		return query.select("*, profiles!vendor_id(name)").single();
-	}).then(function(res) {
-		if (res.error) {
-			console.error("[chimchim] sbSaveMyShop error:", res.error.message);
-			return null;
+// แปลง error ตอนบันทึกร้าน → เหตุผลที่บอกผู้ใช้ได้ตรง ๆ + ช่องที่ต้องแก้ (ถ้ารู้)
+// เดิม sbSaveMyShop กลืน error ทุกชนิดเป็น null แล้วหน้าเว็บบอกว่า "ตรวจอินเทอร์เน็ต" ทั้งที่อาจไม่ใช่เน็ตเลย
+function sbShopError(err, status) {
+	var msg = String((err && (err.message || err.details || err.hint)) || err || "");
+	var code = String((err && err.code) || "");
+	var out = { error: "server", detail: (code ? code + " " : "") + msg + (status ? " (HTTP " + status + ")" : "") };
+	if (typeof navigator !== "undefined" && navigator.onLine === false) out.error = "offline";
+	else if (/failed to fetch|networkerror|load failed|network request failed|timeout|aborted/i.test(msg)) out.error = "network";
+	else if (/jwt|token|not authenticated/i.test(msg) || code === "PGRST301" || status === 401 && code !== "42501") out.error = "auth";
+	else if (code === "42501" || /row-level security|permission denied/i.test(msg) || code === "PGRST116") out.error = "permission";
+	else if (code === "23503" && /vendor|profiles/i.test(msg)) out.error = "profile_missing";
+	else if (status === 413 || /payload too large|request entity too large/i.test(msg)) { out.error = "too_large"; out.field = "img"; }
+	else if (code === "23514" || code === "23502" || code === "22P02" || code === "22001") {
+		out.error = "validation";
+		if (/price/i.test(msg)) out.field = "priceLow";
+		else if (/distance/i.test(msg)) out.field = "distance";
+		else if (/image_url/i.test(msg)) out.field = "img";
+		else if (/shop_name/i.test(msg)) out.field = "name";
+		else if (/menu_name/i.test(msg)) out.field = "dish";
+		else if (/category/i.test(msg)) out.field = "cat";
+	}
+	return out;
+}
+// สร้าง/แก้ร้านบน Supabase จริง — คืน Promise<{ shop } | { error, detail, field? }>
+// - เจ้าของร้าน = uid จากเซสชัน Supabase จริง (ไม่ใช้ id ใน localStorage) และต้องตรงกับบัญชีที่ล็อกอินในหน้าเว็บ
+//   RLS shops_insert_own / shops_update_own ตรวจซ้ำฝั่งฐานข้อมูลอยู่แล้ว
+// - shop.pendingInsert = ร้านใหม่ → insert เสมอ แต่ก่อน insert เช็คว่าเพิ่งบันทึกร้านเดียวกันสำเร็จไปแล้วหรือยัง
+//   (กดสร้างแล้วเน็ตหลุดตอนรอคำตอบ/เปลี่ยนหน้าไม่ทัน แล้วกดใหม่) → ใช้แถวเดิม ไม่สร้างร้านซ้ำ
+// - ไม่มีแถว profiles ของผู้ใช้ (บัญชีที่สมัครก่อนมี trigger สร้างโปรไฟล์) → FK vendor_id ไม่ผ่าน
+//   → สร้างแถวโปรไฟล์ของตัวเอง (policy profiles_insert_own) แล้วลองใหม่ครั้งเดียว
+function sbSaveShop(shop) {
+	if (!sbClient) return Promise.resolve({ error: "server", detail: "no Supabase client" });
+	var me = getSession();
+	return sbCurrentUserId().then(function(uid) {
+		if (!uid || !me || me.id !== uid) return { error: "auth", detail: "no Supabase session for " + (me && me.id) };
+		var row = sbShopToRow(shop, uid);
+		function write(existingId) {
+			var query = existingId
+				? sbClient.from("shops").update(row).eq("id", existingId).eq("vendor_id", uid)
+				: sbClient.from("shops").insert(row);
+			return Promise.resolve(query.select("*").single()).then(function(res) {
+				if (res.error) return sbShopError(res.error, res.status);
+				return { shop: sbShopRowToLocal(res.data) };
+			}, function(e) { return sbShopError(e); });
 		}
-		return sbShopRowToLocal(res.data);
-	}).catch(function() { return null; });
+		return Promise.resolve(sbClient.from("shops").select("id, shop_name, menu_name, created_at").eq("vendor_id", uid).order("id")).then(function(existingRes) {
+			if (existingRes.error) return sbShopError(existingRes.error, existingRes.status);
+			var rows = existingRes.data || [];
+			var ids = rows.map(function(r) { return r.id; });
+			if (shop.pendingInsert) {
+				var dup = rows.filter(function(r) {
+					return r.shop_name === row.shop_name && r.menu_name === row.menu_name && Date.now() - new Date(r.created_at).getTime() < 15 * 60 * 1000;
+				}).pop();
+				if (dup) return write(dup.id); // บันทึกไปแล้วรอบก่อน → อัปเดตแถวนั้นแทนสร้างใหม่
+				return write(null);
+			}
+			return write(ids.indexOf(shop.numId) !== -1 ? shop.numId : ids[0]);
+		}, function(e) { return sbShopError(e); }).then(function(result) {
+			if (result.error !== "profile_missing") return result;
+			return Promise.resolve(sbClient.from("profiles").insert({ id: uid, name: me.name || "นักชิม ChimChim", avatar_text: (me.name || "C").charAt(0).toUpperCase() })).then(function(pr) {
+				if (pr.error && pr.error.code !== "23505") return sbShopError(pr.error, pr.status);
+				return write(null);
+			}, function(e) { return sbShopError(e); });
+		});
+	}).then(function(result) {
+		if (result.error) console.error("[chimchim] save shop failed:", result.error, "—", result.detail);
+		return result;
+	});
+}
+// แบบเดิมสำหรับจุดที่ซิงก์เงียบ ๆ (syncShopsWithSupabase) — คืนร้าน หรือ null (เหตุผลถูก log ไว้ใน Console แล้ว)
+function sbSaveMyShop(shop) {
+	return sbSaveShop(shop).then(function(r) { return r.shop || null; });
 }
 
 /* =====================================================================
@@ -256,7 +336,7 @@ function sbReviewError(err) {
 	console.error("[chimchim] review save error:", msg);
 	if (/reviews_images_(limit|size)|check constraint/i.test(msg)) return "images_limit";
 	if (/images/i.test(msg) && /column|schema cache/i.test(msg)) return "images_column";
-	return "server";
+	return sbErrorReason(err);
 }
 function sbSubmitReview(shopId, review) {
 	if (!sbClient) return Promise.resolve(null);
@@ -642,6 +722,144 @@ function sbFetchCommentCounts(postIds) {
 }
 
 /* =====================================================================
+   รูปโพสต์/รีวิว → Supabase Storage (bucket "chimchim-images" สร้างด้วย SQL Phase 16)
+   เดิมรูปทุกรูปเป็น base64 ยัดในแถว posts/reviews แล้วถูกดึงมาเก็บใน localStorage ของทุกเครื่องที่เปิดฟีด
+   จนเครื่องเต็ม (ดู savePostsLocal ใน core.js) — ตอนนี้อัปไฟล์จริงขึ้น Storage แล้วเก็บแค่ URL ในแถว
+   ไฟล์อยู่ในโฟลเดอร์ของเจ้าของเท่านั้น: <user id>/posts/... หรือ <user id>/reviews/... (Storage RLS บังคับซ้ำ)
+   ===================================================================== */
+var CHIMCHIM_IMAGE_BUCKET = "chimchim-images";
+var CHIMCHIM_UPLOAD_TIMEOUT_MS = 60000;
+var CHIMCHIM_UPLOAD_PARALLEL = 3;
+// ยังไม่ได้รัน SQL Phase 16 (ไม่มี bucket) → ส่งรูปแบบ data URL ในแถวเหมือนระบบเดิมไปก่อน โพสต์ยังใช้งานได้
+var sbImageBucketMissing = false;
+
+// แปลง error จาก Supabase/เครือข่าย เป็นเหตุผลที่บอกผู้ใช้ได้ตรง ๆ
+// "offline" / "network" / "auth" (เซสชันหมด/ไม่มีสิทธิ์) / "images_limit" / "server"
+function sbErrorReason(err) {
+	var msg = String((err && (err.message || err.error_description || err.details || err.error)) || err || "");
+	var code = String((err && (err.code || err.statusCode || err.status)) || "");
+	if (typeof navigator !== "undefined" && navigator.onLine === false) return "offline";
+	if (/failed to fetch|networkerror|load failed|network request failed|timeout|aborted/i.test(msg)) return "network";
+	if (/jwt|token|not authenticated|unauthorized|row-level security|permission denied/i.test(msg) || /^(401|403|42501|PGRST301)$/.test(code)) return "auth";
+	if (/images_limit|images_size|check constraint/i.test(msg)) return "images_limit";
+	return "server";
+}
+function sbWithTimeout(promise, ms) {
+	return Promise.race([
+		Promise.resolve(promise),
+		new Promise(function(_, reject) { setTimeout(function() { reject(new Error("timeout")); }, ms); })
+	]);
+}
+// id ผู้ใช้จากเซสชัน Supabase จริง (ไม่ใช่แค่ใน localStorage) — null = ไม่ได้ล็อกอิน/เซสชันหมดอายุ
+function sbCurrentUserId() {
+	if (!sbClient) return Promise.resolve(null);
+	return Promise.resolve(sbClient.auth.getSession()).then(function(res) {
+		var s = res && res.data && res.data.session;
+		return s && s.user ? s.user.id : null;
+	}).catch(function() { return null; });
+}
+function sbDataUrlToBlob(dataUrl) {
+	var m = /^data:([^;,]+)(;base64)?,(.*)$/.exec(dataUrl || "");
+	if (!m) return null;
+	try {
+		var bin = m[2] ? atob(m[3]) : decodeURIComponent(m[3]);
+		var bytes = new Uint8Array(bin.length);
+		for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+		return new Blob([bytes], { type: m[1] });
+	} catch (e) {
+		return null;
+	}
+}
+// อัปรูปที่ยังเป็น data URL ขึ้น Storage (รูปที่เป็น URL อยู่แล้ว เช่นตอนแก้ไขโพสต์ ใช้ของเดิม ไม่อัปซ้ำ)
+// คืน Promise<{ urls, paths }> เรียงตามลำดับเดิม หรือ { error } — ถ้าล้มกลางทาง ลบรูปที่อัปไปแล้วรอบนี้ทิ้งให้หมด
+// onProgress({ stage: "uploading", done, total })
+function sbUploadImages(images, kind, onProgress) {
+	var progress = typeof onProgress === "function" ? onProgress : function() {};
+	var list = (images || []).slice();
+	var queue = [];
+	list.forEach(function(src, i) { if (/^data:/.test(src)) queue.push(i); });
+	if (!sbClient) return Promise.resolve({ error: "server" });
+	return sbCurrentUserId().then(function(uid) {
+		var me = getSession();
+		if (!uid || !me || me.id !== uid) return { error: "auth" };
+		if (!queue.length || sbImageBucketMissing) return { urls: list, paths: [] };
+		if (typeof navigator !== "undefined" && navigator.onLine === false) return { error: "offline" };
+		var urls = list.slice(), paths = [], failed = null, done = 0, total = queue.length;
+		var bucket = sbClient.storage.from(CHIMCHIM_IMAGE_BUCKET);
+		progress({ stage: "uploading", done: 0, total: total });
+		function worker() {
+			if (failed || !queue.length) return Promise.resolve();
+			var idx = queue.shift();
+			var blob = sbDataUrlToBlob(list[idx]);
+			if (!blob) { failed = "upload"; return Promise.resolve(); }
+			var ext = blob.type === "image/png" ? "png" : blob.type === "image/webp" ? "webp" : "jpg";
+			var path = uid + "/" + kind + "/" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10) + "-" + idx + "." + ext;
+			return sbWithTimeout(bucket.upload(path, blob, { contentType: blob.type, cacheControl: "31536000", upsert: false }), CHIMCHIM_UPLOAD_TIMEOUT_MS).then(function(res) {
+				if (res && res.error) {
+					console.error("[chimchim] image upload error:", res.error.message || res.error);
+					var r = /bucket not found/i.test(res.error.message || "") ? "bucket" : sbErrorReason(res.error);
+					failed = failed || (r === "server" ? "upload" : r);
+					return;
+				}
+				paths.push(path);
+				urls[idx] = bucket.getPublicUrl(path).data.publicUrl;
+				done++;
+				progress({ stage: "uploading", done: done, total: total });
+			}, function(e) {
+				failed = failed || sbErrorReason(e);
+			}).then(worker);
+		}
+		var workers = [];
+		for (var w = 0; w < CHIMCHIM_UPLOAD_PARALLEL; w++) workers.push(worker());
+		return Promise.all(workers).then(function() {
+			if (failed === "bucket") {
+				console.warn("[chimchim] ยังไม่มี Storage bucket \"" + CHIMCHIM_IMAGE_BUCKET + "\" — รัน supabase/schema.sql Phase 16 ก่อน ระหว่างนี้ส่งรูปแบบเดิม (data URL)");
+				sbImageBucketMissing = true;
+				sbRemoveImages(paths);
+				return { urls: list, paths: [] };
+			}
+			if (failed) {
+				sbRemoveImages(paths);
+				return { error: failed };
+			}
+			return { urls: urls, paths: paths };
+		});
+	});
+}
+function sbRemoveImages(paths) {
+	if (!sbClient || !paths || !paths.length) return Promise.resolve();
+	return Promise.resolve(sbClient.storage.from(CHIMCHIM_IMAGE_BUCKET).remove(paths)).catch(function() {});
+}
+// URL สาธารณะของไฟล์ใน bucket เรา → path ในbucket (URL จากที่อื่น/data URL → null ไม่แตะ)
+function sbStoragePathFromUrl(url) {
+	var u = String(url || "");
+	var marker = "/storage/v1/object/public/" + CHIMCHIM_IMAGE_BUCKET + "/";
+	var i = u.indexOf(marker);
+	if (i === -1 || u.indexOf(CHIMCHIM_SUPABASE_URL) !== 0) return null;
+	return decodeURIComponent(u.slice(i + marker.length).split("?")[0]);
+}
+// ลบไฟล์รูปที่ไม่มีโพสต์/รีวิวไหนใช้แล้ว (หลังลบโพสต์ หรือเอารูปออกตอนแก้ไข) — เรียกหลังอัปเดตแคชในเครื่องแล้วเท่านั้น
+// ลบเฉพาะไฟล์ในโฟลเดอร์ของตัวเอง และข้ามรูปที่ยังมีโพสต์/รีวิวอื่นอ้างถึงอยู่
+function sbDeleteImagesIfUnused(urls) {
+	var me = getSession();
+	if (!sbClient || !me || !urls || !urls.length) return Promise.resolve();
+	var inUse = {};
+	getAllPosts().forEach(function(p) { getPostImages(p).forEach(function(u) { inUse[u] = true; }); });
+	try {
+		var allReviews = JSON.parse(localStorage.getItem(CHIMCHIM_REVIEWS_KEY)) || {};
+		Object.keys(allReviews).forEach(function(k) {
+			(allReviews[k] || []).forEach(function(r) { (r.images || []).forEach(function(u) { inUse[u] = true; }); });
+		});
+	} catch (e) {
+		return Promise.resolve(); // อ่านรีวิวไม่ได้ ไม่รู้ว่ารูปไหนยังใช้อยู่ — ไม่ลบอะไรเลยปลอดภัยกว่า
+	}
+	var paths = urls.filter(function(u) { return !inUse[u]; }).map(sbStoragePathFromUrl).filter(function(p) {
+		return p && p.indexOf(me.id + "/") === 0;
+	});
+	return sbRemoveImages(paths);
+}
+
+/* =====================================================================
    โพสต์ — sync จริงกับ Supabase (เหมือนร้าน: local-first แล้วผลักขึ้น + reconcile id ถ้าเป็นโพสต์ใหม่)
    ===================================================================== */
 function sbPostRowToLocal(row) {
@@ -651,7 +869,7 @@ function sbPostRowToLocal(row) {
 		userName: row.profiles ? row.profiles.name : null,
 		userAvatar: row.profiles ? row.profiles.avatar_url : null,
 		pageId: row.page_id,
-		images: row.images,
+		images: row.images || [],
 		caption: row.caption || "",
 		date: row.created_at
 	};
@@ -674,9 +892,51 @@ function sbSavePost(post) {
 		return res.data;
 	}).catch(function() { return null; });
 }
+function sbPostError(err, row) {
+	var msg = String((err && (err.message || err.details)) || "");
+	console.error("[chimchim] post save error:", msg);
+	var reason = sbErrorReason(err);
+	// RLS ปฏิเสธโพสต์ในนามร้าน (ไม่ใช่เจ้าของร้าน/ร้านถูกซ่อน — SQL Phase 17) ไม่ใช่เซสชันหมดอายุ
+	if (row.page_id && reason === "auth" && /row-level security/i.test(msg)) return "shop_forbidden";
+	// โพสต์ข้อความล้วน แต่ฐานข้อมูลยังบังคับ 1-10 รูป (ยังไม่รัน SQL Phase 16)
+	if (!(row.images || []).length && (reason === "images_limit" || /null value in column "images"/i.test(msg))) return "text_only";
+	return reason;
+}
+// โพสต์ใหม่ — คืน { saved: แถวจริง } หรือ { error, sent } (sent=true: เซิร์ฟเวอร์ตอบปฏิเสธแน่ ๆ / false: ไม่รู้ผล เช่นเน็ตหลุดกลางทาง)
+// ไม่ตั้ง timeout ตรงนี้ — ถ้าตัดเองแล้วแถวขึ้นไปจริง เราจะลบรูปทิ้งทั้งที่โพสต์ใช้อยู่
+function sbInsertPost(post) {
+	if (!sbClient) return Promise.resolve({ error: "server", sent: false });
+	var row = sbPostToRow(post);
+	return Promise.resolve(sbClient.from("posts").insert(row).select().single()).then(function(res) {
+		if (res.error) return { error: sbPostError(res.error, row), sent: true };
+		var saved = res.data;
+		if (!saved || (saved.images || []).length !== row.images.length) {
+			if (saved && saved.id) sbDeletePost(saved.id);
+			return { error: "server", sent: true };
+		}
+		return { saved: saved };
+	}, function(e) {
+		return { error: sbErrorReason(e), sent: false };
+	});
+}
+// แก้ไขโพสต์ที่ sync แล้ว — RLS ที่ไม่ให้แก้จะไม่ error แต่แก้ได้ 0 แถว → นับเป็น "auth"
+function sbUpdatePost(remoteId, patch) {
+	if (!sbClient) return Promise.resolve({ error: "server", sent: false });
+	var row = { images: patch.images, caption: patch.caption || "" };
+	return Promise.resolve(sbClient.from("posts").update(row).eq("id", remoteId).select()).then(function(res) {
+		if (res.error) return { error: sbPostError(res.error, row), sent: true };
+		if (!res.data || !res.data.length) return { error: "auth", sent: true };
+		return { saved: res.data[0] };
+	}, function(e) {
+		return { error: sbErrorReason(e), sent: false };
+	});
+}
+// คืน Promise<boolean> — true เมื่อลบแถวได้จริง
 function sbDeletePost(remoteId) {
-	if (!sbClient || !remoteId) return Promise.resolve();
-	return Promise.resolve(sbClient.from("posts").delete().eq("id", remoteId)).catch(function() {});
+	if (!sbClient || !remoteId) return Promise.resolve(false);
+	return Promise.resolve(sbClient.from("posts").delete().eq("id", remoteId)).then(function(res) {
+		return !(res && res.error);
+	}).catch(function() { return false; });
 }
 // ดึงโพสต์ของทุกคนจาก Supabase จริง (ไม่ใช่แค่ที่เคยเห็นในเครื่องนี้) — ซ่อนอันที่โดนรายงานถึงเกณฑ์ไปแล้วออกเลย
 function sbFetchAllPosts() {

@@ -2,6 +2,12 @@
 // หน้าโปรไฟล์ (profile.html) — โชว์ข้อมูลบัญชี, Food DNA, ร้านที่ Follow, ร้านของฉัน (บัญชีร้านค้า)
 
 var session = getSession();
+// โปรไฟล์ที่หน้านี้กำลังแสดง (ตรวจสิทธิ์แล้ว) — ตัวกำหนดว่าโพสต์ใหม่จะโพสต์ในนามใคร
+// key: "self" หรือ numId ร้าน (รูปแบบเดียวกับ getActivePersona) / ตั้งครั้งเดียวต่อการโหลดหน้า ไม่เปลี่ยนกลางทาง
+var profPage = { type: "self", shop: null, key: "self" };
+var profBootSeq = 0;
+// ?created=1 = เพิ่งสร้างโปรไฟล์ร้านสำเร็จ (อ่านเก็บไว้ก่อน — bootProfile แก้ URL ให้ตรงกับโปรไฟล์ที่แสดง)
+var profJustCreated = new URLSearchParams(window.location.search).get("created") === "1";
 
 /* --- Popup รายละเอียดใช้ร่วมกัน: Food DNA --- */
 var profDetailPop = document.getElementById("profDetailPop");
@@ -51,8 +57,235 @@ if (logoutBtnEl) {
 
 if (!session) {
 	document.getElementById("profGuestBox").hidden = false;
+	// มาจาก "+ เพิ่มโปรไฟล์ → บัญชีส่วนตัว" (ออกจากบัญชีเดิมแล้ว) — เปิดหน้าสมัครให้เลย
+	if (new URLSearchParams(window.location.search).get("auth") === "register") openAuthPop("register");
 } else {
+	bootProfile();
+}
+// เพิ่งสร้างโปรไฟล์ร้านค้า → แจ้งเมื่อหน้าโปรไฟล์ร้านเปิดได้จริงแล้วเท่านั้น (ตรวจสิทธิ์+โหลดจากฐานข้อมูลผ่านแล้ว)
+function toastIfJustCreated() {
+	if (!profJustCreated) return;
+	profJustCreated = false;
+	if (profPage.type === "shop") showToast(t("shop.createdToast").replace("{name}", profPage.shop.name));
+}
+
+/* =====================================================================
+   เริ่มหน้าโปรไฟล์ตามโปรไฟล์ที่ใช้งานอยู่ (สลับโปรไฟล์แบบ IG)
+   ?as=self | ?as=shop:<id> = เปิดโปรไฟล์นั้นตรง ๆ (ลิงก์/เมนูสลับโปรไฟล์) ไม่ส่ง = ใช้โปรไฟล์ที่จำไว้ล่าสุด
+   โปรไฟล์ร้าน: ตรวจสิทธิ์กับเซิร์ฟเวอร์ก่อนแสดงทุกครั้ง ระหว่างรอ/ตรวจไม่ผ่าน ไม่แสดงข้อมูลโปรไฟล์ใดเลย
+   ===================================================================== */
+function bootProfile() {
+	var asParam = new URLSearchParams(window.location.search).get("as") || "";
+	var requested = asParam === "self" ? "self" : (/^shop:\d+$/.test(asParam) ? asParam.slice(5) : null);
+	// โปรไฟล์ส่วนตัวใช้ได้เสมอ ไม่ต้องรอตรวจสิทธิ์ร้าน
+	if (requested === "self" || (!requested && getActivePersona() === "self")) {
+		setActivePersona("self");
+		profPage = { type: "self", shop: null, key: "self" };
+		renderPersonalProfile();
+		watchActiveProfile();
+		toastIfJustCreated();
+		return;
+	}
+	showProfState("loading");
+	var seq = ++profBootSeq;
+	resolveActiveProfile(requested).then(function(res) {
+		if (seq !== profBootSeq) return;
+		if (res.error) {
+			showProfState("error");
+			return;
+		}
+		hideProfState();
+		var p = res.profile;
+		profPage = p.type === "shop" ? { type: "shop", shop: p.shop, key: String(p.shop.numId) } : { type: "self", shop: null, key: "self" };
+		// URL ให้ตรงกับโปรไฟล์ที่แสดงจริง (ไม่ค้าง id ร้านที่ไม่มีสิทธิ์ไว้ในแถบที่อยู่)
+		if (window.history && history.replaceState) {
+			history.replaceState(null, "", "profile.html?as=" + (profPage.type === "self" ? "self" : "shop:" + profPage.key));
+		}
+		if (profPage.type === "shop") renderShopProfile(profPage.shop);
+		else renderPersonalProfile();
+		if (res.notice) showToast(t(res.notice === "shop_forbidden" ? "switcher.forbidden" : "switcher.unavailable"));
+		watchActiveProfile();
+		toastIfJustCreated();
+	});
+}
+function showProfState(kind) {
+	document.getElementById("profContent").hidden = true;
+	var box = document.getElementById("profStateBox");
+	box.hidden = false;
+	var msg = document.getElementById("profStateMsg");
+	msg.innerHTML = kind === "loading" ? '<i class="fas fa-spinner fa-spin"></i> ' : "";
+	msg.appendChild(document.createTextNode(t(kind === "loading" ? "profile.loadingProfile" : "profile.profileLoadFailed")));
+	document.getElementById("profStateBtns").hidden = kind === "loading";
+}
+function hideProfState() {
+	document.getElementById("profStateBox").hidden = true;
+}
+(function() {
+	var retry = document.getElementById("profStateRetry");
+	if (retry) retry.addEventListener("click", bootProfile);
+	var useSelf = document.getElementById("profStateSelf");
+	if (useSelf) useSelf.addEventListener("click", function() {
+		setActivePersona("self");
+		window.location.href = "profile.html?as=self";
+	});
+})();
+// มีหน้าต่าง/แท็บอื่นสลับโปรไฟล์ → หน้านี้ยังแสดงโปรไฟล์เดิม แจ้งให้โหลดใหม่ และฟอร์มโพสต์จะไม่ยอมส่ง (ดู submit)
+var profWatching = false;
+function watchActiveProfile() {
+	if (profWatching) return;
+	profWatching = true;
+	window.addEventListener("storage", function(e) {
+		if (e.key !== CHIMCHIM_ACTIVE_PERSONA_KEY || getActivePersona() === profPage.key) return;
+		if (document.getElementById("profStaleBar")) return;
+		var bar = document.createElement("div");
+		bar.className = "profstalebar";
+		bar.id = "profStaleBar";
+		bar.setAttribute("role", "alert");
+		bar.innerHTML = '<i class="fas fa-triangle-exclamation"></i><span></span><button type="button"></button>';
+		bar.querySelector("span").textContent = t("profile.profileChangedElsewhere");
+		bar.querySelector("button").textContent = t("profile.reload");
+		bar.querySelector("button").addEventListener("click", function() { window.location.href = "profile.html"; });
+		var wrap = document.getElementById("profContent");
+		wrap.insertBefore(bar, wrap.firstChild);
+	});
+}
+// เปิดเมนูสลับโปรไฟล์ — ถ้ามีโพสต์ที่กำลังเขียนค้างอยู่ ถามก่อนทิ้ง (กันโพสต์ไปผิดบัญชีหลังสลับ)
+function openProfileSwitcherFromProfile(extra) {
+	openProfileSwitcher({
+		highlight: extra && extra.highlight,
+		beforeSwitch: function() {
+			if (!hasPostDraft()) return Promise.resolve(true);
+			return showConfirmDialog({ title: t("switcher.discardTitle"), message: t("switcher.discardMsg"), confirmText: t("switcher.discardBtn") });
+		}
+	});
+}
+function hasPostDraft() {
+	var form = document.getElementById("postForm");
+	if (!form || form.style.display === "none") return false;
+	return !!(document.getElementById("postCaption").value.trim() || document.querySelectorAll("#postImgList .postimgthumb").length);
+}
+function wireSwitcherButtons() {
+	["profSwitchBtn", "profAvatar", "postingAsRow"].forEach(function(id) {
+		var el = document.getElementById(id);
+		if (el && !el.__switchWired) {
+			el.__switchWired = true;
+			el.addEventListener("click", openProfileSwitcherFromProfile);
+		}
+	});
+}
+
+/* =====================================================================
+   โปรไฟล์ร้าน — ข้อมูลจากแถวร้านที่ตรวจสิทธิ์แล้ว (เจ้าของจริงเท่านั้น), โพสต์ของร้าน, รีวิวจากลูกค้า
+   ซ่อนส่วนของโปรไฟล์ส่วนตัวทั้งหมด (อีเมล เลเวล Food DNA ถูกใจ บันทึกไว้ รีวิวของฉัน กำลังติดตาม)
+   ===================================================================== */
+function renderShopProfile(shop) {
+	var key = String(shop.numId);
 	document.getElementById("profContent").hidden = false;
+	document.body.classList.add("prof-shopmode");
+	["profEmail", "profLevelCard", "dnaCardBtn", "selfBtnRow", "ptabLikes", "ptabReviews", "ptabSaves", "igFollowingBtn"].forEach(function(id) {
+		var el = document.getElementById(id);
+		if (el) el.hidden = true;
+	});
+	["shopBtnRow", "shopInfoCard", "ptabShopReviews"].forEach(function(id) { document.getElementById(id).hidden = false; });
+
+	var avatarEl = document.getElementById("profAvatar");
+	if (shop.img && cssUrl(shop.img)) {
+		avatarEl.style.background = "var(--cream2) center/cover no-repeat url('" + cssUrl(shop.img) + "')";
+		avatarEl.textContent = "";
+	} else {
+		avatarEl.style.background = "";
+		avatarEl.textContent = (shop.name || "?").charAt(0).toUpperCase();
+	}
+	document.getElementById("profName").textContent = shop.name;
+	document.getElementById("profRole").innerHTML = '<i class="fas fa-store"></i> ' + escapeHtml(t("profile.shopRole") + (shop.cat ? " · " + catLabel(shop.cat) : ""));
+	var bioEl = document.getElementById("profBio");
+	bioEl.textContent = shop.desc || "";
+	bioEl.hidden = !shop.desc;
+	document.getElementById("shopPageLink").href = "restaurant.html?id=" + encodeURIComponent(key);
+
+	// ข้อมูลร้านที่มีอยู่จริงเท่านั้น (ช่องไหนว่างไม่แสดง ไม่เติมค่าสมมติ)
+	var info = [
+		[t("shop.featuredDish"), shop.dish],
+		[t("shop.category"), shop.cat ? catLabel(shop.cat) : ""],
+		[t("profile.shopPrice"), (shop.priceLow || shop.priceHigh) ? "฿" + (shop.priceLow || 0) + " – ฿" + (shop.priceHigh || 0) : ""],
+		[t("shop.hours"), shop.hours],
+		[t("shop.promo"), shop.promo],
+		[t("shop.nearUni"), shop.uni]
+	].filter(function(r) { return r[1]; });
+	var dl = document.getElementById("shopInfoList");
+	dl.innerHTML = "";
+	info.forEach(function(r) {
+		var dt = document.createElement("dt");
+		dt.textContent = r[0];
+		var dd = document.createElement("dd");
+		dd.textContent = r[1];
+		dl.appendChild(dt);
+		dl.appendChild(dd);
+	});
+	document.getElementById("shopInfoCard").hidden = info.length === 0;
+
+	// ผู้ติดตามร้าน = คนที่กดติดตามร้านนี้ (นับจริงจาก Supabase) — ปุ่มไม่เปิดรายชื่อ (รายชื่อมีเฉพาะโปรไฟล์บุคคล)
+	var followersBtn = document.getElementById("igFollowersBtn");
+	followersBtn.disabled = true;
+	if (typeof sbCountRows === "function") {
+		sbCountRows("follows", { target_type: "shop", target_id: key }).then(function(n) {
+			if (n === null || profPage.key !== key) return;
+			document.getElementById("igStatFollowers").textContent = formatLikeCount(n);
+		});
+	}
+
+	var postsTitle = document.querySelector("#profPostsCard .profcardtit span");
+	postsTitle.setAttribute("data-i18n", "profile.shopPosts");
+	postsTitle.textContent = t("profile.shopPosts");
+	// รูปมุมขวาบน = โปรไฟล์ที่ใช้งานอยู่ (แคชรายชื่อร้านเพิ่งได้จากการตรวจสิทธิ์ตอนเปิดหน้า)
+	if (typeof refreshAuthUI === "function") refreshAuthUI();
+
+	wireSwitcherButtons();
+	initMyPosts();
+	if (typeof syncPostsWithSupabase === "function") {
+		syncPostsWithSupabase(function() { if (profPage.key === key) renderMyPosts(); });
+	}
+	setupShopTabs(shop);
+}
+function renderShopReviews(shop) {
+	var reviews = getReviews(shop.numId);
+	var grid = document.getElementById("profShopReviewsList");
+	grid.innerHTML = "";
+	reviews.forEach(function(r) {
+		var avg = Math.round((r.taste + r.atmosphere + r.service) / 3 * 10) / 10;
+		var imgs = r.images || [];
+		var score = '<span class="profgtile-score"><i class="fas fa-star" aria-hidden="true"></i>' + avg + "</span>";
+		grid.appendChild(profGridTile({
+			label: (r.author || "") + " " + avg,
+			extraClass: imgs.length ? "" : "is-text",
+			html: imgs.length
+				? '<img src="' + safeImgSrc(imgs[0]) + '" alt="" loading="lazy"/>' + score + '<span class="profgtile-cap">' + escapeHtml(r.author || "") + "</span>"
+				: '<span class="profgtile-text"><b>' + escapeHtml(r.author || "") + '</b><span class="profgtile-quote">' + escapeHtml(r.text || t("restaurant.noReviewText")) + "</span></span>" + score,
+			onOpen: function() { window.location.href = "restaurant.html?id=" + encodeURIComponent(shop.numId); }
+		}));
+	});
+	document.getElementById("profShopReviewsEmpty").hidden = reviews.length > 0;
+	document.getElementById("ptabCountShopReviews").textContent = reviews.length;
+}
+function setupShopTabs(shop) {
+	var key = String(shop.numId);
+	var bar = document.getElementById("profTabs");
+	bar.hidden = false;
+	bar.querySelectorAll(".proftab").forEach(function(b) {
+		b.addEventListener("click", function() { showProfileTab(this.getAttribute("data-ptab")); });
+	});
+	var savedTab = null;
+	try { savedTab = sessionStorage.getItem(profTabKey()); } catch (e) {}
+	showProfileTab(savedTab || "posts");
+	renderShopReviews(shop);
+	if (typeof syncReviewsWithSupabase === "function") {
+		syncReviewsWithSupabase(shop.numId, function() { if (profPage.key === key) renderShopReviews(shop); });
+	}
+}
+
+function renderPersonalProfile() {
+	document.getElementById("profContent").hidden = false;
+	wireSwitcherButtons();
 
 	var me = getMe() || session;
 	function refreshProfileHeader(u) {
@@ -278,8 +511,9 @@ function initMyPosts() {
 		var errBox = document.getElementById("postErr");
 		errBox.classList.remove("show");
 		var caption = document.getElementById("postCaption").value.trim();
-		if (chosenImages.length === 0 || !caption) {
-			errBox.textContent = t("profile.selectPhotoAndCaption");
+		// โพสต์ได้ทั้ง ข้อความล้วน / รูปล้วน / รูป+ข้อความ — แค่ต้องมีอย่างใดอย่างหนึ่ง
+		if (chosenImages.length === 0 && !caption) {
+			errBox.textContent = t("profile.needCaptionOrPhoto");
 			errBox.classList.add("show");
 			return;
 		}
@@ -289,37 +523,50 @@ function initMyPosts() {
 			errBox.classList.add("show");
 			return;
 		}
+		// กันกดซ้ำ: ปุ่มถูกปิดตั้งแต่กดครั้งแรกจนได้ผลจริง (กด Enter ในช่องแคปชั่นซ้ำ ๆ ก็ไม่ส่งซ้ำ)
 		if (submitBtn.disabled) return;
+		// โปรไฟล์ที่ใช้งานถูกเปลี่ยน (จากหน้าต่างอื่น) หลังเปิดหน้านี้ → ไม่ส่ง กันโพสต์ผิดบัญชี
+		if (getActivePersona() !== profPage.key) {
+			errBox.textContent = t("profile.profileChangedElsewhere");
+			errBox.classList.add("show");
+			return;
+		}
 		var submitHtml = submitBtn.innerHTML;
 		submitBtn.disabled = true;
-		submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>' + t("photos.uploading").replace("{n}", chosenImages.length) + "</span>";
-		function failed(result) {
+		function showStatus(text) {
+			submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>' + escapeHtml(text) + "</span>";
+		}
+		showStatus(chosenImages.length ? t("photos.uploading").replace("{n}", chosenImages.length) : t("photos.saving"));
+		function onProgress(p) {
+			if (p.stage === "uploading") showStatus(t("photos.uploadingProgress").replace("{done}", p.done).replace("{total}", p.total));
+			else if (p.stage === "saving") showStatus(t("photos.saving"));
+		}
+		function finish(result, okToast) {
 			submitBtn.disabled = false;
-			submitBtn.innerHTML = submitHtml;
-			errBox.textContent = t(result.reason === "storage" ? "profile.storageFullError" : "profile.serverSaveError");
-			errBox.classList.add("show");
+			if (!result.ok) {
+				// ฟอร์มยังเก็บรูป/แคปชั่นไว้ครบ กดโพสต์ใหม่ได้ทันที (รูปที่อัปไปแล้วรอบก่อนถูกลบทิ้งแล้ว ไม่ซ้ำ)
+				submitBtn.innerHTML = submitHtml;
+				errBox.textContent = t("postSaveFailed." + (result.reason || "server"));
+				errBox.classList.add("show");
+				errBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+				return;
+			}
+			resetFormToCreateMode();
+			form.style.display = "none";
+			showToast(okToast);
+			renderMyPosts();
 		}
 
 		if (editingPostId) {
-			updatePost(editingPostId, { images: chosenImages, caption: caption }).then(function(result) {
-				submitBtn.disabled = false;
-				if (!result.ok) { failed(result); return; }
-				resetFormToCreateMode();
-				form.style.display = "none";
-				showToast(t("profile.postUpdatedToast"));
-				renderMyPosts();
+			updatePost(editingPostId, { images: chosenImages, caption: caption }, onProgress).then(function(result) {
+				finish(result, t("profile.postUpdatedToast"));
 			});
 			return;
 		}
 
-		var activePage = getActivePostingPage();
-		addPost(session.id, chosenImages, caption, activePage ? activePage.numId : null).then(function(result) {
-			submitBtn.disabled = false;
-			if (!result.ok) { failed(result); return; }
-			resetFormToCreateMode();
-			form.style.display = "none";
-			showToast(activePage ? t("profile.postedAsToast").replace("{name}", activePage.name) : t("profile.postedToast"));
-			renderMyPosts();
+		var activePage = getActivePostingPage(); // ตรวจสิทธิ์แล้วตอนเปิดหน้า + addPost ถามเซิร์ฟเวอร์ซ้ำ + RLS บังคับอีกชั้น
+		addPost(session.id, chosenImages, caption, activePage ? activePage.numId : null, onProgress).then(function(result) {
+			finish(result, activePage ? t("profile.postedAsToast").replace("{name}", activePage.name) : t("profile.postedToast"));
 		});
 	});
 
@@ -327,12 +574,11 @@ function initMyPosts() {
 }
 
 // เพจที่กำลังใช้โพสต์อยู่ตอนนี้ (ถ้าเลือก "โพสต์ในนามเพจ" ไว้ใน Settings) — คืนค่า null ถ้าโพสต์ในนามตัวเอง
+// = โปรไฟล์ร้านที่หน้านี้แสดงอยู่ (ตรวจสิทธิ์กับเซิร์ฟเวอร์แล้วตอนเปิดหน้า) ไม่ใช่ค่าใน localStorage ตรง ๆ
 function getActivePostingPage() {
-	var persona = getActivePersona();
-	if (persona === "self") return null;
-	// "เพจ"/"ร้าน" รวมเป็นเอนทิตีเดียวกันแล้ว (ดู migratePageIntoShop ใน core.js) — ผู้ใช้มีได้แค่ร้านเดียว
-	// เลยไม่ต้องเช็คว่า persona ตรงกับ id ไหน แค่คืนร้านของตัวเองไปเลยถ้าไม่ได้ตั้งเป็น "self"
-	return getMyShop();
+	if (profPage.type !== "shop") return null;
+	var s = profPage.shop;
+	return { numId: s.numId, name: s.name, img: s.img };
 }
 
 function closeAllPostMenus() {
@@ -352,13 +598,14 @@ function renderMyPosts() {
 	/* --- แถบ "กำลังโพสต์ในนาม" เหนือปุ่มเพิ่มโพสต์ --- */
 	var row = document.getElementById("postingAsRow");
 	if (row) {
-		if (activePage) {
-			row.hidden = false;
-			document.getElementById("postingAsAvatar").src = activePage.img;
-			document.getElementById("postingAsLabel").textContent = t("settings.postingAsPrefix") + ": " + activePage.name;
-		} else {
-			row.hidden = true;
-		}
+		var meNow = getMe() || session;
+		var asName = activePage ? activePage.name : meNow.name;
+		var asImg = activePage ? activePage.img : meNow.avatar;
+		var av = document.getElementById("postingAsAvatar");
+		av.style.backgroundImage = asImg && cssUrl(asImg) ? "url('" + cssUrl(asImg) + "')" : "";
+		av.textContent = asImg && cssUrl(asImg) ? "" : (asName || "?").charAt(0).toUpperCase();
+		document.getElementById("postingAsLabel").textContent = t("profile.postingAsName").replace("{name}", asName);
+		row.hidden = false;
 	}
 
 	grid.innerHTML = "";
@@ -368,6 +615,7 @@ function renderMyPosts() {
 	var tabCountPosts = document.getElementById("ptabCountPosts");
 	if (tabCountPosts) tabCountPosts.textContent = posts.length;
 	if (posts.length === 0) {
+		emptyMsg.textContent = t(activePage ? "profile.emptyShopPosts" : "profile.emptyPosts");
 		emptyMsg.hidden = false;
 		return;
 	}
@@ -379,9 +627,9 @@ function renderMyPosts() {
 		var el = document.createElement("div");
 		el.className = "ppost card-enter";
 		el.innerHTML =
-			'<img src="' + safeImgSrc(images[0]) + '" alt=""/>' +
+			postCoverHtml(images, p.caption) +
 			(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
-			'<div class="ppostcap">' + escapeHtml(p.caption) + '</div>' +
+			(images.length ? '<div class="ppostcap">' + escapeHtml(p.caption) + '</div>' : "") +
 			// ปุ่ม ⋯ มุมขวาบนปุ่มเดียว รวม แก้ไข/ลบ ไว้ในเมนู (เดิมเป็นปุ่มดินสอ + ✕ แยกกัน และ ✕ ลบทันทีไม่ถามก่อน)
 			'<button type="button" class="ppostmore" aria-label="' + t("profile.postOptions") + '"><i class="fas fa-ellipsis"></i></button>';
 		el.addEventListener("click", function() {
@@ -590,7 +838,7 @@ function setupFollowSheet(me, onFollowChanged) {
 function refreshLevelCard() {
 	var session = getSession();
 	var card = document.getElementById("profLevelCard");
-	if (!session || !card) return;
+	if (!session || !card || profPage.type === "shop") return; // โปรไฟล์ร้านไม่มีเลเวลนักชิม
 	var info = คำนวณXP(session.id);
 	var lv = เลเวลจากXP(info.xp);
 	document.getElementById("profRole").innerHTML = '<i class="fas fa-medal"></i> Lv.' + lv.level + " " + escapeHtml(lv.name);
@@ -628,8 +876,12 @@ function refreshLevelCard() {
    ===================================================================== */
 // หมายเหตุ: setupProfileTabs ถูกเรียกจากโค้ดตั้งต้นด้านบนไฟล์ ก่อนบรรทัดนี้จะทำงาน
 // จึงใช้ฟังก์ชัน (hoist ทั้งตัว) แทนตัวแปรที่มีค่าเริ่มต้น และไม่กำหนดค่าเริ่มให้ profReviewsLoading (ไม่งั้นจะทับค่า true)
-function profTabKey() { return "chimchim_profile_tab"; }
-function profPanes() { return { posts: "profPostsCard", likes: "ppaneLikes", reviews: "ppaneReviews", saves: "ppaneSaves" }; }
+function profTabKey() { return profPage.type === "shop" ? "chimchim_profile_tab_shop" : "chimchim_profile_tab"; }
+function profPanes() {
+	return profPage.type === "shop"
+		? { posts: "profPostsCard", shopreviews: "ppaneShopReviews" }
+		: { posts: "profPostsCard", likes: "ppaneLikes", reviews: "ppaneReviews", saves: "ppaneSaves" };
+}
 var profReviewsLoading;
 
 // id ร้าน → ข้อมูลร้านจริง (ตัดร้านที่ถูกลบไปแล้ว และ id ซ้ำ ไม่ให้นับเกิน)
@@ -651,8 +903,8 @@ function showProfileTab(tab) {
 		b.setAttribute("aria-selected", on ? "true" : "false");
 		b.tabIndex = on ? 0 : -1;
 	});
-	Object.keys(panes).forEach(function(k) {
-		document.getElementById(panes[k]).hidden = k !== tab;
+	["profPostsCard", "ppaneLikes", "ppaneReviews", "ppaneSaves", "ppaneShopReviews"].forEach(function(id) {
+		document.getElementById(id).hidden = panes[tab] !== id;
 	});
 	try { sessionStorage.setItem(profTabKey(), tab); } catch (e) {}
 }
@@ -671,8 +923,11 @@ function profGridTile(opts) {
 function profPostTile(item) {
 	return profGridTile({
 		label: item.caption || item.posterName || "",
-		html: '<img src="' + safeImgSrc(item.images[0] || "") + '" alt="" loading="lazy"/>' +
-			(item.images.length > 1 ? '<i class="fas fa-clone profgtile-ico" aria-hidden="true"></i>' : ""),
+		extraClass: item.images.length ? "" : "is-text",
+		html: item.images.length
+			? '<img src="' + safeImgSrc(item.images[0]) + '" alt="" loading="lazy"/>' +
+				(item.images.length > 1 ? '<i class="fas fa-clone profgtile-ico" aria-hidden="true"></i>' : "")
+			: '<span class="profgtile-text"><b>' + escapeHtml(item.posterName || "") + '</b><span class="profgtile-quote">' + escapeHtml(item.caption || "") + "</span></span>",
 		onOpen: function() {
 			openPostView({ id: item.id, images: item.images, caption: item.caption, posterName: item.posterName, posterColor: item.posterColor, posterAvatarUrl: item.posterAvatarUrl, posterId: item.userId });
 		}
@@ -777,7 +1032,7 @@ function setupProfileTabs(me) {
 	var bar = document.getElementById("profTabs");
 	if (!bar) return;
 	bar.hidden = false;
-	var tabs = Array.prototype.slice.call(bar.querySelectorAll(".proftab"));
+	var tabs = Array.prototype.slice.call(bar.querySelectorAll(".proftab")).filter(function(b) { return !b.hidden; });
 	tabs.forEach(function(b, i) {
 		b.addEventListener("click", function() { showProfileTab(this.getAttribute("data-ptab")); });
 		// ลูกศรซ้าย/ขวาสลับแท็บได้ (รูปแบบ tablist มาตรฐาน)

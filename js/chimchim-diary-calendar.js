@@ -57,7 +57,8 @@ function renderDiaryCalendar(els, month, selectedKey, entries, onSelect) {
 			(withPhoto ? " has-photo" : "") +
 			(key === today ? " is-today" : "") +
 			(key === selectedKey ? " is-selected" : "") +
-			(key > today ? " is-future" : "");
+			(key > today ? " is-future" : "") +
+			(!list.length && key < diaryOpenFrom() ? " is-closed" : "");
 		btn.setAttribute("role", "gridcell");
 		btn.setAttribute("data-date", key);
 		btn.setAttribute("aria-selected", key === selectedKey ? "true" : "false");
@@ -68,8 +69,27 @@ function renderDiaryCalendar(els, month, selectedKey, entries, onSelect) {
 		if (withPhoto) btn.style.backgroundImage = "url('" + cssUrl(withPhoto.img) + "')";
 		btn.innerHTML = '<span class="jcal-num">' + day + "</span>" + (list.length > 1 ? '<span class="jcal-more">' + list.length + "</span>" : "");
 		btn.addEventListener("click", function() { onSelect(key); });
+		// ปุ่มลูกศรเลื่อนวัน (←/→ ทีละวัน, ↑/↓ ทีละสัปดาห์) ตามแบบ grid — Tab เข้าได้ช่องเดียว (วันที่เลือก)
+		btn.tabIndex = key === selectedKey ? 0 : -1;
+		btn.addEventListener("keydown", function(ev) {
+			var step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[ev.key];
+			if (!step) return;
+			ev.preventDefault();
+			var all = Array.prototype.slice.call(grid.querySelectorAll("button.jcal-cell"));
+			var next = all[all.indexOf(btn) + step];
+			if (next) {
+				btn.tabIndex = -1;
+				next.tabIndex = 0;
+				next.focus();
+			}
+		});
 		row.appendChild(btn);
 	});
+	// วันที่เลือกไม่อยู่ในเดือนนี้ → ให้วันแรกของเดือนรับ Tab แทน
+	if (!grid.querySelector('button.jcal-cell[tabindex="0"]')) {
+		var firstBtn = grid.querySelector("button.jcal-cell");
+		if (firstBtn) firstBtn.tabIndex = 0;
+	}
 	if (els.summary) {
 		els.summary.textContent = monthCount ? t("diary.monthSummary").replace("{n}", monthCount) : t("diary.monthEmpty");
 	}

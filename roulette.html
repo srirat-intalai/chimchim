@@ -16,7 +16,7 @@
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
       <link href="css/aos.css" rel="stylesheet"/>
       <link rel="stylesheet" href="css/all.min.css"/>
       <link rel="stylesheet" href="css/style.css" />
@@ -30,20 +30,20 @@
          </a>
          <div class="apptop-actions">
             <div class="qsettingswrap">
-               <button type="button" id="quickSettingsBtn" class="apptop-btn" title="Settings"><i class="fas fa-gear"></i></button>
+               <button type="button" id="quickSettingsBtn" class="apptop-btn" data-i18n-title="profile.settings" title="ตั้งค่า"><i class="fas fa-gear"></i></button>
                <div class="qspanel" id="quickSettingsPanel" hidden>
                   <div class="qsrow">
                      <span class="qslbl" data-i18n="settings.appearance">Appearance</span>
                      <div class="qstoggle">
-                        <button type="button" data-theme-choice="light" title="Light"><i class="fas fa-sun"></i></button>
-                        <button type="button" data-theme-choice="dark" title="Dark"><i class="fas fa-moon"></i></button>
+                        <button type="button" data-theme-choice="light" data-i18n-title="settings.light" title="โหมดสว่าง"><i class="fas fa-sun"></i></button>
+                        <button type="button" data-theme-choice="dark" data-i18n-title="settings.dark" title="โหมดมืด"><i class="fas fa-moon"></i></button>
                      </div>
                   </div>
                   <div class="qsrow">
                      <span class="qslbl" data-i18n="settings.language">Language</span>
                      <div class="qstoggle">
-                        <button type="button" data-lang-choice="en" title="English">🇬🇧</button>
-                        <button type="button" data-lang-choice="th" title="ไทย">🇹🇭</button>
+                        <button type="button" data-lang-choice="en" title="English" aria-label="English">🇬🇧</button>
+                        <button type="button" data-lang-choice="th" title="ไทย" aria-label="ไทย">🇹🇭</button>
                      </div>
                   </div>
                   <a href="settings.html" class="qsmore" data-i18n="profile.settings">Settings</a>
@@ -59,8 +59,7 @@
          <div class="glob b"></div>
          <div class="container" style="max-width:520px;">
             <div class="text-center mb-3" data-aos="fade-up">
-               <span class="slbl" data-i18n="roulette.miniGameLabel">มินิเกมของ ChimChim</span>
-               <h2 class="stitle" style="font-size:1.5rem;margin-bottom:6px;"><span class="stitleplain" data-i18n="roulette.heading1">ไข่ปริศนา</span> <span data-i18n="roulette.heading2">สุ่มร้าน</span></h2>
+               <h1 class="stitle" style="font-size:1.5rem;margin-bottom:6px;"><span class="stitleplain" data-i18n="roulette.heading1">ไข่ปริศนา</span> <span data-i18n="roulette.heading2">สุ่มร้าน</span></h1>
                <p class="sdesc" style="font-size:.8rem;" data-i18n="roulette.desc">ตัดสินใจไม่ได้ว่าจะกินอะไรใช่ไหม? แตะไข่ 3 ครั้ง แล้วให้ ChimChim เปิดร้านจริงให้เลย</p>
             </div>
 
@@ -79,7 +78,7 @@
             <form class="rprompt" id="rPrompt" novalidate>
                <label class="rprompt-lbl" for="rPromptInput"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span data-i18n="roulette.promptLabel">วันนี้อยากกินอะไรเป็นพิเศษ?</span></label>
                <div class="rprompt-row">
-                  <textarea class="rprompt-input" id="rPromptInput" rows="1" maxlength="200" data-i18n-ph="roulette.promptPlaceholder" placeholder="เช่น อาหารไทย ไม่เกิน 100 บาท"></textarea>
+                  <textarea class="rprompt-input" id="rPromptInput" rows="1" maxlength="200" data-i18n-ph="roulette.promptPlaceholder" placeholder="เช่น ไทย งบ 100 บาท"></textarea>
                   <button type="submit" class="btn-red rprompt-btn" id="rPromptBtn"><i class="fas fa-egg" aria-hidden="true"></i><span id="rPromptBtnText">สุ่ม · 1 Token</span></button>
                </div>
                <div class="rprompt-examples" id="rPromptExamples"></div>
@@ -160,8 +159,9 @@
                </summary>
                <div class="rfbody">
                   <div class="rfgroup">
-                     <div class="rflbl" id="rfLblCat" data-i18n="roulette.filterCat">ประเภทอาหาร</div>
-                     <div class="rfchips" id="rfCat" role="group" aria-labelledby="rfLblCat"></div>
+                     <div class="rflbl" id="rfLblCat"><span data-i18n="roulette.filterCatMulti">หมวดหมู่อาหาร</span> <small data-i18n="roulette.filterCatMultiHint">เลือกได้หลายหมวด</small></div>
+                     <div class="rfchips rfcats" id="rfCat" role="group" aria-labelledby="rfLblCat"></div>
+                     <p class="rfnote" id="rfCatHint" aria-live="polite"></p>
                   </div>
                   <div class="rfgroup">
                      <div class="rflbl" id="rfLblBudget" data-i18n="roulette.filterBudget">งบต่อคน (ราคาเริ่มต้นของร้าน)</div>
@@ -226,7 +226,7 @@
          ============================================================ -->
       <div id="authPop">
          <div class="apbox">
-            <button class="apclose" id="apClose"><i class="fas fa-times"></i></button>
+            <button class="apclose" id="apClose" data-i18n-title="common.close" title="ปิด"><i class="fas fa-times" aria-hidden="true"></i></button>
             <div class="aptabs">
                <button class="aptab active" id="apTabLogin" data-tab="login" data-i18n="auth.login">เข้าสู่ระบบ</button>
                <button class="aptab" id="apTabRegister" data-tab="register" data-i18n="auth.register">สมัครสมาชิก</button>
@@ -234,20 +234,20 @@
             <img class="apdino" src="img/Dino/4.png" alt="Dino ต้อนรับสมาชิกใหม่"/>
             <form id="loginForm" class="apform">
                <div class="aperr" id="loginErr"></div>
-               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <label class="flbl" for="loginEmail" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email" required/>
-               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <label class="flbl" for="loginPassword" data-i18n="auth.password">รหัสผ่าน</label>
                <input class="fctrl" type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-right-to-bracket"></i><span data-i18n="auth.login">เข้าสู่ระบบ</span></button>
                <p class="apnote"><span data-i18n="auth.noAccount">ยังไม่มีบัญชี?</span> <a href="#" data-switch="register" data-i18n="auth.registerLink">สมัครสมาชิกเลย</a></p>
             </form>
             <form id="registerForm" class="apform" style="display:none;">
                <div class="aperr" id="registerErr"></div>
-               <label class="flbl" data-i18n="auth.yourName">ชื่อของคุณ</label>
+               <label class="flbl" for="registerName" data-i18n="auth.yourName">ชื่อของคุณ</label>
                <input class="fctrl" type="text" id="registerName" placeholder="ชื่อ นามสกุล" autocomplete="name" required/>
-               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <label class="flbl" for="registerEmail" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="registerEmail" placeholder="you@email.com" autocomplete="email" required/>
-               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <label class="flbl" for="registerPassword" data-i18n="auth.password">รหัสผ่าน</label>
                <input class="fctrl" type="password" id="registerPassword" placeholder="อย่างน้อย 4 ตัวอักษร" autocomplete="new-password" required/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-egg"></i><span data-i18n="auth.createAccount">สร้างบัญชี</span></button>
                <p class="apnote"><span data-i18n="auth.haveAccount">มีบัญชีอยู่แล้ว?</span> <a href="#" data-switch="login" data-i18n="auth.loginLink">เข้าสู่ระบบ</a></p>

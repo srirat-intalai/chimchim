@@ -1267,7 +1267,7 @@ function buildLikeRow(ร้าน) {
 	row.className = "profshoprow";
 	row.style.cursor = "pointer";
 	row.innerHTML =
-		'<img src="' + safeImgSrc(ร้าน.รูป) + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
+		'<img loading="lazy" decoding="async" src="' + safeImgSrc(ร้าน.รูป) + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
 		'<div style="flex:1;min-width:0;">' +
 			'<div class="profshopnm">' + escapeHtml(ร้าน.เมนู) + "</div>" +
 			'<div class="profshopmeta">' + escapeHtml(ร้าน.ร้าน) + " · " + catEmoji(ร้าน.หมวด) + " " + escapeHtml(catLabel(ร้าน.หมวด)) + "</div>" +
@@ -1285,7 +1285,7 @@ function buildReviewItem(r) {
 	item.className = "profreviewitem";
 	item.innerHTML =
 		'<div class="profreviewrow">' +
-			'<img src="' + safeImgSrc(ร้าน.รูป) + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
+			'<img loading="lazy" decoding="async" src="' + safeImgSrc(ร้าน.รูป) + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
 			'<div style="flex:1;min-width:0;">' +
 				'<div class="profshopnm">' + escapeHtml(ร้าน.ร้าน) + "</div>" +
 				'<div class="profshopmeta">🎯 ' + avgScore + t("restaurant.avgScoreSuffix") + "</div>" +
@@ -1658,7 +1658,7 @@ function buildMiniCard(ร้าน, onClick) {
 	card.setAttribute("aria-label", ร้าน.เมนู + " · " + ร้าน.ร้าน);
 	card.innerHTML =
 		'<div class="mimg">' +
-			'<img src="' + safeImgSrc(ร้าน.รูป) + '" alt=""/>' +
+			'<img loading="lazy" decoding="async" src="' + safeImgSrc(ร้าน.รูป) + '" alt=""/>' +
 			// ยังไม่มี Food DNA ของผู้ใช้จริง → ไม่โชว์ % (ตัวเลขจากโปรไฟล์ตัวอย่างไม่ได้บอกอะไรเกี่ยวกับคนนี้)
 			(foodDNAPersonal ? '<div class="mmatch" data-match-score="' + คะแนน + '">' + matchBadgeText(คะแนน) + "</div>" : "") +
 			'<div class="mhrt" role="button" tabindex="0" aria-label="' + escapeHtml(t("a11y.likeShop")) + '"><i class="far fa-heart"></i></div>' +
@@ -1874,7 +1874,7 @@ function getPostImages(p) {
 }
 // ภาพปกโพสต์ในตาราง (โปรไฟล์/หน้าร้าน) — โพสต์ข้อความล้วนโชว์เป็นการ์ดข้อความแทน ไม่ใช้รูปปลอม
 function postCoverHtml(images, caption) {
-	if (images.length) return '<img src="' + safeImgSrc(images[0]) + '" alt=""/>';
+	if (images.length) return '<img loading="lazy" decoding="async" src="' + safeImgSrc(images[0]) + '" alt=""/>';
 	return '<div class="ppost-text"><span>' + escapeHtml(caption || "") + "</span></div>";
 }
 function deletePost(postId) {

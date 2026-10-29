@@ -16,7 +16,7 @@
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
       <link rel="stylesheet" href="css/all.min.css"/>
       <link rel="stylesheet" href="css/style.css" />
       <link rel="stylesheet" href="css/chimchim-refresh.css" />
@@ -24,7 +24,7 @@
    <body class="appshell" style="padding-bottom:30px;">
       <div class="obwrap">
          <div class="obtopnav">
-            <button class="obback" id="obBackBtn"><i class="fas fa-arrow-left"></i></button>
+            <button type="button" class="obback" id="obBackBtn" data-i18n-aria="common.back" aria-label="ย้อนกลับ"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
             <span class="obstepnum" id="obStepLbl"></span>
             <span style="width:38px;"></span>
          </div>
@@ -38,7 +38,7 @@
 
          <!-- STEP 1: หมวดอาหารที่ชอบ -->
          <div class="obstep" id="obStep1">
-            <div class="obq" data-i18n="onboarding.step1Title">สร้างโปรไฟล์การกินของคุณ</div>
+            <h1 class="obq" data-i18n="onboarding.step1Title">สร้างโปรไฟล์การกินของคุณ</h1>
             <p class="obhint" data-i18n="onboarding.step1Hint">คุณชอบกินอาหารประเภทไหนบ้าง? (เลือกได้หลายอย่าง)</p>
             <div class="obgrid" data-field="foodType" data-multi="true">
                <div class="obopt" data-val="ข้าว"><span class="obemo">🍚</span><span class="oblbl">ข้าว</span></div>

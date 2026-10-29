@@ -16,7 +16,7 @@
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
       <link rel="stylesheet" href="css/all.min.css"/>
       <link rel="stylesheet" href="css/style.css" />
       <link rel="stylesheet" href="css/chimchim-refresh.css" />
@@ -63,7 +63,7 @@
                </div>
                <div class="jlist" id="dayList" aria-busy="true"></div>
                <div class="jempty" id="dayEmpty" hidden>
-                  <p id="dayEmptyText" data-i18n="diary.emptyDay">วันนี้ยังไม่มีบันทึกอาหาร</p>
+                  <p id="dayEmptyText"></p>
                   <button type="button" class="jbtn jbtn-quiet" id="dayEmptyAdd"><i class="fas fa-plus" aria-hidden="true"></i><span data-i18n="diary.add">เพิ่มบันทึก</span></button>
                </div>
             </section>
@@ -100,27 +100,31 @@
                   <datalist id="dfShopList"></datalist>
                   <p class="jerr" id="dfShopErr" hidden></p>
                </div>
-               <div class="jfield-row">
-                  <div class="jfield">
-                     <label for="dfDate" data-i18n="diary.date">วันที่กิน</label>
-                     <input type="date" id="dfDate" required/>
-                     <p class="jerr" id="dfDateErr" hidden></p>
-                  </div>
-                  <div class="jfield">
-                     <label for="dfTime"><span data-i18n="diary.time">เวลา</span> <small data-i18n="diary.optional">ไม่บังคับ</small></label>
-                     <input type="time" id="dfTime"/>
-                  </div>
-               </div>
+               <!-- วันที่: บันทึกได้แค่วันนี้/เมื่อวาน จึงเป็นปุ่มเลือก ไม่ใช่ปฏิทินเต็ม (ค่าจริงอยู่ใน #dfDate) -->
+               <fieldset class="jfield">
+                  <legend data-i18n="diary.dayPick">กินวันไหน</legend>
+                  <div class="jseg" id="dfDayPick"></div>
+                  <input type="hidden" id="dfDate"/>
+                  <p class="jnote" id="dfDayNote" hidden></p>
+                  <p class="jerr" id="dfDateErr" hidden></p>
+               </fieldset>
                <fieldset class="jfield jfeel">
                   <legend><span data-i18n="diary.feeling">ความรู้สึกหลังกิน</span> <small data-i18n="diary.optional">ไม่บังคับ</small></legend>
                   <div class="jfeel-opts" id="dfFeel"></div>
                </fieldset>
-               <div class="jfield">
-                  <label for="dfNote"><span data-i18n="diary.note">ความทรงจำ / รีวิวสั้น ๆ</span> <small data-i18n="diary.optional">ไม่บังคับ</small></label>
-                  <textarea id="dfNote" rows="3" maxlength="500" data-i18n-ph="diary.notePh" placeholder="กินกับใคร อร่อยตรงไหน อยากกลับไปอีกไหม"></textarea>
-                  <p class="jcount"><span id="dfNoteCount">0</span>/500</p>
-                  <p class="jerr" id="dfNoteErr" hidden></p>
-               </div>
+               <details class="jmore" id="dfMore">
+                  <summary data-i18n="diary.moreDetails">เพิ่มรายละเอียด (เวลา, ความทรงจำ)</summary>
+                  <div class="jfield">
+                     <label for="dfTime"><span data-i18n="diary.time">เวลา</span> <small data-i18n="diary.optional">ไม่บังคับ</small></label>
+                     <input type="time" id="dfTime"/>
+                  </div>
+                  <div class="jfield">
+                     <label for="dfNote"><span data-i18n="diary.note">ความทรงจำ / รีวิวสั้น ๆ</span> <small data-i18n="diary.optional">ไม่บังคับ</small></label>
+                     <textarea id="dfNote" rows="3" maxlength="500" data-i18n-ph="diary.notePh" placeholder="กินกับใคร อร่อยตรงไหน อยากกลับไปอีกไหม"></textarea>
+                     <p class="jcount"><span id="dfNoteCount">0</span>/500</p>
+                     <p class="jerr" id="dfNoteErr" hidden></p>
+                  </div>
+               </details>
                <p class="jerr jerr-form" id="dfFormErr" role="alert" hidden></p>
                <p class="jnote" id="dfStorageNote" hidden></p>
             </div>
@@ -145,6 +149,7 @@
             <p class="jdetail-note" id="ddNote" hidden></p>
          </div>
          <div class="jsheet-foot">
+            <button type="button" class="jbtn jbtn-quiet" id="ddEdit" hidden><i class="fas fa-pen" aria-hidden="true"></i><span data-i18n="diary.edit">แก้ไข</span></button>
             <button type="button" class="jbtn jbtn-danger" id="ddDelete"><i class="fas fa-trash-can" aria-hidden="true"></i><span data-i18n="diary.delete">ลบบันทึก</span></button>
             <button type="button" class="jbtn jbtn-quiet" data-close data-i18n="common.close">ปิด</button>
          </div>
@@ -163,20 +168,20 @@
             <img class="apdino" src="img/Dino/4.png" alt=""/>
             <form id="loginForm" class="apform">
                <div class="aperr" id="loginErr"></div>
-               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <label class="flbl" for="loginEmail" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email" required/>
-               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <label class="flbl" for="loginPassword" data-i18n="auth.password">รหัสผ่าน</label>
                <input class="fctrl" type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-right-to-bracket"></i><span data-i18n="auth.login">เข้าสู่ระบบ</span></button>
                <p class="apnote"><span data-i18n="auth.noAccount">ยังไม่มีบัญชี?</span> <a href="#" data-switch="register" data-i18n="auth.registerLink">สมัครสมาชิกเลย</a></p>
             </form>
             <form id="registerForm" class="apform" style="display:none;">
                <div class="aperr" id="registerErr"></div>
-               <label class="flbl" data-i18n="auth.yourName">ชื่อของคุณ</label>
+               <label class="flbl" for="registerName" data-i18n="auth.yourName">ชื่อของคุณ</label>
                <input class="fctrl" type="text" id="registerName" placeholder="ชื่อ นามสกุล" autocomplete="name" required/>
-               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <label class="flbl" for="registerEmail" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="registerEmail" placeholder="you@email.com" autocomplete="email" required/>
-               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <label class="flbl" for="registerPassword" data-i18n="auth.password">รหัสผ่าน</label>
                <input class="fctrl" type="password" id="registerPassword" placeholder="อย่างน้อย 4 ตัวอักษร" autocomplete="new-password" required/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-egg"></i><span data-i18n="auth.createAccount">สร้างบัญชี</span></button>
                <p class="apnote"><span data-i18n="auth.haveAccount">มีบัญชีอยู่แล้ว?</span> <a href="#" data-switch="login" data-i18n="auth.loginLink">เข้าสู่ระบบ</a></p>

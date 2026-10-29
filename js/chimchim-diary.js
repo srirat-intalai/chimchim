@@ -82,10 +82,15 @@ function renderDay() {
 	document.getElementById("dayCount").textContent = list.length ? t("diary.entryCount").replace("{n}", list.length) : "";
 	var empty = document.getElementById("dayEmpty");
 	empty.hidden = !diaryState.loaded || list.length > 0;
-	document.getElementById("dayEmptyText").textContent = isToday ? t("diary.emptyDay") : t("diary.emptyOtherDay");
-	// วันในอนาคตยังบันทึกไม่ได้ — ไม่โชว์ปุ่มเพิ่มให้กดแล้วเจอ error / ดูไดอารี่คนอื่นเพิ่มไม่ได้
-	document.getElementById("dayEmptyAdd").hidden = viewerMode || key > diaryToday();
-	if (viewerMode) document.getElementById("dayEmptyText").textContent = t("diary.emptyOtherDay");
+	// เพิ่มได้เฉพาะวันที่ยังเปิดบันทึก (วันนี้/เมื่อวาน) — วันที่ผ่านกำหนดแล้วบอกว่าหมดเวลา ไม่มีปุ่มเพิ่ม
+	var open = !viewerMode && diaryCanRecord(key);
+	var closedPast = !viewerMode && key < diaryOpenFrom();
+	// ข้อความนี้ไม่มี data-i18n (ตั้งตอนรันเท่านั้น) — ไม่งั้น applyI18n เขียนทับเป็น "วันนี้ยังไม่มี…" แม้เป็นวันในอดีต
+	document.getElementById("dayEmptyText").textContent = viewerMode ? t("diary.emptyOtherDay")
+		: isToday ? t("diary.emptyDay")
+		: closedPast ? t("diary.emptyClosed")
+		: t("diary.emptyOtherDay");
+	document.getElementById("dayEmptyAdd").hidden = !open;
 }
 
 function selectDate(key) {
@@ -143,8 +148,16 @@ function openDetail(id) {
 	note.hidden = !e.note;
 	note.textContent = e.note;
 	document.getElementById("ddDelete").hidden = viewerMode;
+	// แก้ไขได้เฉพาะบันทึกของวันที่ยังเปิดบันทึก (วันนี้/เมื่อวาน) — บันทึกเก่าดูได้อย่างเดียว
+	document.getElementById("ddEdit").hidden = viewerMode || !diaryCanRecord(e.date);
 	if (!detailDialog.open) detailDialog.showModal();
 }
+document.getElementById("ddEdit").addEventListener("click", function() {
+	var e = diaryState.entries.filter(function(x) { return x.id === detailId; })[0];
+	if (!e) return;
+	detailDialog.close();
+	openForm(null, e);
+});
 document.getElementById("ddDelete").addEventListener("click", function() {
 	if (!detailId) return;
 	var btn = this;
@@ -212,22 +225,63 @@ function renderFeelOptions() {
 		box.appendChild(b);
 	});
 }
-function openForm(dateKey) {
+var formEditId = null; // แก้ไขบันทึกเดิม (null = เพิ่มใหม่)
+// ปุ่มเลือกวัน: เฉพาะวันที่ยังเปิดบันทึก (วันนี้ / เมื่อวาน) — ค่าจริงเก็บใน #dfDate
+function renderDayPick(selectedKey) {
+	var box = document.getElementById("dfDayPick");
+	box.innerHTML = "";
+	var today = diaryToday();
+	for (var k = today; k >= diaryOpenFrom(); k = diaryAddDays(k, -1)) {
+		(function(key) {
+			var label = document.createElement("label");
+			label.className = "jseg-opt";
+			label.innerHTML = '<input type="radio" name="dfDay"/><span></span>';
+			var input = label.querySelector("input");
+			input.value = key;
+			input.checked = key === selectedKey;
+			label.querySelector("span").textContent = key === today ? t("diary.today")
+				: key === diaryAddDays(today, -1) ? t("diary.yesterday")
+				: diaryFormatDate(key, { weekday: "short", day: "numeric", month: "short" });
+			input.addEventListener("change", function() {
+				document.getElementById("dfDate").value = key;
+				setFieldError("dfDate", "");
+				document.getElementById("dfDayNote").hidden = true;
+			});
+			box.appendChild(label);
+		})(k);
+	}
+}
+function openForm(dateKey, entry) {
 	if (viewerMode) return;
 	if (!getSession()) {
 		if (typeof openAuthPop === "function") openAuthPop("login");
 		return;
 	}
+	formEditId = entry ? entry.id : null;
 	formEl.reset();
-	setPhoto("");
-	formRating = null;
+	setPhoto(entry && entry.img ? entry.img : "");
+	formRating = entry ? entry.rating : null;
 	renderFeelOptions();
 	["dfDish", "dfShop", "dfDate", "dfNote"].forEach(function(id) { setFieldError(id, ""); });
 	document.getElementById("dfFormErr").hidden = true;
-	var date = document.getElementById("dfDate");
-	date.max = diaryToday();
-	date.value = dateKey && dateKey <= diaryToday() ? dateKey : diaryToday();
-	document.getElementById("dfNoteCount").textContent = "0";
+	var title = document.getElementById("diaryFormTitle");
+	title.setAttribute("data-i18n", entry ? "diary.editTitle" : "diary.formTitle");
+	title.textContent = t(title.getAttribute("data-i18n"));
+	if (entry) {
+		document.getElementById("dfDish").value = entry.dish || "";
+		document.getElementById("dfShop").value = entry.shop || "";
+		document.getElementById("dfTime").value = entry.time || "";
+		document.getElementById("dfNote").value = entry.note || "";
+	}
+	document.getElementById("dfMore").open = !!(entry && (entry.time || entry.note));
+	var key = entry ? entry.date : (diaryCanRecord(dateKey) ? dateKey : diaryToday());
+	document.getElementById("dfDate").value = key;
+	renderDayPick(key);
+	// เปิดฟอร์มจากวันที่หมดเวลาบันทึกแล้ว → บอกก่อนว่าจะบันทึกเป็นวันไหนแทน (ไม่สลับเงียบ ๆ)
+	var dayNote = document.getElementById("dfDayNote");
+	dayNote.hidden = !(!entry && dateKey && !diaryCanRecord(dateKey));
+	dayNote.textContent = dayNote.hidden ? "" : t("diary.dayClosedNote").replace("{date}", diaryFormatDate(dateKey, { day: "numeric", month: "long" }));
+	document.getElementById("dfNoteCount").textContent = document.getElementById("dfNote").value.length;
 	// บัญชีทดลองในเครื่อง: บอกตรง ๆ ว่าบันทึกอยู่แค่ในเบราว์เซอร์นี้
 	var note = document.getElementById("dfStorageNote");
 	note.hidden = diaryUsesServer();
@@ -297,7 +351,9 @@ formEl.addEventListener("submit", function(ev) {
 	setFieldError("dfNote", errs.note);
 	var firstBad = ["dish", "shop", "date", "note"].filter(function(k) { return errs[k]; })[0];
 	if (firstBad) {
-		document.getElementById("df" + firstBad.charAt(0).toUpperCase() + firstBad.slice(1)).focus();
+		var badEl = firstBad === "date" ? document.querySelector('#dfDayPick input') : document.getElementById("df" + firstBad.charAt(0).toUpperCase() + firstBad.slice(1));
+		if (firstBad === "note") document.getElementById("dfMore").open = true;
+		if (badEl) badEl.focus();
 		return;
 	}
 	formBusy = true;
@@ -306,9 +362,11 @@ formEl.addEventListener("submit", function(ev) {
 	save.disabled = true;
 	saveText.textContent = t("diary.saving");
 	document.getElementById("dfFormErr").hidden = true;
-	diaryAdd(input, function(p) {
+	var editing = formEditId;
+	var progress = function(p) {
 		if (p && p.stage === "uploading") saveText.textContent = t("diary.uploading");
-	}).then(function(res) {
+	};
+	(editing ? diaryUpdate(editing, input, progress) : diaryAdd(input, progress)).then(function(res) {
 		formBusy = false;
 		save.disabled = false;
 		saveText.textContent = t("diary.save");
@@ -317,6 +375,14 @@ formEl.addEventListener("submit", function(ev) {
 			var err = document.getElementById("dfFormErr");
 			err.textContent = diaryErrorText(res.error);
 			err.hidden = false;
+			return;
+		}
+		if (editing) {
+			diaryState.entries = diarySort(diaryState.entries.map(function(x) { return x.id === editing ? res.entry : x; }));
+			formEditId = null;
+			formDialog.close();
+			selectDate(res.entry.date);
+			showToast(t("diary.updated"));
 			return;
 		}
 		diaryState.entries = diarySort(diaryState.entries.concat([res.entry]));

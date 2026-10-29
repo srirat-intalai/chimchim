@@ -796,3 +796,22 @@ drop policy if exists "diary_select_own" on public.diary_entries;
 drop policy if exists "diary_select_visible" on public.diary_entries;
 create policy "diary_select_visible" on public.diary_entries for select
   using (auth.uid() = user_id or (auth.uid() is not null and public.chimchim_diary_is_public(user_id)));
+
+-- =====================================================================
+-- Phase 23 — ไดอารี่บันทึกได้เฉพาะ "วันนี้และเมื่อวาน" (เวลาไทย Asia/Bangkok)
+-- ไดอารี่เป็นความทรงจำของแต่ละวัน ไม่ใช่ที่เติมย้อนหลังได้ตลอด — เมื่อวานยังทันเผื่อมื้อดึก/ลืมบันทึกก่อนนอน
+-- บังคับที่ RLS ตอนเพิ่ม/แก้ (หน้าเว็บกันซ้ำอีกชั้น) / บันทึกเก่าทุกรายการยังอยู่ เปิดดูและลบได้ตามเดิม
+-- เปลี่ยนจำนวนวันได้ที่ chimchim_diary_open_from() จุดเดียว (ให้ตรงกับ DIARY_OPEN_DAYS ใน chimchim-diary-store.js) รันซ้ำได้
+-- =====================================================================
+create or replace function public.chimchim_diary_today()
+returns date language sql stable as $$ select (now() at time zone 'Asia/Bangkok')::date $$;
+create or replace function public.chimchim_diary_open_from()
+returns date language sql stable as $$ select public.chimchim_diary_today() - 1 $$;
+
+drop policy if exists "diary_insert_own" on public.diary_entries;
+create policy "diary_insert_own" on public.diary_entries for insert
+  with check (auth.uid() = user_id and eaten_on between public.chimchim_diary_open_from() and public.chimchim_diary_today());
+drop policy if exists "diary_update_own" on public.diary_entries;
+create policy "diary_update_own" on public.diary_entries for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id and eaten_on between public.chimchim_diary_open_from() and public.chimchim_diary_today());

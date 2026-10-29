@@ -138,3 +138,20 @@ refreshSettingsUI();
 })();
 
 /* กิจกรรมของฉัน (ถูกใจ / รีวิว / บันทึกไว้) ย้ายไปเป็นแท็บในหน้าโปรไฟล์แล้ว — ดู setupProfileTabs ใน chimchim-profile.js */
+
+/* --- ออกจากระบบ (ย้ายมาจากหน้าโปรไฟล์) — ล้างเซสชันในเครื่อง + ออกจาก Supabase แล้วกลับไปหน้าโปรไฟล์
+   (ซึ่งจะแสดงกล่องเข้าสู่ระบบ/สมัครสมาชิก) รอ sign out เสร็จก่อนเปลี่ยนหน้า ไม่ตัดคำขอกลางทาง --- */
+(function setupLogout() {
+	var btn = document.getElementById("logoutBtn");
+	if (!btn || !getSession()) return;
+	btn.hidden = false;
+	btn.addEventListener("click", function() {
+		btn.disabled = true;
+		clearSession();
+		showToast(t("profile.logoutToast"));
+		var signOut = typeof sbSignOut === "function" ? Promise.resolve(sbSignOut()).catch(function() {}) : Promise.resolve();
+		Promise.all([signOut, new Promise(function(r) { setTimeout(r, 400); })]).then(function() {
+			window.location.href = "profile.html";
+		});
+	});
+})();

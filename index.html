@@ -16,7 +16,7 @@
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
       <link rel="stylesheet" href="css/all.min.css"/>
       <link rel="stylesheet" href="css/style.css" />
    </head>
@@ -25,7 +25,7 @@
          <div class="hs hs1"></div>
          <div class="hs hs2"></div>
          <img class="weldino" src="img/Dino/1.png" alt="Dino มาสคอต ChimChim"/>
-         <div class="wellogo">CHIM<span>CHIM</span></div>
+         <h1 class="wellogo">CHIM<span>CHIM</span></h1>
          <p class="weltag">Find Food. Find Your People. 🍜</p>
          <div class="welbtns">
             <button class="btn-red" id="welSignup"><i class="fas fa-user-plus"></i><span data-i18n="auth.register">สมัครสมาชิก</span></button>
@@ -39,7 +39,7 @@
          ============================================================ -->
       <div id="authPop">
          <div class="apbox">
-            <button class="apclose" id="apClose"><i class="fas fa-times"></i></button>
+            <button class="apclose" id="apClose" data-i18n-title="common.close" title="ปิด"><i class="fas fa-times" aria-hidden="true"></i></button>
             <div class="aptabs">
                <button class="aptab active" id="apTabLogin" data-tab="login" data-i18n="auth.login">เข้าสู่ระบบ</button>
                <button class="aptab" id="apTabRegister" data-tab="register" data-i18n="auth.register">สมัครสมาชิก</button>
@@ -49,9 +49,9 @@
             <!-- LOGIN FORM -->
             <form id="loginForm" class="apform">
                <div class="aperr" id="loginErr"></div>
-               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <label class="flbl" for="loginEmail" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email" required/>
-               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <label class="flbl" for="loginPassword" data-i18n="auth.password">รหัสผ่าน</label>
                <input class="fctrl" type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-right-to-bracket"></i><span data-i18n="auth.login">เข้าสู่ระบบ</span></button>
                <p class="apnote"><span data-i18n="auth.noAccount">ยังไม่มีบัญชี?</span> <a href="#" data-switch="register" data-i18n="auth.registerLink">สมัครสมาชิกเลย</a></p>
@@ -60,11 +60,11 @@
             <!-- REGISTER FORM -->
             <form id="registerForm" class="apform" style="display:none;">
                <div class="aperr" id="registerErr"></div>
-               <label class="flbl" data-i18n="auth.yourName">ชื่อของคุณ</label>
+               <label class="flbl" for="registerName" data-i18n="auth.yourName">ชื่อของคุณ</label>
                <input class="fctrl" type="text" id="registerName" placeholder="ชื่อ นามสกุล" autocomplete="name" required/>
-               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <label class="flbl" for="registerEmail" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="registerEmail" placeholder="you@email.com" autocomplete="email" required/>
-               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <label class="flbl" for="registerPassword" data-i18n="auth.password">รหัสผ่าน</label>
                <input class="fctrl" type="password" id="registerPassword" placeholder="อย่างน้อย 4 ตัวอักษร" autocomplete="new-password" required/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-egg"></i><span data-i18n="auth.createAccount">สร้างบัญชี</span></button>
                <p class="apnote"><span data-i18n="auth.haveAccount">มีบัญชีอยู่แล้ว?</span> <a href="#" data-switch="login" data-i18n="auth.loginLink">เข้าสู่ระบบ</a></p>
@@ -78,8 +78,6 @@
       <script src="js/chimchim-i18n.js"></script>
       <script src="js/chimchim-data.js"></script>
       <script src="js/chimchim-core.js"></script>
-      <script src="js/aos.js"></script>
-      <script>AOS.init({ duration: 680, once: true });</script>
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
       <script src="js/chimchim-supabase-config.js"></script>
       <script src="js/chimchim-supabase-client.js"></script>

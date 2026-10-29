@@ -37,29 +37,62 @@ function โหมดที่ใช้จริง() {
    ตัวเลือกเพิ่มเติม (ไม่บังคับ): ประเภทอาหาร / งบต่อคน / ระยะทาง
    ค่าเริ่มต้นคือ "ไม่จำกัด" ทุกข้อ จำไว้ในเครื่องให้ครั้งหน้าไม่ต้องเลือกใหม่
 ----------------------------------------------------- */
-var RF_KEY = "chimchim_roulette_filters_v1";
+var RF_KEY = "chimchim_roulette_filters_v2";
 var RF_BUDGETS = [0, 50, 100, 150];      // 0 = ไม่จำกัด / อื่น ๆ = ราคาเริ่มต้นของร้านไม่เกินเท่านี้ (บาท)
 var RF_DISTANCES = [0, 500, 1000, 2000]; // 0 = ไม่จำกัด / เมตร
-var rFilters = { cat: "all", budget: 0, dist: 0 };
+
+// หมวดหมู่สำหรับสุ่ม (เลือกได้หลายหมวด) — ผูกกับหมวดย่อยจริงของร้าน (ร้าน.หมวด ชุดเดียวกับฟอร์มเพิ่มร้าน)
+// ร้านหนึ่งอยู่ได้หลายหมวด (เช่น ของทอด = ตามสั่ง และ ฟาสต์ฟู้ด) / "ซุป" ไม่มีหมวดย่อยในข้อมูล
+// จึงดูจากคำในชื่อเมนูและแท็กของร้าน (ต้ม แกง สุกี้ ฯลฯ) แทน
+var ROULETTE_CATS = [
+	{ key: "tamsang", emoji: "🍚", cats: ["อาหารตามสั่ง", "ข้าวแกง", "ของทอด", "ปิ้งย่าง"] },
+	{ key: "noodle", emoji: "🍜", cats: ["เมนูเส้น", "ก๋วยเตี๋ยว"] },
+	{ key: "soup", emoji: "🍲", cats: [], words: ["ซุป", "ต้ม", "แกง", "สุกี้", "ชาบู", "เกาเหลา", "หม้อไฟ", "น้ำข้น"] },
+	{ key: "fastfood", emoji: "🍗", cats: ["Fast Food", "เบอร์เกอร์", "พิซซ่า", "ของทอด"] },
+	{ key: "japanese", emoji: "🍣", cats: ["อาหารญี่ปุ่น"] },
+	{ key: "korean", emoji: "🥘", cats: ["อาหารเกาหลี"] },
+	{ key: "thaiisan", emoji: "🌶️", cats: ["ส้มตำ", "ยำ", "อีสาน", "เหนือ", "กลาง", "อาหารใต้", "อาหารป่า"] },
+	{ key: "dessert", emoji: "🍰", cats: ["ของหวาน/เบเกอรี่", "ผลไม้"] },
+	{ key: "drink", emoji: "🧋", cats: ["เครื่องดื่ม"] },
+	{ key: "healthy", emoji: "🥗", cats: ["อาหารเจ", "มังสวิรัติ", "วีแกน"] }
+];
+// หมวดกลุ่มของแถบหน้าแรก (roulette.html?cat=) → หมวดหมู่สุ่ม
+var HOME_GROUP_TO_CATS = {
+	"อาหารตามสั่ง": ["tamsang"], "เมนูเส้น": ["noodle"], "นานาชาติ": ["japanese", "korean", "fastfood"],
+	"ของหวาน": ["dessert"], "เครื่องดื่ม": ["drink"], "สุขภาพ": ["healthy"]
+};
+function ร้านอยู่ในหมวดสุ่ม(r, key) {
+	var c = ROULETTE_CATS.filter(function(x) { return x.key === key; })[0];
+	if (!c) return false;
+	if (c.cats.indexOf(r.หมวด) !== -1) return true;
+	if (!c.words) return false;
+	var text = [r.เมนู].concat(r.แท็ก || []).join(" ");
+	return c.words.some(function(w) { return text.indexOf(w) !== -1; });
+}
+function rouletteCatLabel(key) {
+	return t("roulette.cat_" + key);
+}
+
+var rFilters = { cats: [], budget: 0, dist: 0 };
 (function loadRouletteFilters() {
+	var validKey = function(k) { return ROULETTE_CATS.some(function(c) { return c.key === k; }); };
 	try {
 		var saved = JSON.parse(localStorage.getItem(RF_KEY));
 		if (saved) {
-			if (typeof saved.cat === "string") rFilters.cat = saved.cat;
+			if (Array.isArray(saved.cats)) rFilters.cats = saved.cats.filter(validKey);
 			if (RF_BUDGETS.indexOf(saved.budget) !== -1) rFilters.budget = saved.budget;
 			if (RF_DISTANCES.indexOf(saved.dist) !== -1) rFilters.dist = saved.dist;
 		}
 	} catch (e) {}
-	// มาจากหน้าแรกพร้อมหมวดที่เลือกอยู่ (roulette.html?cat=…) → ใช้หมวดนั้น
+	// มาจากหน้าแรกพร้อมหมวดที่เลือกอยู่ (roulette.html?cat=…) → ใช้หมวดนั้นแทนที่จำไว้
 	var fromUrl = new URLSearchParams(window.location.search).get("cat");
-	if (fromUrl) rFilters.cat = fromUrl;
-	if (rFilters.cat !== "all" && !กลุ่มหมวดหมู่.some(function(g) { return g.key === rFilters.cat; })) rFilters.cat = "all";
+	if (fromUrl && HOME_GROUP_TO_CATS[fromUrl]) rFilters.cats = HOME_GROUP_TO_CATS[fromUrl].slice();
 })();
 function saveRouletteFilters() {
 	try { localStorage.setItem(RF_KEY, JSON.stringify(rFilters)); } catch (e) {}
 }
 function filtersActive() {
-	return rFilters.cat !== "all" || rFilters.budget > 0 || rFilters.dist > 0;
+	return rFilters.cats.length > 0 || rFilters.budget > 0 || rFilters.dist > 0;
 }
 function ร้านทั้งหมดที่สุ่มได้() {
 	return typeof ร้านในพื้นที่ === "function" ? ร้านในพื้นที่() : (typeof รายการร้าน !== "undefined" ? รายการร้าน : []);
@@ -71,7 +104,8 @@ function กลุ่มของหมวด(หมวด) {
 	return null;
 }
 function ผ่านเงื่อนไข(r, f) {
-	if (f.cat !== "all" && หมวดย่อยในกลุ่ม(f.cat).indexOf(r.หมวด) === -1) return false;
+	// เลือกหลายหมวด = อยู่ในหมวดใดหมวดหนึ่งก็ได้ / ไม่เลือกเลย = ทุกหมวด (เหมือนเดิม)
+	if (f.cats.length && !f.cats.some(function(k) { return ร้านอยู่ในหมวดสุ่ม(r, k); })) return false;
 	if (f.budget > 0 && !(typeof r.ราคาต่ำ === "number" && r.ราคาต่ำ <= f.budget)) return false;
 	if (f.dist > 0 && ข้อมูลระยะทาง(r).meters > f.dist) return false;
 	return true;
@@ -113,7 +147,7 @@ function distLabel(d) {
 function filterSummaryText() {
 	var parts = [];
 	if (promptFilters) parts.push(promptFilters.summary || t("roulette.promptActive"));
-	if (rFilters.cat !== "all") parts.push(catGroupLabel(rFilters.cat));
+	if (rFilters.cats.length) parts.push(rFilters.cats.map(rouletteCatLabel).join(", "));
 	if (rFilters.budget) parts.push(budgetLabel(rFilters.budget));
 	if (rFilters.dist) parts.push(distLabel(rFilters.dist));
 	return parts.join(" · ");
@@ -135,12 +169,34 @@ function renderRouletteFilters() {
 			box.appendChild(b);
 		});
 	}
-	// โชว์เฉพาะหมวดที่มีร้านจริงในพื้นที่ตอนนี้ (หมวดที่ว่างกดไปก็ได้ "ไม่พบร้าน" อย่างเดียว)
-	var catOptions = ["all"].concat(กลุ่มหมวดหมู่.filter(function(g) {
-		return all.some(function(r) { return หมวดย่อยในกลุ่ม(g.key).indexOf(r.หมวด) !== -1; });
-	}).map(function(g) { return g.key; }));
-	if (catOptions.indexOf(rFilters.cat) === -1) catOptions.push(rFilters.cat);
-	chips("rfCat", catOptions, rFilters.cat, function(v) { return v === "all" ? t("home.catAll") : catGroupLabel(v); }, function(v) { setRouletteFilter("cat", v); });
+	// หมวดหมู่: ครบ 10 หมวด เลือกได้หลายหมวด กดซ้ำ = ยกเลิก — บอกจำนวนร้านจริงในพื้นที่ของแต่ละหมวด
+	// หมวดที่ยังไม่มีร้านเลยกดไม่ได้ (บอกว่า 0 ร้าน) แทนที่จะให้กดแล้วเจอ "ไม่พบร้าน"
+	var catBox = document.getElementById("rfCat");
+	if (catBox) {
+		catBox.innerHTML = "";
+		ROULETTE_CATS.forEach(function(c) {
+			var n = all.filter(function(r) { return ร้านอยู่ในหมวดสุ่ม(r, c.key); }).length;
+			var on = rFilters.cats.indexOf(c.key) !== -1;
+			var b = document.createElement("button");
+			b.type = "button";
+			b.className = "rfchip rfcat" + (on ? " active" : "");
+			b.setAttribute("aria-pressed", on ? "true" : "false");
+			b.disabled = !n && !on;
+			b.innerHTML = '<span aria-hidden="true">' + c.emoji + "</span><span></span><small></small>";
+			b.children[1].textContent = rouletteCatLabel(c.key);
+			b.children[2].textContent = n;
+			b.setAttribute("aria-label", rouletteCatLabel(c.key) + " — " + t("roulette.shopCount").replace("{n}", n));
+			b.addEventListener("click", function() {
+				var next = on ? rFilters.cats.filter(function(k) { return k !== c.key; }) : rFilters.cats.concat([c.key]);
+				setRouletteFilter("cats", next);
+			});
+			catBox.appendChild(b);
+		});
+	}
+	var catHint = document.getElementById("rfCatHint");
+	if (catHint) catHint.textContent = rFilters.cats.length
+		? t("roulette.catPicked").replace("{n}", ร้านที่ผ่านเงื่อนไข({ cats: rFilters.cats, budget: 0, dist: 0 }, null).length)
+		: t("roulette.catNone");
 	chips("rfBudget", RF_BUDGETS, rFilters.budget, budgetLabel, function(v) { setRouletteFilter("budget", v); });
 	chips("rfDist", RF_DISTANCES, rFilters.dist, distLabel, function(v) { setRouletteFilter("dist", v); });
 
@@ -274,7 +330,9 @@ function showEggError(kind) {
 	var similar = document.getElementById("wSimilarSection");
 	if (similar) similar.hidden = true;
 	setEggState("error");
+	var onlyCats = rFilters.cats.length && !rFilters.budget && !rFilters.dist && !promptFilters;
 	var text = kind === "nodata" ? t("roulette.errNoData")
+		: kind === "filtered" && onlyCats ? t("roulette.errCatEmpty").replace("{cats}", rFilters.cats.map(rouletteCatLabel).join(", "))
 		: kind === "filtered" ? t("roulette.errFiltered").replace("{filters}", filterSummaryText())
 		: t("roulette.errEmpty");
 	document.getElementById("eggErrorText").textContent = text;
@@ -317,7 +375,7 @@ function showEggError(kind) {
 function relaxOptions() {
 	var out = [];
 	function tryOpt(key, value, label) {
-		var f = { cat: rFilters.cat, budget: rFilters.budget, dist: rFilters.dist };
+		var f = { cats: rFilters.cats, budget: rFilters.budget, dist: rFilters.dist };
 		f[key] = value;
 		var n = ร้านที่ผ่านเงื่อนไข(f, promptFilters).length;
 		if (n) out.push({ key: key, value: value, label: label + " (" + t("roulette.shopCount").replace("{n}", n) + ")" });
@@ -332,7 +390,7 @@ function relaxOptions() {
 		if (nextD) tryOpt("dist", nextD, t("roulette.relaxDist").replace("{d}", distanceText(nextD)));
 		tryOpt("dist", 0, t("roulette.relaxDistAny"));
 	}
-	if (rFilters.cat !== "all") tryOpt("cat", "all", t("roulette.relaxCat"));
+	if (rFilters.cats.length) tryOpt("cats", [], t("roulette.relaxCat"));
 	return out;
 }
 
@@ -437,6 +495,10 @@ function scheduleEggExpiry(savedAt) {
 }
 
 function revealEggResult(restoring, reroll) {
+	if (!restoring && eggNextIsReroll) {
+		reroll = true;
+		eggNextIsReroll = false;
+	}
 	var pick = eggPick;
 	var ร้าน = pick.ร้าน;
 	ร้านล่าสุดที่เปิดได้ = ร้าน.id;
@@ -548,8 +610,13 @@ function pickAndReveal(reroll) {
 }
 
 eggBtn.addEventListener("click", onEggTap);
+// "สุ่มอีกครั้ง" = ได้ไข่ใบใหม่กลับมาให้แตะเองอีกรอบ (ร้านที่เคยออกแล้วในรอบนี้ยังถูกกันซ้ำตามเดิม)
+var eggNextIsReroll = false;
 document.getElementById("eggAgainBtn").addEventListener("click", function() {
-	pickAndReveal(true);
+	resetEgg();
+	eggNextIsReroll = true;
+	eggStage.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "center" });
+	eggBtn.focus({ preventScroll: true });
 });
 document.getElementById("eggErrorRetry").addEventListener("click", function() {
 	resetEgg();
@@ -586,7 +653,7 @@ document.getElementById("rmodeDnaBtn").addEventListener("click", function() {
 	else window.location.href = "profile-setup.html";
 });
 document.getElementById("rfClear").addEventListener("click", function() {
-	rFilters = { cat: "all", budget: 0, dist: 0 };
+	rFilters = { cats: [], budget: 0, dist: 0 };
 	saveRouletteFilters();
 	renderRouletteFilters();
 	if (eggState === "firstTap" || eggState === "secondTap" || eggState === "error") resetEgg();

@@ -78,6 +78,24 @@ function showToast(msg) {
 	}, 2800);
 }
 
+// แชร์ลิงก์จริง: มือถือเปิดเมนูแชร์ของระบบ ถ้าไม่มีก็คัดลอกลงคลิปบอร์ด — คัดลอกไม่ได้ก็บอกตรง ๆ
+function shareLink(url, title, copiedMsg) {
+	if (navigator.share) {
+		navigator.share({ title: title, url: url }).catch(function(e) {
+			if (e && e.name === "AbortError") return; // ผู้ใช้ปิดเมนูแชร์เอง
+			copyLink();
+		});
+		return;
+	}
+	copyLink();
+	function copyLink() {
+		if (!navigator.clipboard || !navigator.clipboard.writeText) { showToast(t("common.shareFailed")); return; }
+		navigator.clipboard.writeText(url).then(function() {
+			showToast(copiedMsg || t("common.linkCopied"));
+		}, function() { showToast(t("common.shareFailed")); });
+	}
+}
+
 /* =====================================================================
    แถบบนสุด (apptop) — ปุ่มเข้าสู่ระบบ / ไอคอนโปรไฟล์
    ===================================================================== */
@@ -742,7 +760,7 @@ document.addEventListener("keydown", function(e) {
 		var dots = document.getElementById("pvDots");
 		strip.hidden = images.length === 0; // โพสต์ข้อความล้วน — ไม่มีแถบรูป
 		strip.innerHTML = images.map(function(src) {
-			return '<img src="' + safeImgSrc(src) + '" alt=""/>';
+			return '<img loading="lazy" decoding="async" src="' + safeImgSrc(src) + '" alt=""/>';
 		}).join("");
 		if (images.length > 1) {
 			dots.hidden = false;
@@ -877,7 +895,7 @@ function buildFeedItemEl(item) {
 			: '<div class="feedavatar" style="background:' + item.posterColor + '">' + escapeHtml((item.posterName || "?").trim().charAt(0).toUpperCase()) + '</div>';
 
 		var imgsHtml = item.images.map(function(src) {
-			return '<img src="' + safeImgSrc(src) + '" alt=""/>';
+			return '<img loading="lazy" decoding="async" src="' + safeImgSrc(src) + '" alt=""/>';
 		}).join("");
 		var dotsHtml = item.images.length > 1
 			? '<div class="feeddots">' + item.images.map(function(_, i) { return '<span class="' + (i === 0 ? "active" : "") + '"></span>'; }).join("") + '</div>'

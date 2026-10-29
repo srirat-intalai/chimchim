@@ -18,8 +18,31 @@ function diaryPad(n) {
 function diaryDateKey(d) {
 	return d.getFullYear() + "-" + diaryPad(d.getMonth() + 1) + "-" + diaryPad(d.getDate());
 }
+// "วันนี้" ตามเวลาไทย (Asia/Bangkok) เสมอ ไม่ขึ้นกับเขตเวลาเครื่อง — ตรงกับ chimchim_diary_today() ฝั่งฐานข้อมูล
+// (เครื่องตั้งเขตเวลาอื่น/เดินทางอยู่ต่างประเทศ จะได้ไม่เห็น "วันนี้" ไม่ตรงกับที่เซิร์ฟเวอร์ยอมให้บันทึก)
 function diaryToday() {
-	return diaryDateKey(new Date());
+	try {
+		return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+	} catch (e) {
+		return diaryDateKey(new Date());
+	}
+}
+// เลื่อนวันที่แบบ "YYYY-MM-DD" ไป n วัน (คิดบนวันที่ล้วน ๆ ไม่ผ่านเวลา/เขตเวลา)
+function diaryAddDays(key, n) {
+	var d = diaryParseKey(key);
+	d.setDate(d.getDate() + n);
+	return diaryDateKey(d);
+}
+
+/* --- ช่วงที่เปิดให้บันทึก: วันนี้และเมื่อวาน (เวลาไทย) — ไดอารี่เป็นความทรงจำของแต่ละวัน ไม่ใช่ที่เติมย้อนหลังได้ตลอด
+   ฐานข้อมูลบังคับซ้ำด้วย RLS (SQL Phase 23: chimchim_diary_open_from) — แก้จำนวนวันต้องแก้ทั้งสองที่ให้ตรงกัน
+   บันทึกเก่านอกช่วงยังเปิดดู/ลบได้ตามเดิม กติกานี้มีผลแค่กับการเพิ่มบันทึกใหม่ --- */
+var DIARY_OPEN_DAYS = 2;
+function diaryOpenFrom() {
+	return diaryAddDays(diaryToday(), -(DIARY_OPEN_DAYS - 1));
+}
+function diaryCanRecord(key) {
+	return !!diaryParseKey(key) && key >= diaryOpenFrom() && key <= diaryToday();
 }
 function diaryParseKey(key) {
 	var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key || "");
@@ -103,6 +126,7 @@ function diaryValidate(e) {
 	if ((e.shop || "").trim().length > DIARY_SHOP_MAX) errs.shop = t("diary.errTooLong").replace("{n}", DIARY_SHOP_MAX);
 	if (!diaryParseKey(e.date)) errs.date = t("diary.errDate");
 	else if (e.date > diaryToday()) errs.date = t("diary.errFuture");
+	else if (!diaryCanRecord(e.date)) errs.date = t("diary.errClosed");
 	if ((e.note || "").length > DIARY_NOTE_MAX) errs.note = t("diary.errTooLong").replace("{n}", DIARY_NOTE_MAX);
 	return errs;
 }
@@ -170,12 +194,75 @@ function diaryAdd(input, onProgress) {
 			if (res.error) {
 				console.error("[chimchim] diary save error:", res.error.message);
 				if (up.paths && up.paths.length) sbRemoveImages(up.paths);
+				// RLS ปฏิเสธเพราะวันที่หลุดช่วงเปิดบันทึกระหว่างกรอก (เช่น ข้ามเที่ยงคืนพอดี) — บอกตรง ๆ ไม่ใช่ "ล็อกอินหมดอายุ"
+				if (/row-level security/i.test(res.error.message || "") && !diaryCanRecord(entry.date)) return { error: "closed" };
 				return { error: sbErrorReason(res.error) };
 			}
 			var saved = diaryRowToEntry(res.data);
 			var list = diaryReadCache().filter(function(x) { return x.id !== saved.id; });
 			list.push(saved);
 			diaryWriteCache(list);
+			return { entry: saved };
+		}, function(e) {
+			if (up.paths && up.paths.length) sbRemoveImages(up.paths);
+			return { error: sbErrorReason(e) };
+		});
+	});
+}
+
+// แก้ไขรายการเดิม — เฉพาะบันทึกของวันที่ยังเปิดบันทึก (RLS Phase 23 บังคับซ้ำ) คืน Promise<{ entry } | { error }>
+function diaryUpdate(id, input, onProgress) {
+	if (!getSession()) return Promise.resolve({ error: "auth" });
+	var old = diaryReadCache().filter(function(x) { return x.id === id; })[0];
+	if (!old) return Promise.resolve({ error: "server" });
+	if (!diaryCanRecord(old.date)) return Promise.resolve({ error: "closed" });
+	var next = {
+		id: id,
+		date: input.date,
+		time: input.time || null,
+		dish: (input.dish || "").trim(),
+		shop: (input.shop || "").trim(),
+		shopId: diaryMatchShopId(input.shop),
+		rating: DIARY_RATINGS.indexOf(input.rating) !== -1 ? input.rating : null,
+		note: (input.note || "").trim(),
+		img: input.img || "",
+		createdAt: old.createdAt
+	};
+	function replaceLocal(entry) {
+		var list = diaryReadCache().map(function(x) { return x.id === id ? entry : x; });
+		return diaryWriteCache(list);
+	}
+	if (!diaryUsesServer()) return Promise.resolve(replaceLocal(next) ? { entry: next } : { error: "storage" });
+	var upload = next.img && /^data:/.test(next.img)
+		? sbUploadImages([next.img], "diary", onProgress)
+		: Promise.resolve({ urls: [next.img] });
+	return upload.then(function(up) {
+		if (up.error) return { error: up.error };
+		var url = up.urls[0] || "";
+		if (url && !/^https:\/\//.test(url)) return { error: "upload" };
+		return Promise.resolve(sbClient.from("diary_entries").update({
+			eaten_on: next.date,
+			eaten_at: next.time,
+			dish: next.dish,
+			shop_name: next.shop || null,
+			shop_id: next.shopId,
+			rating: next.rating,
+			note: next.note || null,
+			image_url: url || null,
+			updated_at: new Date().toISOString()
+		}).eq("id", id).select().single()).then(function(res) {
+			if (res.error) {
+				if (up.paths && up.paths.length) sbRemoveImages(up.paths);
+				if (/row-level security/i.test(res.error.message || "")) return { error: "closed" };
+				return { error: sbErrorReason(res.error) };
+			}
+			var saved = diaryRowToEntry(res.data);
+			// เปลี่ยน/เอารูปออก → ลบไฟล์รูปเดิมในโฟลเดอร์ของผู้ใช้ (ไม่มีที่อื่นใช้)
+			if (old.img && old.img !== saved.img) {
+				var m = /\/chimchim-images\/(.+)$/.exec(old.img);
+				if (m) sbRemoveImages([decodeURIComponent(m[1])]);
+			}
+			replaceLocal(saved);
 			return { entry: saved };
 		}, function(e) {
 			if (up.paths && up.paths.length) sbRemoveImages(up.paths);
@@ -235,7 +322,8 @@ function diaryErrorText(code) {
 		offline: "diary.errOffline",
 		network: "diary.errNetwork",
 		permission: "diary.errPermission",
-		storage: "diary.errStorage"
+		storage: "diary.errStorage",
+		closed: "diary.errClosed"
 	}[code] || "diary.errServer";
 	return t(key);
 }

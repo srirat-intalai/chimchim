@@ -16,15 +16,15 @@
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
       <link rel="stylesheet" href="css/all.min.css"/>
       <link rel="stylesheet" href="css/style.css" />
       <link rel="stylesheet" href="css/chimchim-refresh.css" />
    </head>
    <body class="appshell" style="padding-bottom:30px;">
       <div class="obtopnav" style="max-width:520px;margin:0 auto;padding:20px 20px 0;">
-         <button class="obback" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
-         <span class="obstepnum" data-i18n="analytics.title">Usage Stats</span>
+         <button type="button" class="obback" onclick="history.back()" data-i18n-aria="common.back" aria-label="ย้อนกลับ"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+         <h1 class="obstepnum" data-i18n="analytics.title">Usage Stats</h1>
          <span style="width:38px;"></span>
       </div>
 
@@ -40,7 +40,7 @@
 
          <div class="profcard" id="analyticsListCard">
             <div id="analyticsList"></div>
-            <p id="analyticsEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:20px 0;" hidden data-i18n="analytics.noData">No activity recorded yet — go use the app a bit, then come back here</p>
+            <p id="analyticsEmpty" class="text-center feedempty" style="font-size:.82rem;padding:20px 0;" hidden data-i18n="analytics.noData">No activity recorded yet — go use the app a bit, then come back here</p>
          </div>
 
          <button type="button" class="rdghost" style="width:100%;" id="analyticsClearBtn"><i class="fas fa-trash-can me-1"></i><span data-i18n="analytics.clearData">Clear this device's stats</span></button>

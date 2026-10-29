@@ -171,8 +171,9 @@ function renderMatchHero() {
     mhState.currentIndex = 0;
 
     slidesEl.innerHTML = '';
-    mhState.ranked.forEach(function(item) {
+    mhState.ranked.forEach(function(item, i) {
         var img = document.createElement('img');
+        if (i > 0) img.loading = 'lazy'; // ภาพแรกเห็นทันที ที่เหลือโหลดเมื่อเลื่อนถึง
         img.src = item.r.รูป;
         img.alt = '';
         slidesEl.appendChild(img);

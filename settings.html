@@ -16,15 +16,15 @@
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
       <link rel="stylesheet" href="css/all.min.css"/>
       <link rel="stylesheet" href="css/style.css" />
       <link rel="stylesheet" href="css/chimchim-refresh.css" />
    </head>
    <body class="appshell" style="padding-bottom:30px;">
       <div class="obtopnav" style="max-width:520px;margin:0 auto;padding:20px 20px 0;">
-         <button class="obback" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
-         <span class="obstepnum" data-i18n="settings.title">Settings</span>
+         <button type="button" class="obback" onclick="history.back()" data-i18n-aria="common.back" aria-label="ย้อนกลับ"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+         <h1 class="obstepnum" data-i18n="settings.title">Settings</h1>
          <span style="width:38px;"></span>
       </div>
 
@@ -42,11 +42,11 @@
             <input type="hidden" id="avatarUrl"/>
             <form id="editProfileForm" class="apform">
                <div class="aperr" id="editProfileErr"></div>
-               <label class="flbl" data-i18n="auth.yourName">Your name</label>
+               <label class="flbl" for="editProfileName" data-i18n="auth.yourName">Your name</label>
                <input class="fctrl" type="text" id="editProfileName" required/>
-               <label class="flbl" data-i18n="settings.bio">Bio</label>
+               <label class="flbl" for="editProfileBio" data-i18n="settings.bio">Bio</label>
                <textarea class="fctrl" id="editProfileBio" rows="3" placeholder="บอกอะไรเกี่ยวกับตัวคุณสั้น ๆ ให้คนอื่นรู้จักคุณมากขึ้น" data-i18n-ph="settings.bioPlaceholder"></textarea>
-               <label class="flbl" data-i18n="settings.myUniversity">Your university</label>
+               <label class="flbl" for="editProfileUni" data-i18n="settings.myUniversity">Your university</label>
                <select class="fctrl" id="editProfileUni">
                   <option value="" data-i18n="settings.myUniversityNone">Prefer not to say</option>
                </select>
@@ -99,11 +99,11 @@
             <p class="rowsub" style="margin-top:0;margin-bottom:12px;" data-i18n="shop.formHint">Fill in your shop's details and it'll show up in the Discovery Feed right away.</p>
             <form id="shopForm" class="apform" novalidate>
                <div class="aperr" id="shopErr"></div>
-               <label class="flbl" data-i18n="shop.shopName">Shop name</label>
+               <label class="flbl" for="shopName" data-i18n="shop.shopName">Shop name</label>
                <input class="fctrl" type="text" id="shopName" placeholder="เช่น ร้านป้าหน่อย ข้าวมันไก่" data-i18n-ph="shop.shopNamePlaceholder" required/>
-               <label class="flbl" data-i18n="shop.featuredDish">Featured dish</label>
+               <label class="flbl" for="shopDish" data-i18n="shop.featuredDish">Featured dish</label>
                <input class="fctrl" type="text" id="shopDish" placeholder="เช่น ข้าวมันไก่ทอด" data-i18n-ph="shop.dishPlaceholder" required/>
-               <label class="flbl" data-i18n="shop.category">Food category</label>
+               <label class="flbl" for="shopCat" data-i18n="shop.category">Food category</label>
                <select class="fctrl" id="shopCat" required>
                   <optgroup label="🍽️ ทั่วไป" data-group-key="optgroup.everyday">
                      <option value="อาหารตามสั่ง">🍳 อาหารตามสั่ง</option>
@@ -157,21 +157,21 @@
                </div>
                <input type="file" id="shopImageFile" accept="image/*" hidden/>
                <input type="hidden" id="shopImage" required/>
-               <label class="flbl" data-i18n="shop.priceLow">Price low (฿)</label>
+               <label class="flbl" for="shopPriceLow" data-i18n="shop.priceLow">Price low (฿)</label>
                <div class="numfield"><input class="fctrl" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="6" id="shopPriceLow" aria-describedby="shopPriceLowErr" required/><p class="numerr" id="shopPriceLowErr" aria-live="polite"></p></div>
-               <label class="flbl" data-i18n="shop.priceHigh">Price high (฿)</label>
+               <label class="flbl" for="shopPriceHigh" data-i18n="shop.priceHigh">Price high (฿)</label>
                <div class="numfield"><input class="fctrl" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="6" id="shopPriceHigh" aria-describedby="shopPriceHighErr" required/><p class="numerr" id="shopPriceHighErr" aria-live="polite"></p></div>
-               <label class="flbl" data-i18n="shop.distance">Distance (m)</label>
+               <label class="flbl" for="shopDistance" data-i18n="shop.distance">Distance (m)</label>
                <div class="numfield"><input class="fctrl" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="6" id="shopDistance" aria-describedby="shopDistanceErr" required/><p class="numerr" id="shopDistanceErr" aria-live="polite"></p></div>
                <button type="button" class="rdghost" id="shopUseLocationBtn" style="width:100%;margin:18px 0 2px;"><i class="fas fa-location-crosshairs me-1"></i><span data-i18n="shop.useMyLocationForDistance">Use my current location for accurate distance</span></button>
                <p class="rowsub" id="shopLocationHint" style="margin-top:0;" hidden></p>
-               <label class="flbl" data-i18n="shop.nearUni">Near which university</label>
+               <label class="flbl" for="shopUni" data-i18n="shop.nearUni">Near which university</label>
                <select class="fctrl" id="shopUni" required></select>
-               <label class="flbl" data-i18n="shop.shortDesc">Short pitch</label>
+               <label class="flbl" for="shopDesc" data-i18n="shop.shortDesc">Short pitch</label>
                <textarea class="fctrl" id="shopDesc" rows="2" placeholder="บอกจุดเด่นร้านคุณสั้น ๆ" data-i18n-ph="shop.bioPlaceholder"></textarea>
-               <label class="flbl" data-i18n="shop.hours">Opening hours</label>
+               <label class="flbl" for="shopHours" data-i18n="shop.hours">Opening hours</label>
                <input class="fctrl" type="text" id="shopHours" placeholder="เช่น 10:00 – 20:00 น." data-i18n-ph="shop.hoursPlaceholder"/>
-               <label class="flbl" data-i18n="shop.promo">Special promotion (optional)</label>
+               <label class="flbl" for="shopPromo" data-i18n="shop.promo">Special promotion (optional)</label>
                <input class="fctrl" type="text" id="shopPromo" placeholder="เช่น ลด 10% เมื่อสั่งผ่านแอป" data-i18n-ph="shop.promoPlaceholder"/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2" id="shopSubmitBtn"><i class="fas fa-floppy-disk"></i><span data-i18n="shop.submit">Post to Community</span></button>
             </form>
@@ -190,6 +190,8 @@
             <p class="rowsub" style="margin-top:10px;margin-bottom:0;" data-i18n="settings.postingAsHint">New posts you add from your profile will be posted as whichever you pick here.</p>
          </div>
 
+         <!-- ออกจากระบบ — ล่างสุดของหน้าตั้งค่า (ย้ายมาจากหน้าโปรไฟล์) แสดงเฉพาะตอนล็อกอินอยู่ -->
+         <button type="button" class="proflogoutbtn" id="logoutBtn" style="margin-top:24px;" hidden><i class="fas fa-arrow-right-from-bracket me-2"></i><span data-i18n="profile.logout">ออกจากระบบ</span></button>
       </div>
 
       <div id="appToast"></div>

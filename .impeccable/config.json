@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "diary.html"
+        ],
+        "createdAt": "2026-10-29T14:07:34.694Z",
+        "reason": "Claude: #dfPhotoPreview and #ddImg start hidden with no src and receive src from JS only when a photo exists (chimchim-diary.js setPhoto/openDetail)"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "diary.html"
+        ],
+        "createdAt": "2026-10-29T15:50:17.114Z",
+        "reason": "Claude: critique Assessment B verified .jsheet has padding:0 by design while every child (.jsheet-head/.jsheet-body/.jsheet-foot) carries 12-20px padding; detector is static and misses the child inset"
+      }
+    ]
+  }
+}

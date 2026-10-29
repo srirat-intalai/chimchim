@@ -198,6 +198,38 @@ function ppSetupShopTabs(shopId) {
 	});
 }
 
+/* =====================================================================
+   โปรไฟล์นักชิม (#ppUser): หัวโปรไฟล์ · ตัวเลขจริง · แท็บ ไดอารี่ / ร้านโปรด / เกี่ยวกับ
+   ไดอารี่ส่วนตัว ฐานข้อมูลไม่ส่งแถวมาเลย (RLS) — หน้านี้แค่บอกตรง ๆ ว่าดูไม่ได้
+   "ร้านโปรด" นับจากไดอารี่สาธารณะเท่านั้น ร้านที่ผู้ใช้กดบันทึกไว้เป็นข้อมูลส่วนตัว ไม่ดึงมาแสดง
+   ===================================================================== */
+var PPU_DIARY_MAX = 12;
+function ppuText(id, value) {
+	document.getElementById(id).textContent = value === null || value === undefined ? "–" : formatLikeCount(value);
+}
+function ppuShowTab(tab, focus) {
+	document.querySelectorAll(".ppu-tab").forEach(function(b) {
+		var on = b.getAttribute("data-tab") === tab;
+		b.classList.toggle("active", on);
+		b.setAttribute("aria-selected", on ? "true" : "false");
+		b.tabIndex = on ? 0 : -1;
+		document.getElementById(b.getAttribute("aria-controls")).hidden = !on;
+		if (on && focus) b.focus();
+	});
+}
+function ppuSetupTabs() {
+	var tabs = Array.prototype.slice.call(document.querySelectorAll(".ppu-tab"));
+	tabs.forEach(function(b, i) {
+		b.addEventListener("click", function() { ppuShowTab(b.getAttribute("data-tab")); });
+		b.addEventListener("keydown", function(e) {
+			var j = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : null;
+			if (j === null) return;
+			e.preventDefault();
+			ppuShowTab(tabs[(j + tabs.length) % tabs.length].getAttribute("data-tab"), true);
+		});
+	});
+}
+
 /* --- Food DNA ของผู้ใช้ (สาธารณะ — ทุกคนเห็นได้) ใช้รูปแบบข้อมูลเดียวกับ profiles.food_dna / user.foodDNA
    ถ้าผู้ชมมี Food DNA ของตัวเองด้วย โชว์ว่ารสนิยมตรงกันกี่ % (สูตรเดียวกับหน้าติดตาม) --- */
 function ppRenderFoodDna(dna, isMe) {
@@ -222,6 +254,7 @@ function ppRenderFoodDna(dna, isMe) {
 		if (stats.length) rows.push('<div class="ppdna-stats">' + stats.join("") + "</div>");
 	}
 	box.hidden = !rows.length;
+	document.getElementById("ppDnaNone").hidden = !!rows.length;
 	if (!rows.length) return;
 	document.getElementById("ppDnaRows").innerHTML = rows.join("");
 	var matchEl = document.getElementById("ppDnaMatch");
@@ -233,57 +266,277 @@ function ppRenderFoodDna(dna, isMe) {
 		matchEl.hidden = true;
 	}
 }
-// ดึง Food DNA ล่าสุดจาก Supabase (คนที่ไม่เคยเห็นในเครื่องนี้ หรืออัปเดตจากเครื่องอื่น)
-/* --- ไดอารี่อาหารของผู้ใช้คนนี้: 3 รายการล่าสุด + ลิงก์ดูทั้งหมด (diary.html?u=) — ส่วนตัว/ยังไม่ล็อกอิน บอกตรง ๆ --- */
-function ppRenderDiary(user) {
-	if (typeof diaryLoadFor !== "function") return;
-	var box = document.getElementById("ppDiary");
-	var list = document.getElementById("ppDiaryList");
-	var msg = document.getElementById("ppDiaryMsg");
-	var all = document.getElementById("ppDiaryAll");
-	var login = document.getElementById("ppDiaryLogin");
-	box.hidden = false;
-	msg.textContent = "";
-	login.onclick = function() { if (typeof openAuthPop === "function") openAuthPop("login"); };
-	diaryLoadFor(user.id).then(function(res) {
-		list.innerHTML = "";
-		var blocked = res.visibility === "private" && !res.own;
-		if (res.error === "auth" || blocked || (res.error && !res.entries.length)) {
-			msg.textContent = t(res.error === "auth" ? "publicprofile.diaryLogin" : blocked ? "publicprofile.diaryPrivate" : "publicprofile.diaryFailed");
-			login.hidden = res.error !== "auth";
-			list.hidden = true;
-			all.hidden = true;
-			return;
-		}
-		login.hidden = true;
-		res.entries.slice(0, 3).forEach(function(e) {
-			var li = document.createElement("li");
-			li.innerHTML =
-				'<a class="jrecent-item">' +
-					(e.img ? '<img alt="" loading="lazy"/>' : '<span class="jrecent-noimg" aria-hidden="true"><i class="fas fa-utensils"></i></span>') +
-					'<span class="jrecent-text"><b></b><small></small></span>' +
-					'<i class="fas fa-chevron-right" aria-hidden="true"></i>' +
-				"</a>";
-			li.querySelector("a").href = "diary.html?u=" + encodeURIComponent(user.id) + "&entry=" + encodeURIComponent(e.id) + "&date=" + encodeURIComponent(e.date);
-			if (e.img) li.querySelector("img").src = safeImgSrc(e.img);
-			li.querySelector("b").textContent = e.dish;
-			li.querySelector("small").textContent = diaryFormatDate(e.date) + (e.shop ? " · " + e.shop : "");
-			list.appendChild(li);
-		});
-		list.hidden = !res.entries.length;
-		msg.textContent = res.entries.length ? "" : t("publicprofile.diaryEmpty");
-		all.hidden = !res.entries.length;
-		all.href = "diary.html?u=" + encodeURIComponent(user.id);
-	});
-}
-
+// ดึง Food DNA + วันที่สมัครล่าสุดจาก Supabase (คนที่ไม่เคยเห็นในเครื่องนี้ หรืออัปเดตจากเครื่องอื่น)
 function ppLoadFoodDna(userId, localDna) {
 	var isMe = !!(ppSession && ppSession.id === userId);
 	ppRenderFoodDna(localDna || null, isMe);
 	if (typeof sbClient === "undefined" || !sbClient || !/^[0-9a-f-]{36}$/i.test(userId)) return;
-	Promise.resolve(sbClient.from("profiles").select("food_dna").eq("id", userId).single()).then(function(res) {
-		if (!res.error && res.data && res.data.food_dna && ppUid === userId) ppRenderFoodDna(res.data.food_dna, isMe);
+	Promise.resolve(sbClient.from("profiles").select("food_dna, created_at").eq("id", userId).single()).then(function(res) {
+		if (res.error || !res.data || ppUid !== userId) return;
+		if (res.data.food_dna) ppRenderFoodDna(res.data.food_dna, isMe);
+		var joined = res.data.created_at ? new Date(res.data.created_at) : null;
+		if (joined && !isNaN(joined.getTime())) {
+			var el = document.getElementById("ppuJoined");
+			el.textContent = t("publicprofile.joined").replace("{d}", joined.toLocaleDateString(getLang() === "th" ? "th-TH" : "en-GB", { month: "long", year: "numeric" }));
+			el.hidden = false;
+		}
 	}).catch(function() {});
+}
+
+/* --- แท็บไดอารี่: การ์ดรูปอาหาร (ล่าสุด 12 รายการ) กดแล้วเปิดรายละเอียดในหน้าไดอารี่เดิม --- */
+function ppuEntryCard(user, e) {
+	var li = document.createElement("li");
+	li.innerHTML =
+		'<a class="ppu-entry">' +
+			(e.img ? '<img class="ppu-entry-img" alt="" loading="lazy" decoding="async"/>' : '<span class="ppu-entry-noimg" aria-hidden="true"><i class="fas fa-utensils"></i></span>') +
+			'<span class="ppu-entry-body">' +
+				'<b class="ppu-entry-dish"></b>' +
+				'<span class="ppu-entry-meta"></span>' +
+				(e.note ? '<p class="ppu-entry-note"></p>' : "") +
+			"</span>" +
+		"</a>";
+	var a = li.querySelector("a");
+	a.href = "diary.html?u=" + encodeURIComponent(user.id) + "&entry=" + encodeURIComponent(e.id) + "&date=" + encodeURIComponent(e.date);
+	if (e.img) li.querySelector("img").src = safeImgSrc(e.img);
+	li.querySelector("b").textContent = e.dish;
+	var meta = li.querySelector(".ppu-entry-meta");
+	function metaItem(icon, text) {
+		if (!text) return;
+		var s = document.createElement("span");
+		s.innerHTML = '<i class="fas fa-' + icon + '" aria-hidden="true"></i>';
+		s.appendChild(document.createTextNode(text));
+		meta.appendChild(s);
+	}
+	metaItem("store", e.shop);
+	metaItem("calendar", diaryFormatDate(e.date));
+	if (e.rating && typeof diaryFeelingLabel === "function") metaItem("face-smile", diaryFeelingLabel(e.rating));
+	if (e.note) li.querySelector(".ppu-entry-note").textContent = e.note;
+	return li;
+}
+function ppuDiaryMessage(msgKey, showLogin) {
+	document.getElementById("ppDiaryList").hidden = true;
+	document.getElementById("ppDiaryAll").hidden = true;
+	document.getElementById("ppDiaryState").hidden = false;
+	document.getElementById("ppDiaryMsg").textContent = t(msgKey);
+	document.getElementById("ppDiaryLogin").hidden = !showLogin;
+}
+function ppRenderDiary(user) {
+	var loading = document.getElementById("ppDiaryLoading");
+	document.getElementById("ppDiaryLogin").onclick = function() { if (typeof openAuthPop === "function") openAuthPop("login"); };
+	if (typeof diaryLoadFor !== "function") {
+		loading.hidden = true;
+		ppuDiaryMessage("publicprofile.diaryFailed", false);
+		ppRenderFavShops(null, "publicprofile.diaryFailed");
+		return;
+	}
+	diaryLoadFor(user.id).then(function(res) {
+		loading.hidden = true;
+		var blocked = res.visibility === "private" && !res.own;
+		if (res.error === "auth" || blocked || (res.error && !res.entries.length)) {
+			var key = res.error === "auth" ? "publicprofile.diaryLogin" : blocked ? "publicprofile.diaryPrivate" : "publicprofile.diaryFailed";
+			ppuDiaryMessage(key, res.error === "auth");
+			ppRenderFavShops(null, key);
+			ppuText("ppuStatDiary", null);
+			ppuText("ppuStatShops", null);
+			return;
+		}
+		var entries = res.entries || [];
+		ppuText("ppuStatDiary", entries.length);
+		ppuText("ppuStatShops", typeof diaryShopCount === "function" ? diaryShopCount(entries) : null);
+		ppRenderFavShops(entries, null);
+		if (!entries.length) {
+			ppuDiaryMessage("publicprofile.diaryEmpty", false);
+			return;
+		}
+		var list = document.getElementById("ppDiaryList");
+		list.innerHTML = "";
+		entries.slice(0, PPU_DIARY_MAX).forEach(function(e) { list.appendChild(ppuEntryCard(user, e)); });
+		list.hidden = false;
+		document.getElementById("ppDiaryState").hidden = true;
+		var all = document.getElementById("ppDiaryAll");
+		all.href = "diary.html?u=" + encodeURIComponent(user.id);
+		all.hidden = false;
+	});
+}
+
+/* --- แท็บร้านโปรด: รวมร้านจากไดอารี่ที่ผู้ชมมีสิทธิ์เห็น เรียงตามจำนวนมื้อ --- */
+function ppRenderFavShops(entries, msgKey) {
+	var list = document.getElementById("ppShopsList");
+	var state = document.getElementById("ppShopsState");
+	var note = document.getElementById("ppShopsNote");
+	function message(key) {
+		list.hidden = true;
+		note.hidden = true;
+		state.hidden = false;
+		document.getElementById("ppShopsMsg").textContent = t(key);
+	}
+	if (msgKey) { message(msgKey); return; }
+	var groups = {};
+	entries.forEach(function(e) {
+		var name = (e.shop || "").trim();
+		if (!name) return;
+		var key = name.toLowerCase();
+		var g = groups[key] || (groups[key] = { name: name, shopId: null, n: 0, last: "" });
+		g.n++;
+		if (!g.shopId && e.shopId) g.shopId = e.shopId;
+		if (e.date > g.last) g.last = e.date;
+	});
+	var rows = Object.keys(groups).map(function(k) { return groups[k]; }).sort(function(a, b) {
+		return b.n - a.n || (a.last < b.last ? 1 : a.last > b.last ? -1 : 0);
+	}).slice(0, 10);
+	if (!rows.length) { message("publicprofile.shopsEmpty"); return; }
+	list.innerHTML = "";
+	rows.forEach(function(g, i) {
+		var shop = g.shopId && typeof หาร้านจากId === "function" ? หาร้านจากId(Number(g.shopId)) : null;
+		var li = document.createElement("li");
+		li.innerHTML =
+			(shop ? '<a class="ppu-shop">' : '<div class="ppu-shop">') +
+				'<span class="ppu-shop-rank">' + (i + 1) + "</span>" +
+				'<span class="ppu-shop-text"><b></b><small></small></span>' +
+				(shop ? '<i class="fas fa-chevron-right" aria-hidden="true"></i></a>' : "</div>");
+		if (shop) li.querySelector("a").href = "restaurant.html?id=" + encodeURIComponent(shop.id);
+		li.querySelector("b").textContent = g.name;
+		li.querySelector("small").textContent = t("publicprofile.visits").replace("{n}", g.n) + " · " + t("publicprofile.lastVisit").replace("{d}", diaryFormatDate(g.last));
+		list.appendChild(li);
+	});
+	list.hidden = false;
+	note.hidden = false;
+	state.hidden = true;
+}
+
+/* --- ปุ่มติดตาม + ตัวเลขผู้ติดตาม/กำลังติดตาม (นับจริงจากตาราง follows) --- */
+function ppuSetupFollow(user, isMe) {
+	var btn = document.getElementById("ppuFollow");
+	var followers = null;
+	function paint() {
+		var on = isUserFollowed(user.id);
+		btn.classList.toggle("is-on", on);
+		btn.setAttribute("aria-pressed", on ? "true" : "false");
+		btn.innerHTML = on
+			? '<i class="fas fa-check" aria-hidden="true"></i><span>' + escapeHtml(t("publicprofile.followingBtn")) + "</span>"
+			: '<i class="fas fa-user-plus" aria-hidden="true"></i><span>' + escapeHtml(t("publicprofile.followBtn")) + "</span>";
+	}
+	if (!isMe) {
+		btn.hidden = false;
+		paint();
+		btn.addEventListener("click", function() {
+			var now = toggleFollowUser(user.id);
+			if (now === null) return; // ยังไม่ล็อกอิน — เปิดหน้าต่างเข้าสู่ระบบแล้ว
+			if (followers !== null) { followers = Math.max(0, followers + (now ? 1 : -1)); ppuText("ppuStatFollowers", followers); }
+			paint();
+		});
+		if (typeof syncLikesAndFollowsWithSupabase === "function") syncLikesAndFollowsWithSupabase(paint);
+	}
+	if (typeof sbCountRows !== "function") return;
+	sbCountRows("follows", { target_type: "profile", target_id: String(user.id) }).then(function(n) {
+		if (n === null) return;
+		followers = typeof ยอดรวมที่ค้างส่ง === "function" ? ยอดรวมที่ค้างส่ง("follow:profile", user.id, n) : n;
+		ppuText("ppuStatFollowers", followers);
+	});
+	if (/^[0-9a-f-]{36}$/i.test(user.id)) {
+		sbCountRows("follows", { follower_id: user.id }).then(function(n) {
+			if (n !== null) ppuText("ppuStatFollowing", n);
+		});
+	}
+}
+
+/* --- รายชื่อผู้ติดตาม / กำลังติดตามของคนนี้ (แผ่นเลื่อนขึ้นจากล่าง ใช้หน้าตาเดียวกับหน้าโปรไฟล์ตัวเอง) --- */
+function ppuSetupFollowSheet(user) {
+	var sheet = document.getElementById("followSheet");
+	var list = document.getElementById("fsheetList");
+	var currentTab = "followers";
+	var lastFocus = null;
+	var profiles = {};
+	var isUuid = function(id) { return /^[0-9a-f-]{36}$/i.test(String(id)); };
+	function message(key) {
+		list.innerHTML = '<p class="fsheet-empty"></p>';
+		list.querySelector("p").textContent = t(key);
+	}
+	function rowEl(r) {
+		var el = document.createElement("div");
+		el.className = "fsrow";
+		el.innerHTML = '<a class="fsrow-main">' +
+			(r.avatar ? '<span class="fsrow-avatar" style="background-image:url(\'' + cssUrl(r.avatar) + '\')"></span>'
+				: '<span class="fsrow-avatar fsrow-letter">' + escapeHtml((r.name || "?").trim().charAt(0).toUpperCase()) + "</span>") +
+			'<span class="fsrow-text"><b></b><small></small></span></a>';
+		el.querySelector("a").href = r.link;
+		el.querySelector("b").textContent = r.name;
+		el.querySelector("small").textContent = r.sub;
+		return el;
+	}
+	function fetchProfiles(ids) {
+		var need = ids.filter(function(id) { return isUuid(id) && !profiles[id]; });
+		if (!need.length) return Promise.resolve();
+		return Promise.resolve(sbClient.from("profiles").select("id, name, avatar_url").in("id", need)).then(function(res) {
+			(res && res.data || []).forEach(function(p) { profiles[p.id] = { name: p.name, avatar: p.avatar_url || null }; });
+		});
+	}
+	function resolve(type, id) {
+		if (type === "shop") {
+			var shop = หาร้านจากId(Number(id));
+			return shop ? { name: shop.ร้าน, avatar: shop.รูป, sub: catLabel(shop.หมวด), link: "restaurant.html?id=" + shop.id } : null;
+		}
+		if (/^bu-/.test(id)) {
+			var bu = หาเพจร้านBUจากId(id.slice(3));
+			return bu ? { name: bu.name, avatar: bu.avatar, sub: t("following.restaurants"), link: "public-profile.html?u=" + encodeURIComponent(id) } : null;
+		}
+		if (type === "page") {
+			var page = typeof getPageById === "function" ? getPageById(id) : null;
+			return page ? { name: page.name, avatar: page.avatar, sub: t("following.restaurants"), link: "public-profile.html?u=page-" + encodeURIComponent(id) } : null;
+		}
+		var p = profiles[id];
+		return p && p.name ? { name: p.name, avatar: p.avatar, sub: t("following.foodie"), link: "public-profile.html?u=" + encodeURIComponent(id) } : null;
+	}
+	function showTab(tab) {
+		currentTab = tab;
+		sheet.querySelectorAll(".fsheet-tab").forEach(function(b) {
+			var on = b.getAttribute("data-tab") === tab;
+			b.classList.toggle("active", on);
+			b.setAttribute("aria-selected", on ? "true" : "false");
+		});
+		if (typeof sbClient === "undefined" || !sbClient || (tab === "following" && !isUuid(user.id))) { message("publicprofile.listFailed"); return; }
+		list.innerHTML = '<p class="fsheet-empty"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></p>';
+		var q = tab === "followers"
+			? sbClient.from("follows").select("follower_id, created_at").eq("target_type", "profile").eq("target_id", String(user.id))
+			: sbClient.from("follows").select("target_type, target_id, created_at").eq("follower_id", user.id);
+		Promise.resolve(q.order("created_at", { ascending: false })).then(function(res) {
+			if (res.error) throw res.error;
+			var items = (res.data || []).map(function(r) {
+				return tab === "followers" ? { type: "profile", id: r.follower_id } : { type: r.target_type, id: r.target_id };
+			});
+			document.getElementById(tab === "followers" ? "fsCountFollowers" : "fsCountFollowing").textContent = items.length;
+			return fetchProfiles(items.filter(function(x) { return x.type === "profile"; }).map(function(x) { return x.id; })).then(function() { return items; });
+		}).then(function(items) {
+			if (currentTab !== tab) return;
+			var rows = items.map(function(x) { return resolve(x.type, x.id); }).filter(Boolean);
+			if (!rows.length) { message(tab === "followers" ? "publicprofile.followersNone" : "publicprofile.followingNone"); return; }
+			list.innerHTML = "";
+			rows.forEach(function(r) { list.appendChild(rowEl(r)); });
+		}).catch(function() { if (currentTab === tab) message("publicprofile.listFailed"); });
+	}
+	function open(tab) {
+		lastFocus = document.activeElement;
+		sheet.hidden = false;
+		document.body.style.overflow = "hidden";
+		requestAnimationFrame(function() { sheet.classList.add("open"); });
+		showTab(tab);
+		var active = sheet.querySelector(".fsheet-tab.active");
+		if (active) active.focus();
+	}
+	function close() {
+		sheet.classList.remove("open");
+		document.body.style.overflow = "";
+		setTimeout(function() { sheet.hidden = true; }, 200);
+		if (lastFocus && lastFocus.focus) lastFocus.focus();
+	}
+	document.getElementById("ppuFollowersBtn").addEventListener("click", function() { open("followers"); });
+	document.getElementById("ppuFollowingBtn").addEventListener("click", function() { open("following"); });
+	sheet.querySelectorAll(".fsheet-tab").forEach(function(b) {
+		b.addEventListener("click", function() { showTab(b.getAttribute("data-tab")); });
+	});
+	document.getElementById("fsheetClose").addEventListener("click", close);
+	sheet.addEventListener("click", function(e) { if (e.target === sheet) close(); });
+	document.addEventListener("keydown", function(e) { if (e.key === "Escape" && !sheet.hidden) close(); });
 }
 
 if (ppIsBuShop) {
@@ -367,42 +620,33 @@ if (ppIsBuShop) {
 	var users = getUsers();
 	var user = users.filter(function(u) { return u.id === ppUid; })[0];
 	function renderRealUserProfile(user) {
+		var isMe = !!(ppSession && ppSession.id === user.id);
 		document.title = user.name + " - ChimChim";
-		var ppAvatarReal = document.getElementById("ppAvatar");
+		document.getElementById("ppContent").hidden = true;
+		document.getElementById("ppUser").hidden = false;
+		var avatar = document.getElementById("ppuAvatar");
 		if (user.avatar) {
-			ppAvatarReal.style.background = "var(--cream2) center/cover no-repeat url('" + cssUrl(user.avatar) + "')";
-			ppAvatarReal.textContent = "";
+			avatar.style.backgroundImage = "url('" + cssUrl(user.avatar) + "')";
+			avatar.textContent = "";
 		} else {
-			ppAvatarReal.textContent = user.name.charAt(0).toUpperCase();
+			avatar.textContent = (user.name || "?").trim().charAt(0).toUpperCase();
 		}
-		document.getElementById("ppName").textContent = user.name;
-		document.getElementById("ppSub").textContent = t("publicprofile.chimchimUser");
-		document.getElementById("ppLevel").innerHTML = '<i class="fas fa-graduation-cap"></i> ' + escapeHtml(t("common.chimchimFoodie"));
-		document.getElementById("ppBio").textContent = user.bio || t("publicprofile.defaultBio");
+		document.getElementById("ppuName").textContent = user.name;
+		var bio = (user.bio || "").trim();
+		var bioEl = document.getElementById("ppuBio");
+		bioEl.textContent = bio;
+		bioEl.hidden = !bio;
+		var aboutBio = document.getElementById("ppuAboutBio");
+		aboutBio.textContent = bio || t("publicprofile.noBio");
+		aboutBio.classList.toggle("is-empty", !bio);
 
-		var followBtn2 = document.getElementById("ppFollowBtn");
-		if (ppSession && ppSession.id === user.id) {
-			followBtn2.hidden = true;
-		} else {
-			followBtn2.hidden = false;
-			(function() {
-				function refreshFollow2() {
-					var followed = isUserFollowed(user.id);
-					followBtn2.innerHTML = followed ? '<i class="fas fa-check"></i><span>' + t("common.following") + '</span>' : '<i class="fas fa-user-plus"></i><span>' + t("common.follow") + '</span>';
-				}
-				refreshFollow2();
-				followBtn2.addEventListener("click", function() {
-					toggleFollowUser(user.id);
-					refreshFollow2();
-				});
-				if (typeof syncLikesAndFollowsWithSupabase === "function") syncLikesAndFollowsWithSupabase(refreshFollow2);
-			})();
-		}
-
+		document.getElementById("ppuShare").addEventListener("click", function() {
+			shareLink(location.origin + location.pathname + "?u=" + encodeURIComponent(user.id), user.name + " - ChimChim");
+		});
+		ppuSetupFollow(user, isMe);
+		ppuSetupFollowSheet(user);
+		ppuSetupTabs();
 		ppLoadFoodDna(user.id, user.foodDNA || null);
-		// โปรไฟล์ผู้ใช้ = ไดอารี่อาหาร ไม่ใช่กริดโพสต์/ตัวเลขโพสต์-ผู้ติดตามแบบโซเชียล (เพจร้านยังเป็นโพสต์ตามเดิม)
-		document.getElementById("ppStats").hidden = true;
-		document.getElementById("ppPostsCard").hidden = true;
 		ppRenderDiary(user);
 	}
 	if (user) {

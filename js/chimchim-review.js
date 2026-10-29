@@ -39,7 +39,7 @@ if (!revร้าน) {
 		chosenReviewImages.forEach(function(src, idx) {
 			var thumb = document.createElement("div");
 			thumb.className = "postimgthumb";
-			thumb.innerHTML = '<img src="' + safeImgSrc(src) + '" alt=""/><button type="button" title="' + t("common.removePhoto") + '" aria-label="' + t("common.removePhoto") + '"><i class="fas fa-times"></i></button>';
+			thumb.innerHTML = '<img loading="lazy" decoding="async" src="' + safeImgSrc(src) + '" alt=""/><button type="button" title="' + t("common.removePhoto") + '" aria-label="' + t("common.removePhoto") + '"><i class="fas fa-times"></i></button>';
 			thumb.querySelector("img").addEventListener("click", function() { openPhotoViewer(chosenReviewImages, idx); });
 			thumb.querySelector("button").addEventListener("click", function() {
 				chosenReviewImages.splice(idx, 1);

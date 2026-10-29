@@ -10,11 +10,11 @@ function buildPersonCard(person) {
 	var col = document.createElement('div');
 	col.className = 'col-6';
 	var avatarInner = person.avatarImg
-		? '<img src="' + safeImgSrc(person.avatarImg) + '" alt="" style="width:100%;height:100%;object-fit:cover;"/>'
+		? '<img loading="lazy" decoding="async" src="' + safeImgSrc(person.avatarImg) + '" alt="" style="width:100%;height:100%;object-fit:cover;"/>'
 		: '<span style="font-size:3rem;font-weight:800;color:#fff;">' + escapeHtml(person.name.charAt(0).toUpperCase()) + '</span>';
 	col.innerHTML =
 		'<div class="chcard">' +
-			'<a href="public-profile.html?u=' + encodeURIComponent(person.linkId || person.id) + '" class="chimg" style="background:' + person.color + ';display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
+			'<a href="public-profile.html?u=' + encodeURIComponent(person.linkId || person.id) + '" class="chimg" tabindex="-1" aria-hidden="true" style="background:' + (person.avatarImg ? 'var(--cream2)' : person.color) + ';display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
 				avatarInner +
 			'</a>' +
 			'<div class="chbody">' +

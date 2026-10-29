@@ -244,14 +244,14 @@ body.appshell,
   color: var(--rf-ink-2);
   text-transform: none;
   letter-spacing: 0;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   margin-bottom: 6px;
 }
 .mrestaurant,
 [data-theme="dark"] .mrestaurant {
   color: var(--rf-brand);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 .mtit,
@@ -264,7 +264,7 @@ body.appshell,
 .mmeta,
 [data-theme="dark"] .mmeta {
   color: var(--rf-ink-2);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   margin: 6px 0 0;
 }
 .mmeta span i {
@@ -794,283 +794,27 @@ body.appshell,
    ===================================================================== */
 
 /* ---- ลูกแก้วเรืองแสง (ใช้ทั้งหน้าแรกของแชทและส่วนหัวแบบย่อ) ---- */
-.aiorb {
-  position: relative;
-  width: 132px;
-  height: 132px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background:
-    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 34%),
-    radial-gradient(circle at 70% 75%, rgba(126, 196, 255, 0.55) 0%, rgba(126, 196, 255, 0) 55%),
-    radial-gradient(circle at 50% 50%, #cdb8ff 0%, #8a63ea 62%, #6842b5 100%);
-  box-shadow:
-    inset 0 -10px 24px rgba(78, 47, 151, 0.45),
-    inset 0 8px 18px rgba(255, 255, 255, 0.6),
-    0 24px 50px -14px rgba(104, 66, 181, 0.55);
-  animation: aiOrbFloat 5s ease-in-out infinite;
-}
-.aiorb::after {
-  content: "";
-  position: absolute;
-  inset: -18px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(138, 99, 234, 0.28), transparent 68%);
-  z-index: -1;
-}
-.aiorb img {
-  width: 78%;
-  height: 78%;
-  object-fit: contain;
-  filter: drop-shadow(0 6px 10px rgba(40, 20, 90, 0.35));
-}
-.aiorb-sm {
-  width: 30px;
-  height: 30px;
-  animation: none;
-  box-shadow: inset 0 -3px 6px rgba(78, 47, 151, 0.45), 0 4px 10px -3px rgba(104, 66, 181, 0.5);
-}
-.aiorb-sm::after {
-  display: none;
-}
+
 @keyframes aiOrbFloat {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
 }
 
 /* ---- โครงหน้าแชท ---- */
-.aichat-wrap {
-  min-height: calc(100vh - 150px);
-  min-height: calc(100dvh - 150px);
-  padding-top: 10px;
-}
-.aihero {
-  display: none;
-  text-align: center;
-  padding: 28px 10px 8px;
-  margin-top: auto;
-}
-.aihero .aiorb {
-  margin: 0 auto 26px;
-}
-.aihero-tit {
-  font-family: "Google Sans", "Prompt", sans-serif;
-  font-size: 1.65rem;
-  font-weight: 800;
-  line-height: 1.25;
-  letter-spacing: -0.015em;
-  color: var(--rf-ink);
-  margin: 0 0 10px;
-}
-.aihero-grad {
-  background: var(--rf-brand-grad);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.aihero-sub {
-  font-size: 0.85rem;
-  color: var(--rf-ink-2);
-  line-height: 1.55;
-  max-width: 300px;
-  margin: 0 auto;
-}
 
 /* ส่วนหัวแบบย่อตอนกำลังคุย: แคปซูลกลางจอ */
-.aichat-top {
-  justify-content: center;
-  padding: 0 0 14px;
-}
-.aichat-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 16px 5px 5px;
-  border-radius: 999px;
-  background: var(--rf-surface);
-  border: 1px solid var(--rf-line);
-  box-shadow: var(--rf-shadow-sm);
-}
-.aichat-pill .aichat-hi,
-[data-theme="dark"] .aichat-pill .aichat-hi {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--rf-ink);
-}
 
 /* สถานะยังไม่เริ่มคุย: ซ่อนห้องแชท/หัวแบบย่อ โชว์หน้าแรก + คำถามแนะนำเรียงแนวตั้งกลางจอ */
-.aichat-wrap.is-empty .aihero {
-  display: block;
-}
-.aichat-wrap.is-empty .aichat-top,
-.aichat-wrap.is-empty .aichat-body {
-  display: none;
-}
-.aichat-wrap.is-empty .aichat-suggestrow {
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  overflow: visible;
-  padding: 26px 0 0;
-  margin-bottom: auto;
-}
 
 /* ---- ฟองข้อความ ---- */
-.chatbubble {
-  border-radius: 22px;
-  padding: 12px 16px;
-  font-size: 0.86rem;
-}
-.chatbubble.bot,
-[data-theme="dark"] .chatbubble.bot {
-  background: var(--rf-surface);
-  color: var(--rf-ink);
-  border: 1px solid var(--rf-line);
-  box-shadow: var(--rf-shadow-sm);
-  border-bottom-left-radius: 6px;
-}
-.chatbubble.user {
-  background: var(--rf-brand-grad);
-  border-bottom-right-radius: 6px;
-  font-weight: 500;
-  box-shadow: var(--rf-glow);
-}
-.chattyping {
-  background: var(--rf-surface);
-  border: 1px solid var(--rf-line);
-  box-shadow: var(--rf-shadow-sm);
-  border-radius: 22px;
-  border-bottom-left-radius: 6px;
-}
-.chattyping span {
-  background: var(--rf-brand);
-}
 
 /* ---- การ์ดร้านที่ AI แนะนำ: ภาพเต็มการ์ด + ข้อความทับภาพ ---- */
-.chatcardrow {
-  gap: 12px;
-  padding: 4px 2px 16px 2px;
-  scrollbar-width: none;
-}
-.chatcardrow::-webkit-scrollbar {
-  display: none;
-}
-.chatcard {
-  position: relative;
-  min-width: 200px;
-  max-width: 200px;
-  height: 230px;
-  border-radius: 24px;
-  border: none;
-  background: var(--rf-fill);
-  box-shadow: var(--rf-shadow);
-}
-.chatcard img {
-  position: absolute;
-  inset: 0;
-  height: 100%;
-}
-.chatcard::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(12, 6, 24, 0.82) 0%, rgba(12, 6, 24, 0.2) 50%, transparent 70%);
-  pointer-events: none;
-}
+
 /* body คลุมทั้งการ์ด จัดข้อความชิดล่าง — ป้าย Match จึงวางมุมบนซ้ายของการ์ดได้ตรง ๆ */
-.chatcard-body {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 12px 14px 14px;
-}
-.chatcard-match {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  background: rgba(255, 255, 255, 0.9);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  color: var(--rf-brand);
-  font-size: 0.7rem;
-  padding: 4px 10px;
-}
-.chatcard-title,
-[data-theme="dark"] .chatcard-title {
-  color: #fff;
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-.chatcard-meta,
-[data-theme="dark"] .chatcard-meta {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.7rem;
-}
 
 /* ---- คำถามแนะนำ: แคปซูลขาว + ไอคอนประกาย ---- */
-.chatchip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--rf-surface);
-  border: 1px solid var(--rf-line);
-  color: var(--rf-ink);
-  font-weight: 500;
-  font-size: 0.82rem;
-  padding: 9px 16px;
-  border-radius: 999px;
-  box-shadow: var(--rf-shadow-sm);
-}
-.chatchip i {
-  color: var(--rf-brand);
-  font-size: 0.78rem;
-}
-.chatchip:hover {
-  background: var(--rf-brand-tint);
-  transform: translateY(-2px);
-}
 
 /* ---- ช่องพิมพ์: แคปซูลเดียว ปุ่มส่งวงกลมอยู่ข้างใน ---- */
-.aichat-inputbar {
-  gap: 6px;
-  margin: 6px 0 14px;
-  padding: 6px 6px 6px 8px;
-  border-radius: 999px;
-  background: var(--rf-surface);
-  border: 1px solid var(--rf-line);
-  box-shadow: var(--rf-shadow);
-  transition: box-shadow 0.2s, border-color 0.2s;
-}
-.aichat-inputbar:focus-within {
-  border-color: rgba(104, 66, 181, 0.4);
-  box-shadow: 0 0 0 4px rgba(104, 66, 181, 0.1), var(--rf-shadow);
-}
-.aichat-inputbar input,
-[data-theme="dark"] .aichat-inputbar input {
-  background: transparent;
-  box-shadow: none;
-  padding: 10px 10px;
-  color: var(--rf-ink);
-}
-.aichat-inputbar input:focus {
-  outline: none;
-}
-.aichat-inputbar input::placeholder {
-  color: var(--rf-ink-2);
-  opacity: 0.75;
-}
-.aichat-inputbar button {
-  width: 42px;
-  height: 42px;
-  background: var(--rf-brand-grad);
-  box-shadow: var(--rf-glow);
-  font-size: 0.92rem;
-}
 
 /* ---- ปุ่มแก้ไข/ลบรีวิวของตัวเอง: มีข้อความกำกับ มองเห็นชัด ---- */
 .rdreviewactions {
@@ -1084,7 +828,7 @@ body.appshell,
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   font-family: "Google Sans", "Prompt", sans-serif;
   background: var(--rf-fill);
@@ -1115,7 +859,7 @@ body.appshell,
   justify-content: space-between;
 }
 .postimgcount {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--rf-brand);
   background: var(--rf-brand-tint);
@@ -1170,7 +914,7 @@ body.appshell,
   bottom: 6px;
   background: var(--rf-brand-grad);
   color: #fff;
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
@@ -1180,7 +924,7 @@ body.appshell,
   right: 6px;
   width: 24px;
   height: 24px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
@@ -1199,7 +943,7 @@ body.appshell,
   border: 1.5px dashed rgba(104, 66, 181, 0.3);
   background: var(--rf-brand-tint);
   color: var(--rf-brand);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -1376,7 +1120,7 @@ body.appshell,
   border-radius: 9px;
   background: transparent;
   color: var(--rf-ink);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   font-family: "Google Sans", "Prompt", sans-serif;
   text-align: left;
@@ -1557,7 +1301,7 @@ body.appshell,
   color: var(--rf-ink);
 }
 .fsechead b {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--rf-brand);
   background: var(--rf-brand-tint);
@@ -1699,7 +1443,7 @@ body.appshell,
   margin: 0 2px 6px;
 }
 .rpnotecount {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--rf-ink-2);
 }
@@ -1828,7 +1572,7 @@ body.appshell,
   margin: 2px 2px 0;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -1924,11 +1668,9 @@ body.appshell,
 /* ---- ไอคอน/ข้อความเล็ก ๆ ที่เคยเป็นม่วง → เทา ---- */
 .homesearch i,
 .mmeta span i,
-.chatchip i,
 .mhicon,
 .trendcatchip span,
-.homegreet-hi b,
-.aichat-pill .aichat-hi {
+.homegreet-hi b{
   color: var(--rf-ink-2);
 }
 .homegreet-hi b {
@@ -1941,8 +1683,7 @@ body.appshell,
 .rdcat {
   color: var(--rf-ink-2);
 }
-.homesearch:focus-within,
-.aichat-inputbar:focus-within {
+.homesearch:focus-within{
   border-color: rgba(17, 17, 26, 0.25);
   box-shadow: 0 0 0 4px rgba(17, 17, 26, 0.06), var(--rf-shadow-sm);
 }
@@ -1952,16 +1693,14 @@ body.appshell,
 }
 
 /* ---- หัวข้อทักทาย: ตัวเข้มล้วน ไม่ไล่ม่วง ---- */
-.homegreet-q span,
-.aihero-grad {
+.homegreet-q span{
   background: none;
   -webkit-background-clip: border-box;
   background-clip: border-box;
   color: var(--rf-ink);
 }
 /* คำเน้นในหัวข้อใหญ่เป็นม่วงสีเดียว (ไม่ไล่สี) — หนึ่งในไม่กี่จุดที่ม่วงยังอยู่ ให้หน้าไม่จืดเกินไป */
-.homegreet-q span:last-child,
-.aihero-grad {
+.homegreet-q span:last-child{
   color: var(--rf-brand);
 }
 
@@ -2028,20 +1767,6 @@ body.appshell,
 }
 
 /* ---- แชท AI: ฟองข้อความของเราเป็นสีเข้ม (ม่วงเหลือแค่ลูกแก้ว + ปุ่มส่ง) ---- */
-.chatbubble.user {
-  background: var(--rf-ink-grad);
-  color: var(--rf-bg);
-  box-shadow: var(--rf-ink-glow);
-}
-.chattyping span {
-  background: var(--rf-ink-2);
-}
-.aichat-pill .aichat-hi {
-  color: var(--rf-ink);
-}
-.chatchip:hover {
-  background: var(--rf-fill);
-}
 
 /* ---- ปุ่มยืนยันในฟอร์ม/ป็อปอัพเดิมของ style.css ที่ใช้ --dark เป็นขอบ/ตัวอักษร ---- */
 .rdghost {
@@ -2061,62 +1786,10 @@ body.appshell,
 }
 
 /* ---- แชท AI: ปุ่มคำตอบของคำถาม (แนวอาหาร/รส/กี่คน/งบ) — ขึ้นบรรทัดใหม่ได้ ไม่ต้องเลื่อนข้าง ---- */
-.aichat-suggestrow.is-answers {
-  flex-wrap: wrap;
-  overflow: visible;
-  gap: 8px;
-  padding: 4px 2px 10px;
-}
-.chatchip-answer {
-  font-weight: 600;
-}
-.chatchip-answer:active,
-.chatchip-skip:active {
-  transform: scale(0.96);
-}
-.chatchip-skip {
-  background: transparent;
-  border: 1px dashed rgba(17, 17, 26, 0.25);
-  color: var(--rf-ink);
-  box-shadow: none;
-}
-[data-theme="dark"] .chatchip-skip {
-  border-color: rgba(255, 255, 255, 0.25);
-}
-.chatchip-skip i {
-  color: var(--rf-brand);
-}
+
 /* ระหว่างชิมชิมกำลังคิด: ปุ่มส่งจางลง (กดไม่ได้ แต่ยังพิมพ์รอไว้ได้) */
-.aichat-wrap.is-thinking .aichat-inputbar button {
-  opacity: 0.45;
-  pointer-events: none;
-}
 
 /* ---- แชท AI: บรรทัดทักทายจากความจำ + ปุ่ม "แบบเดิมเลย" ---- */
-.aihero-memory {
-  margin: 12px auto 0;
-  max-width: 300px;
-  padding: 8px 14px;
-  border-radius: 14px;
-  background: var(--rf-surface);
-  border: 1px solid var(--rf-line);
-  box-shadow: var(--rf-shadow-sm);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--rf-ink);
-}
-.chatchip-same {
-  background: var(--rf-ink-grad);
-  border-color: transparent;
-  color: var(--rf-bg);
-  box-shadow: var(--rf-ink-glow);
-}
-.chatchip-same i {
-  color: inherit;
-}
-.chatchip-same:hover {
-  background: var(--rf-ink-grad);
-}
 
 /* =====================================================================
    ไข่ปริศนาสุ่มร้าน (หน้า roulette.html — แทนวงล้อเดิม)
@@ -2424,7 +2097,7 @@ body.appshell,
   padding: 16px 18px 18px;
 }
 .eggresult-cat {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--rf-ink-2);
   margin-bottom: 4px;
@@ -2455,13 +2128,13 @@ body.appshell,
   padding: 4px 10px;
   border-radius: 999px;
   background: var(--rf-fill);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--rf-ink);
 }
 .eggresult-meta i {
   color: var(--rf-ink-2);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 .eggresult-why {
   font-size: 0.8rem;
@@ -2522,7 +2195,7 @@ body.appshell,
 }
 .feedlikesline i {
   color: #e5487a;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   margin-right: 2px;
 }
 .feedcomments {
@@ -2636,84 +2309,7 @@ body.appshell,
 }
 
 /* ---- หน้าตั้งค่า: การ์ด "กิจกรรมของฉัน" (แท็บ ถูกใจ / บันทึกไว้ / รีวิว / ติดตาม) ---- */
-.actcard .profcardtit {
-  font-size: 0.95rem;
-  color: var(--rf-ink);
-}
-.acttabs {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  margin-bottom: 14px;
-}
-.acttab {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: 10px 4px 8px;
-  border: 1px solid var(--rf-line);
-  border-radius: 16px;
-  background: var(--rf-surface);
-  color: var(--rf-ink-2);
-  font-family: "Google Sans", "Prompt", sans-serif;
-  font-size: 0.72rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
-}
-.acttab i {
-  font-size: 0.95rem;
-}
-.acttab b {
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: var(--rf-ink);
-}
-.acttab.active {
-  background: var(--rf-ink-grad);
-  border-color: transparent;
-  color: var(--rf-bg);
-}
-.acttab.active b {
-  color: var(--rf-bg);
-}
-.acttab:focus-visible {
-  outline: 2px solid var(--rf-brand);
-  outline-offset: 2px;
-}
-.actsub {
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: var(--rf-ink-2);
-  margin: 4px 0 8px;
-}
-.actsub:not(:first-child) {
-  margin-top: 16px;
-}
-.actempty {
-  text-align: center;
-  color: var(--rf-ink-2);
-  font-size: 0.82rem;
-  padding: 14px 0 6px;
-  margin: 0;
-}
-.actpostgrid {
-  border-radius: 14px;
-  overflow: hidden;
-}
-.actavatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--avatar-grad);
-  color: #fff;
-  font-weight: 800;
-}
+
 /* ลิงก์รอง "ดูร้านแนะนำ" ใต้ปุ่มหลัก 2 ปุ่มของการ์ดร้านที่เปิดจากไข่ */
 .eggreclink {
   display: flex;
@@ -2931,7 +2527,7 @@ body.appshell,
   text-overflow: ellipsis;
 }
 .fsrow-text small {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: var(--rf-ink-2);
 }
 .fsrow-btn {
@@ -2954,7 +2550,7 @@ body.appshell,
 }
 .eggkeepnote {
   margin: 10px 0 0;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: var(--rf-ink-2);
   text-align: center;
 }
@@ -2988,7 +2584,7 @@ body.appshell,
   border-radius: 999px;
   background: var(--rf-brand-grad);
   color: #fff;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 800;
 }
 .lvlname {
@@ -2998,7 +2594,7 @@ body.appshell,
   color: var(--rf-ink);
 }
 .lvlxp {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--rf-ink-2);
 }
@@ -3018,7 +2614,7 @@ body.appshell,
   transition: width 0.4s ease;
 }
 .lvlnext {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: var(--rf-ink-2);
 }
 /* popup รายละเอียด XP */
@@ -3053,7 +2649,7 @@ body.appshell,
   flex-direction: column;
 }
 .lvlrow small {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--rf-ink-2);
 }
 .lvlrow b {
@@ -3118,7 +2714,7 @@ body.appshell,
   text-overflow: ellipsis;
 }
 .areabtn-chev {
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   color: var(--rf-ink-2);
 }
 .areapanel {
@@ -3135,7 +2731,7 @@ body.appshell,
 }
 .areapanel-tit {
   padding: 8px 10px 6px;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--rf-ink-2);
 }
@@ -3165,7 +2761,7 @@ body.appshell,
 }
 .areaopt small {
   grid-column: 2;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--rf-ink-2);
 }
 .areaopt-check {
@@ -3247,14 +2843,13 @@ body.appshell,
 .proftab.active::after { transform: scaleX(1); }
 .proftab:focus-visible { outline: 2px solid var(--rf-brand); outline-offset: -4px; border-radius: 8px; }
 .proftab-n {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .profpane[hidden] { display: none !important; }
 .profpane:not(#profPostsCard) { padding: 12px 0 4px; }
-.profpane-tit,
-#profPostsCard > .profcardtit {
+#profPostsCard > .profcardtit{
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--rf-ink-2);
@@ -3267,7 +2862,6 @@ body.appshell,
   padding: 36px 12px;
   margin: 0;
 }
-.profreviewlink { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .proftab, .proftab::after { transition: none; }
 }
@@ -3307,7 +2901,7 @@ body.appshell,
 .rdreviewimg img { display: block; }
 .rdreviewimg:focus-visible { outline: 2px solid var(--rf-brand); outline-offset: 2px; }
 .rdreviewimgn {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--rf-ink-2);
   margin-top: 4px;
 }
@@ -3406,210 +3000,32 @@ body.appshell,
 .pvactions .pvreportbtn { margin-left: auto; }
 
 /* ---- แท็บบันทึกไว้: ตารางโพสต์ที่บันทึก เต็มความกว้างเหมือนตารางโพสต์ของฉัน ---- */
-.profsavedgrid {
-  margin: 0 -20px 12px;
-  gap: 2px;
-}
-.profsavedgrid:empty { display: none; }
-.profsavedgrid .ppost { background: var(--rf-fill); cursor: pointer; }
 
 /* =====================================================================
    หน้า AI Food Finder — เลย์เอาต์กระชับแบบผู้ช่วยแชท (เฉพาะ body.aipage ไม่กระทบหน้าอื่น)
    - สูงพอดีจอ: หัวแอป → พื้นที่แชท (เลื่อนเฉพาะข้อความ) → แท่นพิมพ์ → เว้นที่ให้แถบเมนูลอยด้านล่าง
    - ยังไม่เริ่มคุย: มาสคอตเล็ก + หัวข้อ + ชิปแนะนำเรียงแนวนอนขึ้นบรรทัดอัตโนมัติ อยู่กลางพื้นที่
    ===================================================================== */
-body.aipage {
-  --ai-nav-space: calc(88px + env(safe-area-inset-bottom, 0px));
-  padding-bottom: 0;
-}
-body.aipage .aichat-wrap {
-  height: calc(var(--ai-vh, 100dvh) - var(--ai-top, 64px) - var(--ai-nav-space));
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 8px 16px 0;
-  overflow: hidden;
-}
-@supports not (height: 100dvh) {
-  body.aipage .aichat-wrap { height: calc(var(--ai-vh, 100vh) - var(--ai-top, 64px) - var(--ai-nav-space)); }
-}
 
 /* ---- ส่วนต้อนรับ (เฉพาะตอนยังไม่คุย) ---- */
-body.aipage .aihero {
-  padding: 0 4px;
-  margin: auto 0 0;
-}
-body.aipage .aihero .aiorb {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 14px;
-  animation: none;
-  box-shadow: inset 0 -6px 14px rgba(78, 47, 151, 0.4), inset 0 5px 10px rgba(255, 255, 255, 0.55), 0 10px 22px -10px rgba(104, 66, 181, 0.5);
-}
-body.aipage .aihero .aiorb::after { inset: -10px; }
-body.aipage .aihero-tit {
-  font-size: 1.45rem;
-  margin: 0 0 6px;
-}
-body.aipage .aihero-sub {
-  font-size: 0.88rem;
-  max-width: 320px;
-}
-body.aipage .aihero-memory {
-  margin-top: 10px;
-  box-shadow: none;
-  font-weight: 500;
-  font-size: 0.78rem;
-}
 
 /* ---- หัวแบบย่อระหว่างคุย ---- */
-body.aipage .aichat-top { padding: 0 0 8px; flex-shrink: 0; }
-body.aipage .aichat-pill { padding: 3px 12px 3px 3px; box-shadow: none; }
-body.aipage .aichat-pill .aichat-hi { font-size: 0.8rem; }
-body.aipage .aiorb-sm { width: 24px; height: 24px; }
 
 /* ---- รายการข้อความ: ส่วนหลักของหน้า เลื่อนได้ในตัว ---- */
-body.aipage .aichat-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  gap: 8px;
-  padding: 4px 0 12px;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12px);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 12px);
-}
+
 /* ลูกในรายการข้อความห้ามหดตามความสูง (การ์ดร้านเคยโดนบีบเหลือครึ่งใบ) */
-body.aipage .aichat-body > * { flex-shrink: 0; }
-body.aipage .chatbubble {
-  max-width: 84%;
-  font-size: 0.9rem;
-  line-height: 1.55;
-  padding: 10px 14px;
-  border-radius: 18px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-body.aipage .chatbubble.bot,
-[data-theme="dark"] body.aipage .chatbubble.bot {
-  align-self: flex-start;
-  background: var(--rf-surface);
-  border: 1px solid var(--rf-line);
-  box-shadow: none;
-  border-bottom-left-radius: 6px;
-}
-body.aipage .chatbubble.user {
-  align-self: flex-end;
-  box-shadow: none;
-  border-bottom-right-radius: 6px;
-}
-body.aipage .chatbubble.user + .chatbubble.bot,
-body.aipage .chatbubble.bot + .chatbubble.user { margin-top: 6px; }
-body.aipage .chattyping {
-  align-self: flex-start;
-  box-shadow: none;
-  padding: 12px 14px;
-  border-radius: 18px;
-  border-bottom-left-radius: 6px;
-}
-body.aipage .chatcard { box-shadow: none; }
 
 /* ---- แท่นพิมพ์ (ชิป + ช่องพิมพ์) ติดล่างพื้นที่แชท ---- */
-body.aipage .aichat-dock {
-  flex-shrink: 0;
-  padding: 6px 0 10px;
-}
-body.aipage .aichat-suggestrow {
-  gap: 6px;
-  padding: 0 0 8px;
-}
+
 /* ระหว่างคุย: ปุ่มคำตอบเป็นแถวเดียวเลื่อนข้าง (ไม่กินพื้นที่ข้อความ) ขอบขวาจางบอกว่ายังมีต่อ */
-body.aipage .aichat-wrap:not(.is-empty) .aichat-suggestrow,
-body.aipage .aichat-wrap:not(.is-empty) .aichat-suggestrow.is-answers {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(to right, #000 85%, transparent);
-  mask-image: linear-gradient(to right, #000 85%, transparent);
-  padding-right: 24px;
-}
-body.aipage .aichat-suggestrow:empty { display: none; }
-body.aipage .chatchip {
-  flex-shrink: 0;
-  min-height: 36px;
-  padding: 7px 13px;
-  font-size: 0.82rem;
-  gap: 6px;
-  box-shadow: none;
-  white-space: nowrap;
-}
-body.aipage .chatchip i { font-size: 0.75rem; color: var(--rf-brand); }
-body.aipage .chatchip:hover { transform: none; }
-body.aipage .chatchip:active { transform: scale(0.97); }
-body.aipage .chatchip:focus-visible { outline: 2px solid var(--rf-brand); outline-offset: 2px; }
-body.aipage .chatchip-same i { color: inherit; }
 
 /* ยังไม่เริ่มคุย: ส่วนต้อนรับ + ชิปอยู่กลางพื้นที่ว่าง ชิปขึ้นบรรทัดใหม่อัตโนมัติ จัดกึ่งกลาง */
 /* แท่นพิมพ์ "แตกตัว" (display: contents) ให้ชิปกับช่องพิมพ์เป็นลูกของคอลัมน์หลักโดยตรง
    → ส่วนต้อนรับ (margin-top:auto) + ชิป (margin-bottom:auto) อยู่กึ่งกลางพื้นที่ ช่องพิมพ์ชิดล่าง */
-body.aipage .aichat-wrap.is-empty .aichat-dock { display: contents; }
-body.aipage .aichat-wrap.is-empty .aichat-suggestrow {
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  max-width: 440px;
-  margin: 18px auto auto;
-  padding: 0;
-  flex-shrink: 0;
-}
-body.aipage .aichat-wrap.is-empty .aichat-inputbar { margin: 16px 0 10px; flex-shrink: 0; }
 
 /* ---- ช่องพิมพ์หลายบรรทัด ปุ่มส่งด้านขวา ---- */
-body.aipage .aichat-inputbar {
-  display: flex;
-  align-items: flex-end;
-  margin: 0;
-  padding: 5px 5px 5px 14px;
-  border-radius: 24px;
-  box-shadow: none;
-}
-body.aipage .aichat-inputbar textarea,
-[data-theme="dark"] body.aipage .aichat-inputbar textarea {
-  flex: 1;
-  min-width: 0;
-  resize: none;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--rf-ink);
-  font: inherit;
-  font-size: 0.92rem;
-  line-height: 1.45;
-  padding: 9px 4px;
-  max-height: 120px;
-  overflow-y: auto;
-}
-body.aipage .aichat-inputbar textarea::placeholder { color: var(--rf-ink-2); opacity: 0.8; }
-body.aipage .aichat-inputbar button {
-  flex-shrink: 0;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  box-shadow: none;
-}
-body.aipage .aichat-inputbar button:focus-visible { outline: 2px solid var(--rf-brand); outline-offset: 2px; }
 
 /* จอเตี้ย (มือถือแนวนอน/คีย์บอร์ดเปิด): ซ่อนมาสคอต ให้เหลือพื้นที่พิมพ์ */
-@media (max-height: 560px) {
-  body.aipage .aihero .aiorb { display: none; }
-  body.aipage .aihero-sub { display: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  body.aipage .chatchip:active { transform: none; }
-}
 
 /* =====================================================================
    โปรไฟล์ร้านค้า (public-profile.html): แท็บ โพสต์ / รีวิว + รายการรีวิว
@@ -3670,7 +3086,7 @@ a.ppreview-who:focus-visible { outline: 2px solid var(--rf-brand); outline-offse
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ppreview-meta time { font-size: 0.72rem; color: var(--rf-ink-2); }
+.ppreview-meta time { font-size: 0.75rem; color: var(--rf-ink-2); }
 .ppreview-score {
   flex-shrink: 0;
   font-size: 0.82rem;
@@ -3680,13 +3096,13 @@ a.ppreview-who:focus-visible { outline: 2px solid var(--rf-brand); outline-offse
   padding: 4px 10px;
   border-radius: 999px;
 }
-.ppreview-score i { color: var(--rf-brand); font-size: 0.72rem; }
+.ppreview-score i { color: var(--rf-brand); font-size: 0.75rem; }
 .ppreview-sub {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 12px;
   margin: 8px 0 0 48px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--rf-ink-2);
 }
 .ppreview-txt {
@@ -3755,7 +3171,7 @@ a.ppreview-who:focus-visible { outline: 2px solid var(--rf-brand); outline-offse
 }
 .ppdna-tit i { color: var(--rf-brand); }
 .ppdna-match {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--rf-brand);
   background: var(--rf-brand-tint);
@@ -3770,7 +3186,7 @@ a.ppreview-who:focus-visible { outline: 2px solid var(--rf-brand); outline-offse
   gap: 6px;
   margin-bottom: 10px;
 }
-.ppdna-lbl { font-size: 0.72rem; color: var(--rf-ink-2); }
+.ppdna-lbl { font-size: 0.75rem; color: var(--rf-ink-2); }
 .ppdna-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .ppdna-chip {
   font-size: 0.78rem;
@@ -3850,7 +3266,7 @@ a.ppreview-who:focus-visible { outline: 2px solid var(--rf-brand); outline-offse
   padding: 18px 8px 6px;
   background: linear-gradient(to top, rgba(12, 6, 24, 0.7), transparent);
   color: #fff;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-align: left;
   white-space: nowrap;
@@ -3869,7 +3285,7 @@ a.ppreview-who:focus-visible { outline: 2px solid var(--rf-brand); outline-offse
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.92);
   color: var(--rf-ink);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 [data-theme="dark"] .profgtile-score { background: rgba(30, 27, 38, 0.9); }
@@ -3890,13 +3306,13 @@ a.ppreview-who:focus-visible { outline: 2px solid var(--rf-brand); outline-offse
   color: var(--rf-ink);
 }
 .profgtile-text b {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .profgtile-quote {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1.35;
   color: var(--rf-ink-2);
   display: -webkit-box;
@@ -3925,14 +3341,14 @@ a.ppreview-who:focus-visible { outline: 2px solid var(--rf-brand); outline-offse
   flex-direction: column;
 }
 .profrevdetail-shop b { font-size: 0.92rem; color: var(--rf-ink); }
-.profrevdetail-shop span { font-size: 0.72rem; color: var(--rf-ink-2); }
+.profrevdetail-shop span { font-size: 0.75rem; color: var(--rf-ink-2); }
 .profrevdetail-shop .profgtile-score { background: var(--rf-fill); }
 .profrevdetail-sub {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 12px;
   margin-top: 12px;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: var(--rf-ink-2);
 }
 .profrevdetail-txt {
@@ -3969,7 +3385,7 @@ a.ppreview-who:focus-visible { outline: 2px solid var(--rf-brand); outline-offse
 }
 [data-theme="dark"] .ppost-text { background: var(--rf-fill); }
 .ppost-text span {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 6;
@@ -4006,7 +3422,7 @@ button.postingasrow { width: 100%; border: none; cursor: pointer; font-family: i
   border-radius: 50%;
   background: var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24)) center / cover no-repeat;
   color: #fff;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4028,20 +3444,6 @@ button.postingasrow { width: 100%; border: none; cursor: pointer; font-family: i
 .psw-row.is-active .psw-check { color: var(--rf-brand); }
 .psw.is-busy .psw-row { opacity: 0.55; pointer-events: none; }
 .psw-msg { margin: 0 14px 10px; padding: 10px 12px; border-radius: 12px; background: var(--rf-fill); color: var(--rf-ink); font-size: 0.8rem; }
-.psw-create {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 14px 16px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--rf-fill);
-  color: var(--rf-ink);
-  font-weight: 700;
-  font-size: 0.86rem;
-  text-decoration: none;
-}
-.psw-create[hidden] { display: none; }
 .profstate { text-align: center; padding: 70px 20px; color: var(--rf-ink-2); }
 .profstate-msg { font-size: 0.9rem; margin-bottom: 16px; }
 .profstate-btns { display: flex; flex-direction: column; gap: 10px; max-width: 280px; margin: 0 auto; }
@@ -4091,7 +3493,7 @@ button.postingasrow { width: 100%; border: none; cursor: pointer; font-family: i
   right: 0;
   top: calc(100% + 2px);
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.2;
   color: #d93025;
   white-space: nowrap;
@@ -4154,7 +3556,7 @@ button.postingasrow { width: 100%; border: none; cursor: pointer; font-family: i
 .catcombo-list[hidden] { display: none; }
 .catcombo-group {
   padding: 10px 10px 4px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--rf-ink-2);
 }
@@ -4263,7 +3665,7 @@ button.mhbadge {
   cursor: pointer;
 }
 .mhbadge span {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--rf-ink-2);
 }
 .mhcaption {
@@ -4756,4 +4158,143 @@ button.mhbadge {
 /* ตัวเลือกเพิ่มเติมอยู่ใต้พื้นที่ฟักไข่แล้ว */
 .egghatch + .rfilters {
   margin-top: 6px;
+}
+
+/* ---- หมวดหมู่อาหารบนหน้าสุ่ม (เลือกได้หลายหมวด) — พื้นขาว/ครีม เลือกแล้วขอบ+พื้นม่วงอ่อน ---- */
+.rflbl small {
+  margin-left: 4px;
+  font-weight: 400;
+}
+.rfcats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+}
+.rfchip.rfcat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  text-align: left;
+}
+.rfchip.rfcat span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+.rfchip.rfcat small {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--rf-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.rfchip.rfcat.active {
+  background: var(--rf-brand-tint);
+  border-color: var(--rf-brand);
+  color: var(--rf-ink);
+  box-shadow: inset 0 0 0 1px var(--rf-brand);
+}
+.rfchip.rfcat.active small {
+  color: var(--rf-brand);
+}
+.rfchip.rfcat:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.rfchip.rfcat:disabled:hover {
+  border-color: var(--rf-line);
+}
+
+/* =====================================================================
+   รอบ audit ทั้งแอป — contrast ตัวหนังสือรอง, เป้ากด, หัวข้อหน้า (h1), ตัวอักษรขั้นต่ำ 12px
+   ===================================================================== */
+
+/* หัวข้อหน้าย่อย (ตั้งค่า / เขียนรีวิว / สถิติ / โปรไฟล์คนอื่น) เป็น h1 จริง และอ่านออก (เดิมเทาจาง #aaa) */
+h1.obstepnum {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--rf-ink);
+}
+.obstepnum {
+  color: var(--rf-ink-2);
+}
+h1.wellogo {
+  margin-top: 0;
+}
+h1.rdtitle {
+  margin-top: 0;
+  line-height: 1.3;
+}
+.obback {
+  width: 44px;
+  height: 44px;
+}
+
+/* ตัวหนังสือรองที่เคยเป็นเทาอ่อนเกิน (#888–#bbb) → สีรองของธีมที่ผ่าน 4.5:1 ทั้งโหมดสว่าง/มืด */
+.obhint,
+.rdmeta,
+.rdtab,
+.settopt,
+.rmodebtn,
+.rmodedesc,
+.revshop .rdish,
+.sdesc,
+.welskip,
+.feedlikebtn,
+.feedcommentbtn,
+.rdpilotnote {
+  color: var(--rf-ink-2);
+}
+.rdtab.active {
+  color: var(--rf-brand);
+}
+.settopt.active,
+.rmodebtn.active {
+  color: #fff;
+}
+.rdpilotnote {
+  font-size: 0.85rem;
+  line-height: 1.8;
+}
+.mtagit {
+  color: var(--rf-ink);
+}
+.proflogoutbtn {
+  color: #b8283e;
+  border-color: #e6aab4;
+}
+[data-theme="dark"] .proflogoutbtn {
+  color: #ff9aa8;
+}
+.rflbl small {
+  font-size: 0.75rem;
+}
+.rmodedesc {
+  font-size: 0.8rem;
+}
+
+/* เป้ากด: ลิงก์ "ดูแอปเลย", ปุ่มถูกใจ/คอมเมนต์ในฟีด, ชื่อร้านในหน้าร้าน ≥ 24px (ปุ่มไอคอนหลัก ≥ 44px) */
+.welskip {
+  min-height: 44px;
+  padding: 10px 12px;
+}
+.feedlikebtn,
+.feedcommentbtn {
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+}
+.rdmeta a,
+.rdmeta span {
+  min-height: 28px;
+}
+.chnm {
+  display: inline-block;
+  min-height: 24px;
 }

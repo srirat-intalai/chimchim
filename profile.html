@@ -6,7 +6,7 @@
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="author" content="CHIMCHIM">
       <link rel="manifest" href="manifest.json">
-      <meta name="theme-color" content="#6842b5">
+      <meta name="theme-color" content="#FAF9F6">
       <meta name="apple-mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-status-bar-style" content="default">
       <meta name="apple-mobile-web-app-title" content="ChimChim">
@@ -16,7 +16,7 @@
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
       <link rel="stylesheet" href="css/all.min.css"/>
       <link rel="stylesheet" href="css/style.css" />
       <link rel="stylesheet" href="css/chimchim-refresh.css" />
@@ -30,20 +30,20 @@
          </a>
          <div class="apptop-actions">
             <div class="qsettingswrap">
-               <button type="button" id="quickSettingsBtn" class="apptop-btn" title="Settings"><i class="fas fa-gear"></i></button>
+               <button type="button" id="quickSettingsBtn" class="apptop-btn" data-i18n-title="profile.settings" title="ตั้งค่า"><i class="fas fa-gear"></i></button>
                <div class="qspanel" id="quickSettingsPanel" hidden>
                   <div class="qsrow">
                      <span class="qslbl" data-i18n="settings.appearance">Appearance</span>
                      <div class="qstoggle">
-                        <button type="button" data-theme-choice="light" title="Light"><i class="fas fa-sun"></i></button>
-                        <button type="button" data-theme-choice="dark" title="Dark"><i class="fas fa-moon"></i></button>
+                        <button type="button" data-theme-choice="light" data-i18n-title="settings.light" title="โหมดสว่าง"><i class="fas fa-sun"></i></button>
+                        <button type="button" data-theme-choice="dark" data-i18n-title="settings.dark" title="โหมดมืด"><i class="fas fa-moon"></i></button>
                      </div>
                   </div>
                   <div class="qsrow">
                      <span class="qslbl" data-i18n="settings.language">Language</span>
                      <div class="qstoggle">
-                        <button type="button" data-lang-choice="en" title="English">🇬🇧</button>
-                        <button type="button" data-lang-choice="th" title="ไทย">🇹🇭</button>
+                        <button type="button" data-lang-choice="en" title="English" aria-label="English">🇬🇧</button>
+                        <button type="button" data-lang-choice="th" title="ไทย" aria-label="ไทย">🇹🇭</button>
                      </div>
                   </div>
                   <a href="settings.html" class="qsmore" data-i18n="profile.settings">Settings</a>
@@ -73,6 +73,7 @@
 
       <!-- โชว์เมื่อเข้าสู่ระบบแล้ว — โปรไฟล์ส่วนตัว หรือโปรไฟล์ร้าน (ตามโปรไฟล์ที่ใช้งานอยู่ ซึ่งตรวจสิทธิ์แล้ว) -->
       <div class="profwrap" id="profContent" hidden>
+         <h1 class="jvisually-hidden" data-i18n="nav.profile">โปรไฟล์</h1>
          <div class="ighead">
             <button type="button" class="profavatar igavatar" id="profAvatar" data-i18n-aria="switcher.open" aria-label="สลับโปรไฟล์"></button>
             <div class="igstats">
@@ -83,7 +84,7 @@
          </div>
          <div class="ignamewrap">
             <button type="button" class="profswitchbtn" id="profSwitchBtn" aria-haspopup="dialog"><span class="profname" id="profName"></span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
-            <span class="profrole" id="profRole"></span>
+            <button type="button" class="profrole" id="profRole" aria-haspopup="dialog"></button>
             <div class="profemail" id="profEmail"></div>
             <p class="profbio" id="profBio" hidden></p>
             <!-- เลเวลนักชิม — กดดูว่าได้ XP จากอะไรบ้าง -->
@@ -119,30 +120,16 @@
 
          <!-- ไดอารี่ของฉัน + สถิติการกิน + ร้านโปรด — ข้อมูลชุดเดียวกับหน้า diary.html (chimchim-diary-store.js)
               แสดงเฉพาะโปรไฟล์ส่วนตัว (โปรไฟล์ร้านไม่มีไดอารี่) -->
-         <section class="jcard jprofcal" id="profDiaryCard" aria-labelledby="profCalTitle" hidden>
+         <!-- ไดอารี่ของฉัน: บันทึกล่าสุด 4 รายการ + ปุ่มบันทึก — ปฏิทินรายเดือนเต็มอยู่ที่ diary.html ("ดูไดอารี่ทั้งหมด") -->
+         <section class="jcard" id="profDiaryCard" aria-labelledby="profDiaryTitle" hidden>
             <div class="jcard-head">
-               <h2 id="profCalTitle" data-i18n="profile.diaryTitle">ไดอารี่ของฉัน</h2>
-               <a href="diary.html" class="jlink" id="profDiaryAll"><span data-i18n="profile.diaryAllFull">ดูไดอารี่ทั้งหมด</span><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+               <h2 id="profDiaryTitle" data-i18n="profile.diaryTitle">ไดอารี่ของฉัน</h2>
+               <a href="diary.html" class="jlink" id="profDiaryAll"><i class="far fa-calendar" aria-hidden="true"></i><span data-i18n="profile.diarySeeAll">ดูทั้งหมด</span></a>
             </div>
             <p class="jbanner is-warn" id="profDiaryNote" role="status" hidden></p>
-            <div class="jcal-head">
-               <button type="button" class="jicon" id="profCalPrev" data-i18n-aria="diary.prevMonth" aria-label="เดือนก่อนหน้า"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
-               <h3 class="jcal-month" id="profCalMonth" aria-live="polite"></h3>
-               <button type="button" class="jicon" id="profCalNext" data-i18n-aria="diary.nextMonth" aria-label="เดือนถัดไป"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
-            </div>
-            <div class="jcal-week" id="profCalWeek" aria-hidden="true"></div>
-            <div class="jcal-grid" id="profCalGrid" role="grid" aria-labelledby="profCalMonth"></div>
-         </section>
-         <!-- ปุ่มบันทึกอยู่ใต้ปฏิทินทันที — เปิดฟอร์มบันทึกเดิมของหน้าไดอารี่ บันทึกเสร็จกลับมาที่ปฏิทินนี้ -->
-         <div class="jstart" id="profDiaryStart" hidden>
+            <ul class="jlatest" id="profDiaryLatest" aria-busy="true"></ul>
             <p class="jstart-msg" id="profDiaryStartMsg" hidden data-i18n="profile.diaryStartMsg">ยังไม่มีบันทึกมื้ออาหาร มาเริ่มเก็บความทรงจำมื้อแรกกัน</p>
             <a class="jbtn jbtn-primary jbtn-block" id="profDiaryAdd" href="diary.html?new=1&amp;return=profile"><i class="fas fa-plus" aria-hidden="true"></i><span id="profDiaryAddText"></span></a>
-         </div>
-         <!-- บันทึกของวันที่เลือกบนปฏิทิน -->
-         <section class="jprofday" id="profCalDay" aria-labelledby="profCalDayLabel" hidden>
-            <h3 class="jprofday-label" id="profCalDayLabel"></h3>
-            <ul class="jrecent" id="profDiaryList"></ul>
-            <p class="jmuted" id="profCalDayEmpty" hidden></p>
          </section>
          <div class="jcard-pair" id="profDiaryExtras" hidden>
             <section class="jcard" aria-labelledby="profStatsTitle">
@@ -202,7 +189,7 @@
                <input type="file" id="postImgFile" accept="image/*" multiple hidden/>
                <div class="postimglist" id="postImgList"></div>
                <p class="postimgbusy" id="postImgBusy" hidden><i class="fas fa-spinner fa-spin"></i> <span data-i18n="photos.preparing">กำลังเตรียมรูป...</span></p>
-               <label class="flbl" data-i18n="profile.captionLbl">แคปชั่น</label>
+               <label class="flbl" for="postCaption" data-i18n="profile.captionLbl">แคปชั่น</label>
                <input class="fctrl" type="text" id="postCaption" placeholder="เล่าอะไรสั้น ๆ เกี่ยวกับมื้อนี้..." data-i18n-ph="profile.captionPlaceholder"/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2" id="postSubmitBtn"><i class="fas fa-paper-plane"></i><span data-i18n="profile.postBtn">โพสต์</span></button>
             </form>
@@ -210,8 +197,6 @@
             <p id="myPostEmpty" class="profpane-empty" hidden data-i18n="profile.emptyPosts">คุณยังไม่มีโพสต์</p>
          </div>
 
-         <a href="settings.html" class="rdghost" style="width:100%;margin-bottom:10px;"><i class="fas fa-gear me-1"></i><span data-i18n="profile.settings">ตั้งค่า</span></a>
-         <button class="proflogoutbtn" id="logoutBtn"><i class="fas fa-arrow-right-from-bracket me-2"></i><span data-i18n="profile.logout">ออกจากระบบ</span></button>
       </div>
 
       <nav class="appnav">
@@ -226,7 +211,7 @@
          ============================================================ -->
       <div id="authPop">
          <div class="apbox">
-            <button class="apclose" id="apClose"><i class="fas fa-times"></i></button>
+            <button class="apclose" id="apClose" data-i18n-title="common.close" title="ปิด"><i class="fas fa-times" aria-hidden="true"></i></button>
             <div class="aptabs">
                <button class="aptab active" id="apTabLogin" data-tab="login" data-i18n="auth.login">เข้าสู่ระบบ</button>
                <button class="aptab" id="apTabRegister" data-tab="register" data-i18n="auth.register">สมัครสมาชิก</button>
@@ -234,20 +219,20 @@
             <img class="apdino" src="img/Dino/4.png" alt="Dino ต้อนรับสมาชิกใหม่"/>
             <form id="loginForm" class="apform">
                <div class="aperr" id="loginErr"></div>
-               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <label class="flbl" for="loginEmail" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email" required/>
-               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <label class="flbl" for="loginPassword" data-i18n="auth.password">รหัสผ่าน</label>
                <input class="fctrl" type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-right-to-bracket"></i><span data-i18n="auth.login">เข้าสู่ระบบ</span></button>
                <p class="apnote"><span data-i18n="auth.noAccount">ยังไม่มีบัญชี?</span> <a href="#" data-switch="register" data-i18n="auth.registerLink">สมัครสมาชิกเลย</a></p>
             </form>
             <form id="registerForm" class="apform" style="display:none;">
                <div class="aperr" id="registerErr"></div>
-               <label class="flbl" data-i18n="auth.yourName">ชื่อของคุณ</label>
+               <label class="flbl" for="registerName" data-i18n="auth.yourName">ชื่อของคุณ</label>
                <input class="fctrl" type="text" id="registerName" placeholder="ชื่อ นามสกุล" autocomplete="name" required/>
-               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <label class="flbl" for="registerEmail" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="registerEmail" placeholder="you@email.com" autocomplete="email" required/>
-               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <label class="flbl" for="registerPassword" data-i18n="auth.password">รหัสผ่าน</label>
                <input class="fctrl" type="password" id="registerPassword" placeholder="อย่างน้อย 4 ตัวอักษร" autocomplete="new-password" required/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-egg"></i><span data-i18n="auth.createAccount">สร้างบัญชี</span></button>
                <p class="apnote"><span data-i18n="auth.haveAccount">มีบัญชีอยู่แล้ว?</span> <a href="#" data-switch="login" data-i18n="auth.loginLink">เข้าสู่ระบบ</a></p>
@@ -321,7 +306,6 @@
       <script src="js/chimchim-supabase-client.js" defer></script>
       <script src="js/chimchim-community.js" defer></script>
       <script src="js/chimchim-diary-store.js" defer></script>
-      <script src="js/chimchim-diary-calendar.js" defer></script>
       <script src="js/chimchim-profile.js" defer></script>
          <script>
          if ("serviceWorker" in navigator) {

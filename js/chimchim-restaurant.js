@@ -166,7 +166,7 @@ function renderShopDetail() {
 
 	/* --- ปุ่มแชร์ --- */
 	document.getElementById("rdShareBtn").addEventListener("click", function() {
-		showToast(t("restaurant.linkCopiedToast"));
+		shareLink(window.location.href, ร้านปัจจุบัน.ร้าน + " - ChimChim", t("restaurant.linkCopiedToast"));
 	});
 
 	/* --- ปุ่มรายงาน — เฉพาะร้านที่ชุมชนโพสต์เอง (ร้านตั้งต้นของทีม ChimChim รายงานไม่ได้) --- */

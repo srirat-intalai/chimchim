@@ -380,7 +380,7 @@ body.journal ::selection {
   border-radius: 999px;
   background: var(--j-card);
   color: var(--j-ink);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   line-height: 18px;
 }
@@ -701,11 +701,6 @@ body.journal ::selection {
 }
 .jfield [aria-invalid="true"] {
   border-color: var(--j-danger);
-}
-.jfield-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: 12px;
 }
 .jfeel-opts {
   display: flex;
@@ -1079,21 +1074,99 @@ body.journal ::selection {
   margin-top: 10px;
 }
 
-/* ---------------- ปฏิทินไดอารี่บนหน้าโปรไฟล์ + ปุ่มบันทึกใต้ปฏิทิน ---------------- */
-.jprofcal .jcal-head {
-  margin-top: 4px;
+/* ---------------- ไดอารี่ของฉันบนโปรไฟล์: บันทึกล่าสุด 4 รายการ + ปุ่มบันทึก ---------------- */
+.jlatest {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
 }
-.jprofcal .jcal-month {
-  font-size: 0.98rem;
+@media (min-width: 600px) {
+  .jlatest {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
-.jprofcal .jcal-num {
-  font-size: 0.84rem;
+/* ช่องของแต่ละวัน: รูป (มีบันทึก) / + (ยังบันทึกได้) / ล็อก (หมดเวลาบันทึก) */
+.jslot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 100%;
+  color: var(--j-ink);
+  text-decoration: none;
 }
-.jstart {
-  margin: -4px 0 16px;
+a.jslot:hover {
+  color: var(--j-ink);
+}
+.jslot img,
+.jslot-noimg,
+.jslot-plus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin-bottom: 6px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--j-cream);
+  color: var(--j-ink-2);
+  font-size: 1.2rem;
+}
+a.jslot:hover img,
+a.jslot:hover .jslot-noimg {
+  filter: brightness(0.94);
+}
+.jslot.is-open .jslot-plus {
+  background: var(--j-card);
+  border: 1.5px dashed var(--j-brand);
+  color: var(--j-brand);
+  font-size: 1.4rem;
+}
+.jslot.is-open:hover .jslot-plus {
+  background: var(--j-brand-tint);
+}
+.jslot.is-open b {
+  color: var(--j-brand-deep);
+}
+/* ผ่านกำหนดแล้วและไม่มีบันทึก: ช่องว่างธรรมดา พื้นครีมอ่อน ขอบบาง ไม่มีไอคอน/ข้อความ */
+.jslot.is-closed .jslot-plus {
+  background: var(--j-bg);
+  border: 1px solid var(--j-line);
+}
+.jslot b {
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.jslot small {
+  font-size: 0.75rem;
+  color: var(--j-ink-2);
+}
+.jslot-more {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(20, 18, 24, 0.66);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+/* ปฏิทิน: วันที่ผ่านกำหนดบันทึกและไม่มีบันทึก ตัวเลขจางลง */
+.jcal-cell.is-closed .jcal-num {
+  color: var(--j-ink-2);
 }
 .jstart-msg {
-  margin: 0 4px 10px;
+  margin: 0 4px 12px;
   text-align: center;
   font-size: 0.86rem;
   line-height: 1.55;
@@ -1104,16 +1177,502 @@ body.journal ::selection {
   width: 100%;
   min-height: 48px;
 }
-.jprofday {
-  margin: 0 0 16px;
-  padding: 0 2px;
+.jcard-head .jlink i {
+  font-size: 0.85em;
 }
-.jprofday-label {
-  margin: 0 0 4px;
+
+/* =====================================================================
+   รอบแก้จาก critique: หัวโปรไฟล์แถวเดียว, แถบ 4 วันแถวเดียวทุกขนาดจอ, ฟอร์มเบาลง, เป้ากดอย่างน้อย 44px
+   ===================================================================== */
+
+/* หัวโปรไฟล์ไดอารี่: รูป 56px อยู่ซ้าย ชื่อ ป้าย Lv และ bio อยู่ขวาในแถวเดียว (ไม่มีอีเมล/การ์ด XP บนหน้า) */
+/* รูปอยู่ในเนื้อหาปกติ (ไม่ใช้ absolute ที่หลุดออกนอก padding ของคอลัมน์) แล้วดึงบล็อกชื่อขึ้นมาข้างรูป */
+.prof-diarymode .ighead {
+  display: block;
+  padding: 18px 0 0;
+  height: 74px;
+}
+.prof-diarymode .igavatar {
+  width: 56px;
+  height: 56px;
+  font-size: 1.3rem;
+  border-width: 2px;
+}
+.prof-diarymode .ignamewrap {
+  min-height: 56px;
+  margin-top: -56px;
+  padding: 0 0 14px 70px;
+}
+.prof-diarymode .profbio {
+  margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--j-ink-2);
+}
+.prof-diarymode .profrole {
+  border: none;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-height: 28px;
+  cursor: pointer;
+}
+.prof-diarymode .profrole:hover {
+  background: var(--j-brand-tint);
+}
+
+/* ปุ่มรองบนหน้าโปรไฟล์/ไดอารี่: เป้ากดสูงอย่างน้อย 44px */
+.journal .igbtn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.jcard-head .jlink {
+  min-height: 44px;
+  padding: 0 4px;
+}
+.journal .jchip {
+  min-height: 44px;
+}
+.journal .profcardbtnhint,
+.journal .profemail {
+  color: var(--j-ink-2);
+}
+.jhead-text p {
+  text-wrap: balance;
+}
+
+/* แถบ 4 วัน: แถวเดียว 4 ช่องทุกขนาดจอ (ลำดับเวลาอ่านซ้าย → ขวา ไม่กลายเป็นตัว Z บนมือถือ) */
+.jlatest {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.jslot b {
+  font-size: 0.8rem;
+  -webkit-line-clamp: 1;
+  word-break: keep-all;
+}
+.jslot small {
+  font-size: 0.75rem;
+}
+.jslot.is-closed .jslot-plus {
+  background: transparent;
+  border: 1px dashed var(--j-line);
+}
+.jslot.is-closed small {
+  color: var(--j-ink-2);
+}
+.jslot-more {
+  top: 4px;
+  right: 4px;
+  padding: 1px 6px;
+  font-size: 0.75rem;
+}
+.jfav.is-single li::before {
+  display: none;
+}
+
+/* ฟอร์ม: ปุ่มเลือกวัน (วันนี้ / เมื่อวาน) + รายละเอียดเพิ่มเติมแบบพับได้ */
+.jseg {
+  display: flex;
+  gap: 8px;
+}
+.jseg-opt {
+  flex: 1;
+  position: relative;
+}
+.jseg-opt input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.jseg-opt span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid var(--j-line);
+  border-radius: 12px;
+  background: var(--j-card);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--j-ink);
+}
+.jseg-opt input:checked + span {
+  border-color: var(--j-brand);
+  background: var(--j-brand-tint);
+  color: var(--j-brand-deep);
+  box-shadow: inset 0 0 0 1px var(--j-brand);
+}
+.jseg-opt input:focus-visible + span {
+  outline: 2px solid var(--j-brand);
+  outline-offset: 2px;
+}
+.jmore {
+  margin: 0 0 14px;
+  border-top: 1px solid var(--j-line);
+}
+.jmore summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--j-brand-deep);
+  list-style: none;
+}
+.jmore summary::-webkit-details-marker {
+  display: none;
+}
+.jmore summary::before {
+  content: "+";
+  width: 1.2em;
+  font-weight: 700;
+}
+.jmore[open] summary::before {
+  content: "−";
+}
+
+/* =====================================================================
+   โปรไฟล์นักชิม (public-profile.html#ppUser) — หัวโปรไฟล์ · ตัวเลข · แท็บ ไดอารี่ / ร้านโปรด / เกี่ยวกับ
+   มือถือ: หัวโปรไฟล์จัดกลาง กริดไดอารี่ 1 คอลัมน์ · จอกว้าง: หัวโปรไฟล์เรียงแนวนอน กริด 2 คอลัมน์
+   ===================================================================== */
+#ppContent { padding-bottom: 120px; }
+.ppu {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 12px 16px 120px;
+}
+.ppu[hidden] { display: none; }
+.ppu-head {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 4px;
+  padding: 0 18px 18px;
+  margin-top: 44px;
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-radius) var(--j-radius) 0 0;
+  border-bottom: none;
+}
+.ppu-avatar {
+  width: 96px;
+  height: 96px;
+  margin-top: -44px;
+  border-radius: 50%;
+  border: 4px solid var(--j-card);
+  background: var(--j-cream) center / cover no-repeat;
+  color: var(--j-brand-deep);
+  display: grid;
+  place-items: center;
+  font-size: 2.2rem;
+  font-weight: 700;
+  box-shadow: var(--j-shadow);
+}
+.ppu-name {
+  margin: 10px 0 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--j-ink);
+  overflow-wrap: anywhere;
+}
+.ppu-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: var(--j-brand-tint);
+  color: var(--j-brand-deep);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.ppu-bio {
+  max-width: 46ch;
+  margin: 8px 0 0;
+  color: var(--j-ink-2);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+.ppu-bio[hidden] { display: none; }
+.ppu-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.ppu-follow { min-width: 148px; }
+.ppu-follow[hidden] { display: none; }
+.ppu-follow.is-on {
+  background: var(--j-card);
+  border-color: var(--j-line);
+  color: var(--j-ink);
+}
+.ppu-follow.is-on:hover { border-color: var(--j-ink-2); }
+
+.ppu-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: 0 0 var(--j-radius) var(--j-radius);
+}
+.ppu-stats li { display: flex; border-left: 1px solid var(--j-line); }
+.ppu-stats li:first-child { border-left: none; }
+.ppu-stats li,
+.ppu-stats button {
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 64px;
+  padding: 10px 4px;
+}
+.ppu-stats button {
+  display: flex;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 0;
+}
+.ppu-stats button:hover b { color: var(--j-brand); }
+.ppu-stats b {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--j-ink);
+  font-variant-numeric: tabular-nums;
+}
+.ppu-stats span {
+  font-size: 0.75rem;
+  color: var(--j-ink-2);
+  text-align: center;
+}
+
+.ppu-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--j-line);
+}
+.ppu-tab {
+  min-height: 46px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--j-ink-2);
+  cursor: pointer;
+}
+.ppu-tab:hover { color: var(--j-ink); }
+.ppu-tab.active {
+  color: var(--j-brand-deep);
+  border-bottom-color: var(--j-brand);
+}
+.ppu-pane:focus-visible { outline: 2px solid var(--j-brand); outline-offset: 4px; border-radius: 8px; }
+.ppu-pane { padding: 0; }
+.ppu-pane[hidden] { display: none; }
+
+.ppu-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ppu-grid[hidden] { display: none; }
+@media (min-width: 560px) {
+  .ppu-grid { grid-template-columns: 1fr 1fr; }
+}
+.ppu-entry {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: 16px;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.ppu-entry:hover { border-color: var(--j-ink-2); box-shadow: var(--j-shadow); }
+.ppu-entry-img {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  object-fit: cover;
+  background: var(--j-cream);
+  display: block;
+}
+.ppu-entry-noimg {
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  background: var(--j-cream);
+  color: var(--j-ink-2);
+  font-size: 1.6rem;
+}
+.ppu-entry-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px 14px;
+}
+.ppu-entry-dish {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--j-ink);
+  overflow-wrap: anywhere;
+}
+.ppu-entry-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 0.78rem;
+  color: var(--j-ink-2);
+}
+.ppu-entry-meta i { margin-right: 4px; }
+.ppu-entry-note {
+  margin: 4px 0 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--j-ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.ppu-all { margin-top: 14px; }
+.ppu-all[hidden] { display: none; }
+
+.ppu-empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 36px 20px;
+  text-align: center;
+  background: var(--j-card);
+  border: 1px dashed var(--j-line);
+  border-radius: 16px;
+}
+.ppu-empty[hidden] { display: none; }
+.ppu-empty > i {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--j-brand-tint);
+  color: var(--j-brand-deep);
+  font-size: 1.2rem;
+}
+.ppu-empty p { margin: 0; color: var(--j-ink-2); font-size: 0.9rem; }
+.ppu-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 0;
+  color: var(--j-ink-2);
+  font-size: 0.85rem;
+}
+.ppu-loading[hidden] { display: none; }
+.ppu-note {
+  margin: 0 0 12px;
+  font-size: 0.8rem;
+  color: var(--j-ink-2);
+}
+.ppu-note[hidden] { display: none; }
+
+.ppu-shops {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.ppu-shops[hidden] { display: none; }
+.ppu-shop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--j-line);
+  color: inherit;
+  text-decoration: none;
+}
+li:first-child > .ppu-shop { border-top: none; }
+a.ppu-shop:hover { background: var(--j-bg); }
+.ppu-shop-rank {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--j-cream);
+  color: var(--j-brand-deep);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.ppu-shop-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ppu-shop-text b { font-size: 0.92rem; color: var(--j-ink); overflow-wrap: anywhere; }
+.ppu-shop-text small { font-size: 0.78rem; color: var(--j-ink-2); }
+.ppu-shop > .fa-chevron-right { color: var(--j-ink-2); font-size: 0.75rem; }
+
+.ppu-about { margin-bottom: 14px; }
+.ppu-about h3 {
+  margin: 0 0 6px;
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--j-ink);
 }
-.jprofday .jmuted {
-  padding: 8px 0;
+.ppu-about p { margin: 0; font-size: 0.9rem; line-height: 1.6; color: var(--j-ink); white-space: pre-line; overflow-wrap: anywhere; }
+.ppu-about p.is-empty { color: var(--j-ink-2); }
+.ppu-about .ppu-joined { margin-top: 10px; font-size: 0.8rem; color: var(--j-ink-2); }
+.ppu-about .ppu-joined[hidden] { display: none; }
+.ppu .ppdna-tit { font-size: 0.9rem; }
+
+/* จอกว้าง: รูปซ้าย ชื่อ/bio กลาง ปุ่มขวา แบบหน้าโปรไฟล์ฟรีแลนซ์ */
+@media (min-width: 640px) {
+  .ppu-head {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: "av name act" "av role act" "av bio act";
+    justify-items: start;
+    align-items: center;
+    text-align: left;
+    column-gap: 18px;
+    margin-top: 16px;
+    padding: 22px 22px 20px;
+  }
+  .ppu-avatar { grid-area: av; margin-top: 0; align-self: start; }
+  .ppu-name { grid-area: name; margin-top: 0; }
+  .ppu-role { grid-area: role; }
+  .ppu-bio { grid-area: bio; margin-top: 4px; }
+  .ppu-actions { grid-area: act; margin-top: 0; align-self: start; }
 }

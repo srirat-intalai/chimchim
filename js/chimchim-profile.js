@@ -43,18 +43,6 @@ document.getElementById("profSignupBtn").addEventListener("click", function() {
 	openAuthPop("register");
 });
 
-var logoutBtnEl = document.getElementById("logoutBtn");
-if (logoutBtnEl) {
-	logoutBtnEl.addEventListener("click", function() {
-		clearSession();
-		if (typeof sbSignOut === "function") sbSignOut();
-		showToast(t("profile.logoutToast"));
-		setTimeout(function() {
-			window.location.reload();
-		}, 400);
-	});
-}
-
 if (!session) {
 	document.getElementById("profGuestBox").hidden = false;
 	// มาจาก "+ เพิ่มโปรไฟล์ → บัญชีส่วนตัว" (ออกจากบัญชีเดิมแล้ว) — เปิดหน้าสมัครให้เลย
@@ -178,34 +166,60 @@ function wireSwitcherButtons() {
    ไดอารี่ของฉัน (3 รายการล่าสุด) + สถิติการกิน + ร้านโปรด — อ่านจาก chimchim-diary-store.js
    ชุดเดียวกับหน้า diary.html ทุกตัวเลขคำนวณจากบันทึกจริง ไม่มีบันทึก = แสดงสถานะว่าง ไม่เติมค่าสมมติ
    ===================================================================== */
-// bootProfile() ถูกเรียกตั้งแต่ต้นไฟล์ ก่อนบรรทัดนี้ทำงาน — จึงตั้งค่าเริ่มต้นในฟังก์ชัน ไม่ใช่ตอนประกาศตัวแปร
-var profCal;
+// ช่องไดอารี่ของวันหนึ่งบนโปรไฟล์ — คืน <li>
+function diarySlot(key, entries) {
+	var dayEntries = entries.filter(function(e) { return e.date === key; });
+	var withPhoto = dayEntries.filter(function(e) { return e.img; })[0];
+	// ป้ายสั้นพอดีช่องแคบบนมือถือ: วันนี้ / เมื่อวาน / "อ. 27"
+	var label = key === diaryToday() ? t("diary.today")
+		: key === diaryAddDays(diaryToday(), -1) ? t("diary.yesterday")
+		: diaryFormatDate(key, { weekday: "short", day: "numeric" });
+	var fullDate = diaryFormatDate(key, { weekday: "long", day: "numeric", month: "long" });
+	var li = document.createElement("li");
+	var el;
+	if (dayEntries.length) {
+		// มีบันทึก (รวมวันที่ปิดรับแล้ว) เปิดดูได้เสมอ: 1 รายการ = รายละเอียดเลย / หลายรายการ = วันนั้นในปฏิทิน
+		el = document.createElement("a");
+		el.className = "jslot has-entry";
+		el.href = dayEntries.length === 1
+			? "diary.html?entry=" + encodeURIComponent(dayEntries[0].id) + "&date=" + encodeURIComponent(key)
+			: "diary.html?date=" + encodeURIComponent(key);
+		el.innerHTML = (withPhoto ? '<img alt="" loading="lazy"/>' : '<span class="jslot-noimg" aria-hidden="true"><i class="fas fa-utensils"></i></span>') +
+			(dayEntries.length > 1 ? '<span class="jslot-more"></span>' : "") + "<b></b><small></small>";
+		if (withPhoto) el.querySelector("img").src = safeImgSrc(withPhoto.img);
+		if (dayEntries.length > 1) el.querySelector(".jslot-more").textContent = t("diary.entryCount").replace("{n}", dayEntries.length);
+		el.querySelector("b").textContent = (withPhoto || dayEntries[0]).dish;
+	} else if (diaryCanRecord(key)) {
+		el = document.createElement("a");
+		el.className = "jslot is-open";
+		el.href = "diary.html?new=1&return=profile&date=" + encodeURIComponent(key);
+		el.innerHTML = '<span class="jslot-plus" aria-hidden="true"><i class="fas fa-plus"></i></span><small></small>';
+		el.setAttribute("aria-label", t("profile.slotAdd") + " — " + fullDate);
+	} else {
+		// ผ่านกำหนดแล้วและไม่มีบันทึก — ช่องว่างธรรมดา มีแค่วันที่ ไม่ใช่ลิงก์ กดแล้วไม่เปิดฟอร์ม
+		el = document.createElement("div");
+		el.className = "jslot is-closed";
+		// ข้อความสำหรับโปรแกรมอ่านหน้าจออยู่ในเนื้อหาจริง (aria-label บน div ที่กดไม่ได้ หลายตัวไม่อ่าน)
+		el.innerHTML = '<span class="jslot-plus" aria-hidden="true"></span><small></small><span class="jvisually-hidden"></span>';
+		el.querySelector(".jvisually-hidden").textContent = fullDate + " — " + t("profile.slotEmpty");
+		el.querySelector("small").setAttribute("aria-hidden", "true");
+	}
+	el.querySelector("small").textContent = label;
+	if (dayEntries.length) el.setAttribute("aria-label", fullDate + " — " + el.querySelector("b").textContent);
+	li.appendChild(el);
+	return li;
+}
 function renderProfileDiary() {
 	if (typeof diaryLoad !== "function") return;
-	profCal = profCal || { month: null, selected: null, entries: [] };
-	var card = document.getElementById("profDiaryCard");
-	var extras = document.getElementById("profDiaryExtras");
-	card.hidden = false;
-	extras.hidden = false;
-	document.getElementById("profDiaryStart").hidden = false;
-	var params = new URLSearchParams(window.location.search);
-	// เพิ่งบันทึกจากปุ่มใต้ปฏิทิน (?diaryDate=) → เปิดเดือน/วันของบันทึกนั้นให้เห็นทันที
-	var startKey = diaryParseKey(params.get("diaryDate")) ? params.get("diaryDate") : (profCal.selected || diaryToday());
-	profCal.selected = startKey;
-	var d0 = diaryParseKey(startKey);
-	if (!profCal.month) profCal.month = new Date(d0.getFullYear(), d0.getMonth(), 1);
-	if (params.get("diarySaved") === "1") {
+	document.getElementById("profDiaryCard").hidden = false;
+	document.getElementById("profDiaryExtras").hidden = false;
+	if (new URLSearchParams(window.location.search).get("diarySaved") === "1") {
 		showToast(t("diary.saved"));
 		history.replaceState(null, "", "profile.html?as=self");
 	}
-	if (!card.__wired) {
-		card.__wired = true;
-		renderDiaryWeekdays(document.getElementById("profCalWeek"));
-		document.getElementById("profCalPrev").addEventListener("click", function() { shiftProfCal(-1); });
-		document.getElementById("profCalNext").addEventListener("click", function() { shiftProfCal(1); });
-	}
 	paint(diarySort(diaryReadCache()));
 	diaryLoad().then(function(res) {
+		document.getElementById("profDiaryLatest").setAttribute("aria-busy", "false");
 		var note = document.getElementById("profDiaryNote");
 		note.hidden = res.source !== "cache";
 		note.textContent = note.hidden ? "" : t("profile.diaryLoadFailed");
@@ -213,13 +227,16 @@ function renderProfileDiary() {
 	});
 
 	function paint(entries) {
-		profCal.entries = entries;
-		paintProfCalendar();
-		// ปุ่มใต้ปฏิทิน: ยังไม่มีบันทึก = ชวนเริ่มมื้อแรก / มีแล้ว = บันทึกมื้อต่อไป (เปิดฟอร์มที่วันที่เลือกถ้าไม่ใช่อนาคต)
-		var none = !entries.length;
-		document.getElementById("profDiaryStartMsg").hidden = !none;
-		document.getElementById("profDiaryAddText").textContent = t(none ? "profile.diaryStart" : "profile.diaryAdd");
-		document.getElementById("profDiaryAll").hidden = none;
+		// 4 ช่อง = 4 วันจริงล่าสุด ตามเวลาไทย เรียงเก่า → ใหม่ (ซ้าย → ขวา แบบปฏิทิน) "วันนี้" อยู่ช่องขวาสุด
+		// มีบันทึก = รูป/ชื่อเมนูของวันนั้น / ไม่มี + ยังเปิดบันทึก (วันนี้/เมื่อวาน) = ช่อง + / ไม่มี + เลยกำหนด = ช่องว่างธรรมดา
+		var list = document.getElementById("profDiaryLatest");
+		list.innerHTML = "";
+		var today = diaryToday();
+		for (var i = 3; i >= 0; i--) list.appendChild(diarySlot(diaryAddDays(today, -i), entries));
+		document.getElementById("profDiaryStartMsg").hidden = entries.length > 0;
+		var addText = document.getElementById("profDiaryAddText");
+		addText.setAttribute("data-i18n", entries.length ? "profile.diaryAdd" : "profile.diaryStart"); // เปลี่ยนภาษาแล้วป้ายตามด้วย
+		addText.textContent = t(addText.getAttribute("data-i18n"));
 
 		var st = diaryStats(entries);
 		var stats = document.getElementById("profStats");
@@ -261,59 +278,10 @@ function renderProfileDiary() {
 			fav.appendChild(li);
 		});
 		fav.hidden = !favs.length;
+		fav.classList.toggle("is-single", favs.length === 1); // ร้านเดียวไม่ต้องมีเลขลำดับ (ไม่ใช่ตารางอันดับ)
 		document.getElementById("profFavEmpty").hidden = favs.length > 0;
 	}
 }
-function shiftProfCal(delta) {
-	var m = profCal.month;
-	profCal.month = new Date(m.getFullYear(), m.getMonth() + delta, 1);
-	paintProfCalendar();
-}
-function selectProfCalDate(key) {
-	profCal.selected = key;
-	var d = diaryParseKey(key);
-	if (d.getMonth() !== profCal.month.getMonth() || d.getFullYear() !== profCal.month.getFullYear()) profCal.month = new Date(d.getFullYear(), d.getMonth(), 1);
-	paintProfCalendar();
-}
-// ปฏิทิน (ตัวเดียวกับหน้าไดอารี่) + รายการของวันที่เลือกใต้ปุ่มบันทึก
-function paintProfCalendar() {
-	renderDiaryCalendar({
-		label: document.getElementById("profCalMonth"),
-		grid: document.getElementById("profCalGrid")
-	}, profCal.month, profCal.selected, profCal.entries, selectProfCalDate);
-	var key = profCal.selected;
-	var dayEntries = profCal.entries.filter(function(e) { return e.date === key; });
-	var add = document.getElementById("profDiaryAdd");
-	add.href = "diary.html?new=1&return=profile" + (key <= diaryToday() ? "&date=" + encodeURIComponent(key) : "");
-	var section = document.getElementById("profCalDay");
-	// ยังไม่มีบันทึกเลยสักมื้อ: ข้อความชวนเริ่มใต้ปุ่มบอกแล้ว ไม่ต้องมีกล่องวันว่างซ้ำ
-	section.hidden = !profCal.entries.length;
-	if (section.hidden) return;
-	document.getElementById("profCalDayLabel").textContent = key === diaryToday()
-		? t("diary.today") + " · " + diaryFormatDate(key, { day: "numeric", month: "long" })
-		: diaryFormatDate(key, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-	var list = document.getElementById("profDiaryList");
-	list.innerHTML = "";
-	dayEntries.forEach(function(e) {
-		var li = document.createElement("li");
-		li.innerHTML =
-			'<a class="jrecent-item">' +
-				(e.img ? '<img alt="" loading="lazy"/>' : '<span class="jrecent-noimg" aria-hidden="true"><i class="fas fa-utensils"></i></span>') +
-				'<span class="jrecent-text"><b></b><small></small></span>' +
-				'<i class="fas fa-chevron-right" aria-hidden="true"></i>' +
-			"</a>";
-		li.querySelector("a").href = "diary.html?entry=" + encodeURIComponent(e.id) + "&date=" + encodeURIComponent(e.date);
-		if (e.img) li.querySelector("img").src = safeImgSrc(e.img);
-		li.querySelector("b").textContent = e.dish;
-		li.querySelector("small").textContent = [e.time ? e.time + (getLang() === "th" ? " น." : "") : "", e.shop].filter(Boolean).join(" · ");
-		list.appendChild(li);
-	});
-	list.hidden = !dayEntries.length;
-	var empty = document.getElementById("profCalDayEmpty");
-	empty.hidden = dayEntries.length > 0;
-	empty.textContent = empty.hidden ? "" : t("diary.emptyOtherDay");
-}
-
 /* =====================================================================
    โปรไฟล์ร้าน — ข้อมูลจากแถวร้านที่ตรวจสิทธิ์แล้ว (เจ้าของจริงเท่านั้น), โพสต์ของร้าน, รีวิวจากลูกค้า
    ซ่อนส่วนของโปรไฟล์ส่วนตัวทั้งหมด (อีเมล เลเวล Food DNA ถูกใจ บันทึกไว้ รีวิวของฉัน กำลังติดตาม)
@@ -403,7 +371,7 @@ function renderShopReviews(shop) {
 			label: (r.author || "") + " " + avg,
 			extraClass: imgs.length ? "" : "is-text",
 			html: imgs.length
-				? '<img src="' + safeImgSrc(imgs[0]) + '" alt="" loading="lazy"/>' + score + '<span class="profgtile-cap">' + escapeHtml(r.author || "") + "</span>"
+				? '<img loading="lazy" decoding="async" src="' + safeImgSrc(imgs[0]) + '" alt="" loading="lazy"/>' + score + '<span class="profgtile-cap">' + escapeHtml(r.author || "") + "</span>"
 				: '<span class="profgtile-text"><b>' + escapeHtml(r.author || "") + '</b><span class="profgtile-quote">' + escapeHtml(r.text || t("restaurant.noReviewText")) + "</span></span>" + score,
 			onOpen: function() { window.location.href = "restaurant.html?id=" + encodeURIComponent(shop.numId); }
 		}));
@@ -532,8 +500,12 @@ function renderPersonalProfile() {
 	}
 	// โปรไฟล์ส่วนตัว = โปรไฟล์ไดอารี่อาหาร ไม่มีโพสต์/แท็บกิจกรรม/ตัวเลขโพสต์-ผู้ติดตามแบบโซเชียลแล้ว
 	// (ข้อมูลโพสต์เดิมยังอยู่ครบ ฟีดหน้าแรกและโปรไฟล์ร้านยังใช้) — โพสต์/รีวิวเดิมยังนับ XP เลยยัง sync ไว้
+	// หัวโปรไฟล์แถวเดียว (รูปเล็ก ชื่อ ป้าย Lv bio) ให้ไดอารี่ขึ้นมาอยู่ในจอแรก — อีเมลดูได้ในหน้าตั้งค่า
+	// การ์ด XP ย้ายไปอยู่ในป้าย Lv (กดแล้วเปิดรายละเอียด) ไม่เป็นการ์ดใหญ่บนหน้าไดอารี่แล้ว
 	document.body.classList.add("prof-diarymode");
 	document.querySelector("#profContent .ighead .igstats").hidden = true;
+	document.getElementById("profEmail").hidden = true;
+	document.getElementById("profLevelCard").hidden = true;
 	if (typeof syncPostsWithSupabase === "function") syncPostsWithSupabase(refreshLevelCard);
 	syncPersonalExtras(me);
 	setupDiaryPrivacy();
@@ -631,7 +603,7 @@ function initMyPosts() {
 		chosenImages.forEach(function(src, idx) {
 			var thumb = document.createElement("div");
 			thumb.className = "postimgthumb" + (idx === 0 ? " iscover" : "");
-			thumb.innerHTML = '<img src="' + safeImgSrc(src) + '" alt=""/>' +
+			thumb.innerHTML = '<img loading="lazy" decoding="async" src="' + safeImgSrc(src) + '" alt=""/>' +
 				(idx === 0 ? '<span class="postimgcover">' + t("profile.coverPhoto") + '</span>' : "") +
 				'<button type="button" title="' + t("common.removePhoto") + '"><i class="fas fa-times"></i></button>';
 			thumb.querySelector("button").addEventListener("click", function(e) {
@@ -1057,6 +1029,10 @@ function refreshLevelCard() {
 		? t("level.toNext").replace("{n}", lv.next - info.xp).replace("{name}", lv.nextName)
 		: t("level.maxed");
 	card.setAttribute("aria-label", "Lv." + lv.level + " " + lv.name + ", " + info.xp + " XP");
+	// โปรไฟล์ไดอารี่ไม่แสดงการ์ด XP บนหน้า — กดป้าย Lv ข้างชื่อแล้วเปิดรายละเอียดเลเวลชุดเดียวกัน
+	var rolePill = document.getElementById("profRole");
+	rolePill.setAttribute("aria-label", t("level.title") + ": Lv." + lv.level + " " + lv.name + ", " + info.xp + " XP");
+	rolePill.onclick = function() { card.onclick(); };
 	card.onclick = function() {
 		var rows = CHIMCHIM_XP_RULES.map(function(r) {
 			var n = info.counts[r.key] || 0;
@@ -1132,7 +1108,7 @@ function profPostTile(item) {
 		label: item.caption || item.posterName || "",
 		extraClass: item.images.length ? "" : "is-text",
 		html: item.images.length
-			? '<img src="' + safeImgSrc(item.images[0]) + '" alt="" loading="lazy"/>' +
+			? '<img loading="lazy" decoding="async" src="' + safeImgSrc(item.images[0]) + '" alt="" loading="lazy"/>' +
 				(item.images.length > 1 ? '<i class="fas fa-clone profgtile-ico" aria-hidden="true"></i>' : "")
 			: '<span class="profgtile-text"><b>' + escapeHtml(item.posterName || "") + '</b><span class="profgtile-quote">' + escapeHtml(item.caption || "") + "</span></span>",
 		onOpen: function() {
@@ -1143,7 +1119,7 @@ function profPostTile(item) {
 function profShopTile(ร้าน) {
 	return profGridTile({
 		label: ร้าน.ร้าน,
-		html: '<img src="' + safeImgSrc(ร้าน.รูป) + '" alt="" loading="lazy"/>' +
+		html: '<img loading="lazy" decoding="async" src="' + safeImgSrc(ร้าน.รูป) + '" alt="" loading="lazy"/>' +
 			'<i class="fas fa-store profgtile-ico" aria-hidden="true"></i>' +
 			'<span class="profgtile-cap">' + escapeHtml(ร้าน.ร้าน) + "</span>",
 		onOpen: function() { window.location.href = "restaurant.html?id=" + ร้าน.id; }
@@ -1154,7 +1130,7 @@ function profReviewTile(r, ร้าน) {
 	var avg = Math.round((r.taste + r.atmosphere + r.service) / 3 * 10) / 10;
 	var score = '<span class="profgtile-score"><i class="fas fa-star" aria-hidden="true"></i>' + avg + "</span>";
 	var html = r.images.length
-		? '<img src="' + safeImgSrc(r.images[0]) + '" alt="" loading="lazy"/>' + score +
+		? '<img loading="lazy" decoding="async" src="' + safeImgSrc(r.images[0]) + '" alt="" loading="lazy"/>' + score +
 			(r.images.length > 1 ? '<i class="fas fa-clone profgtile-ico" aria-hidden="true"></i>' : "") +
 			'<span class="profgtile-cap">' + escapeHtml(ร้าน.ร้าน) + "</span>"
 		: '<span class="profgtile-text">' +

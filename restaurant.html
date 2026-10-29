@@ -16,7 +16,7 @@
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
       <link rel="stylesheet" href="css/all.min.css"/>
       <link rel="stylesheet" href="css/style.css" />
       <link rel="stylesheet" href="css/chimchim-refresh.css" />
@@ -24,10 +24,10 @@
    <body class="appshell">
       <div class="rdhero">
          <img id="rdImg" src="" alt=""/>
-         <a href="javascript:history.back()" class="rdheroback"><i class="fas fa-arrow-left"></i></a>
+         <a href="javascript:history.back()" class="rdheroback" data-i18n-aria="common.back" aria-label="ย้อนกลับ"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
          <button class="rdherosave" id="rdSaveBtn"><i class="far fa-heart"></i><span class="rdlikecount" id="rdLikeCount"></span></button>
          <button class="rdherobookmark" id="rdBookmarkBtn" aria-label="Save for later"><i class="far fa-bookmark"></i></button>
-         <button class="rdheroshare" id="rdShareBtn"><i class="fas fa-share-nodes"></i></button>
+         <button type="button" class="rdheroshare" id="rdShareBtn" data-i18n-aria="common.share" aria-label="แชร์ร้านนี้"><i class="fas fa-share-nodes" aria-hidden="true"></i></button>
          <button class="rdheroreport" id="rdReportBtn" hidden><i class="fas fa-flag"></i></button>
       </div>
 
@@ -43,7 +43,7 @@
 
       <div class="rdbody" id="rdBody">
          <div class="rdcat" id="rdCat"></div>
-         <div class="rdtitle" id="rdTitle"></div>
+         <h1 class="rdtitle" id="rdTitle"></h1>
          <div class="rdmeta">
             <a id="rdRestaurant" href="javascript:void(0)"></a>
             <span><i class="fas fa-tag"></i><span id="rdPrice"></span></span>
@@ -75,7 +75,7 @@
             <button class="rdtab" data-tab="posts" id="rdPostsTab" hidden><span data-i18n="restaurant.posts">โพสต์</span> (<span id="rdPostCount">0</span>)</button>
          </div>
          <div class="rdpane active" id="rdPaneOverview">
-            <p style="font-size:.85rem;color:#888;line-height:1.8;" data-i18n="restaurant.pilotNote">ร้านนี้อยู่ในระบบ ChimChim พร้อมให้บริการนักศึกษาในพื้นที่นำร่อง หากไปถึงแล้วจำได้ว่าเจอร้านนี้จาก ChimChim บอกพนักงานได้เลยว่ามาจากแอป 🦖</p>
+            <p class="rdpilotnote" data-i18n="restaurant.pilotNote">ร้านนี้อยู่ในระบบ ChimChim พร้อมให้บริการนักศึกษาในพื้นที่นำร่อง หากไปถึงแล้วจำได้ว่าเจอร้านนี้จาก ChimChim บอกพนักงานได้เลยว่ามาจากแอป 🦖</p>
          </div>
          <div class="rdpane" id="rdPaneReviews">
             <div id="rdReviewList"></div>
@@ -103,7 +103,7 @@
          ============================================================ -->
       <div id="authPop">
          <div class="apbox">
-            <button class="apclose" id="apClose"><i class="fas fa-times"></i></button>
+            <button class="apclose" id="apClose" data-i18n-title="common.close" title="ปิด"><i class="fas fa-times" aria-hidden="true"></i></button>
             <div class="aptabs">
                <button class="aptab active" id="apTabLogin" data-tab="login" data-i18n="auth.login">เข้าสู่ระบบ</button>
                <button class="aptab" id="apTabRegister" data-tab="register" data-i18n="auth.register">สมัครสมาชิก</button>
@@ -111,20 +111,20 @@
             <img class="apdino" src="img/Dino/4.png" alt="Dino ต้อนรับสมาชิกใหม่"/>
             <form id="loginForm" class="apform">
                <div class="aperr" id="loginErr"></div>
-               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <label class="flbl" for="loginEmail" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email" required/>
-               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <label class="flbl" for="loginPassword" data-i18n="auth.password">รหัสผ่าน</label>
                <input class="fctrl" type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-right-to-bracket"></i><span data-i18n="auth.login">เข้าสู่ระบบ</span></button>
                <p class="apnote"><span data-i18n="auth.noAccount">ยังไม่มีบัญชี?</span> <a href="#" data-switch="register" data-i18n="auth.registerLink">สมัครสมาชิกเลย</a></p>
             </form>
             <form id="registerForm" class="apform" style="display:none;">
                <div class="aperr" id="registerErr"></div>
-               <label class="flbl" data-i18n="auth.yourName">ชื่อของคุณ</label>
+               <label class="flbl" for="registerName" data-i18n="auth.yourName">ชื่อของคุณ</label>
                <input class="fctrl" type="text" id="registerName" placeholder="ชื่อ นามสกุล" autocomplete="name" required/>
-               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <label class="flbl" for="registerEmail" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="registerEmail" placeholder="you@email.com" autocomplete="email" required/>
-               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <label class="flbl" for="registerPassword" data-i18n="auth.password">รหัสผ่าน</label>
                <input class="fctrl" type="password" id="registerPassword" placeholder="อย่างน้อย 4 ตัวอักษร" autocomplete="new-password" required/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-egg"></i><span data-i18n="auth.createAccount">สร้างบัญชี</span></button>
                <p class="apnote"><span data-i18n="auth.haveAccount">มีบัญชีอยู่แล้ว?</span> <a href="#" data-switch="login" data-i18n="auth.loginLink">เข้าสู่ระบบ</a></p>

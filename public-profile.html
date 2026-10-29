@@ -16,7 +16,7 @@
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
       <link rel="stylesheet" href="css/all.min.css"/>
       <link rel="stylesheet" href="css/style.css" />
       <link rel="stylesheet" href="css/chimchim-refresh.css" />
@@ -24,8 +24,8 @@
    </head>
    <body class="appshell journal">
       <div class="obtopnav" style="max-width:520px;margin:0 auto;padding:20px 20px 0;">
-         <button class="obback" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
-         <span class="obstepnum" data-i18n="nav.profile">โปรไฟล์</span>
+         <button type="button" class="obback" onclick="history.back()" data-i18n-aria="common.back" aria-label="ย้อนกลับ"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+         <h1 class="obstepnum" data-i18n="nav.profile">โปรไฟล์</h1>
          <span style="width:38px;"></span>
       </div>
 
@@ -60,29 +60,9 @@
 
          <p class="sdesc mb-3" id="ppBio" style="font-size:.85rem;"></p>
 
-         <!-- Food DNA ของนักชิมคนนี้ (สาธารณะ) — แสดงเฉพาะโปรไฟล์ผู้ใช้ที่ทำแบบทดสอบแล้ว -->
-         <section class="ppdna" id="ppDna" hidden aria-labelledby="ppDnaTit">
-            <div class="ppdna-head">
-               <h2 class="ppdna-tit" id="ppDnaTit"><i class="fas fa-dna"></i><span data-i18n="publicprofile.foodDna">Food DNA</span></h2>
-               <span class="ppdna-match" id="ppDnaMatch" hidden></span>
-            </div>
-            <div class="ppdna-rows" id="ppDnaRows"></div>
-         </section>
-
          <button class="btn-red profbtn" id="ppFollowBtn"><i class="fas fa-user-plus"></i><span data-i18n="common.follow">Follow</span></button>
 
-         <!-- แท็บ โพสต์ / รีวิว — แสดงเฉพาะโปรไฟล์ร้านค้า (โปรไฟล์นักชิมยังเป็นการ์ดโพสต์ล่าสุดแบบเดิม) -->
-         <!-- ไดอารี่อาหารของผู้ใช้ (แทนกริดโพสต์) — แสดงได้เฉพาะเมื่อเจ้าของตั้งเป็นสาธารณะ ฐานข้อมูลตรวจสิทธิ์เอง -->
-         <section class="jcard" id="ppDiary" aria-labelledby="ppDiaryTitle" hidden>
-            <div class="jcard-head">
-               <h2 id="ppDiaryTitle" data-i18n="publicprofile.diaryTitle">ไดอารี่อาหาร</h2>
-               <a href="#" class="jlink" id="ppDiaryAll" hidden><span data-i18n="publicprofile.diaryAll">ดูไดอารี่ทั้งหมด</span><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
-            </div>
-            <ul class="jrecent" id="ppDiaryList" hidden></ul>
-            <p class="jmuted" id="ppDiaryMsg" role="status"></p>
-            <button type="button" class="jbtn jbtn-quiet" id="ppDiaryLogin" hidden data-i18n="auth.login">เข้าสู่ระบบ</button>
-         </section>
-
+         <!-- แท็บ โพสต์ / รีวิว — แสดงเฉพาะโปรไฟล์ร้านค้า -->
          <div class="proftabs ppshoptabs" id="ppShopTabs" role="tablist" data-i18n-aria="publicprofile.shopTabs" aria-label="โพสต์และรีวิวของร้าน" hidden>
             <button type="button" class="proftab active" role="tab" id="ppTabPosts" data-pptab="posts" aria-controls="ppPostsCard" aria-selected="true" data-i18n-title="publicprofile.tabPosts" title="โพสต์"><i class="fas fa-table-cells"></i></button>
             <button type="button" class="proftab" role="tab" id="ppTabReviews" data-pptab="reviews" aria-controls="ppReviewsPane" aria-selected="false" tabindex="-1" data-i18n-title="publicprofile.tabReviews" title="รีวิว"><i class="fas fa-pen"></i></button>
@@ -104,12 +84,99 @@
          </div>
       </div>
 
+
+      <!-- โปรไฟล์นักชิม: หัวโปรไฟล์ · ตัวเลขจริง · แท็บ ไดอารี่ / ร้านโปรด / เกี่ยวกับ
+           ทุกอย่างมาจากข้อมูลจริง ไดอารี่ส่วนตัวฐานข้อมูลไม่ส่งมาเลย (RLS) หน้านี้แค่บอกตรง ๆ ว่าดูไม่ได้ -->
+      <main class="ppu" id="ppUser" hidden>
+         <section class="ppu-head" aria-labelledby="ppuName">
+            <div class="ppu-avatar" id="ppuAvatar" aria-hidden="true"></div>
+            <h2 class="ppu-name" id="ppuName"></h2>
+            <p class="ppu-role"><i class="fas fa-utensils" aria-hidden="true"></i><span data-i18n="common.chimchimFoodie">นักชิม ChimChim</span></p>
+            <p class="ppu-bio" id="ppuBio" hidden></p>
+            <div class="ppu-actions">
+               <button type="button" class="jbtn jbtn-primary ppu-follow" id="ppuFollow" hidden></button>
+               <button type="button" class="jbtn jbtn-quiet ppu-share" id="ppuShare" data-i18n-aria="publicprofile.share" aria-label="แชร์โปรไฟล์"><i class="fas fa-arrow-up-from-bracket" aria-hidden="true"></i><span data-i18n="publicprofile.shareShort">แชร์</span></button>
+            </div>
+         </section>
+
+         <ul class="ppu-stats" aria-label="สถิติ" data-i18n-aria="publicprofile.statsLabel">
+            <li><b id="ppuStatDiary">–</b><span data-i18n="publicprofile.statDiary">บันทึก</span></li>
+            <li><button type="button" id="ppuFollowersBtn"><b id="ppuStatFollowers">–</b><span data-i18n="profile.statFollowers">ผู้ติดตาม</span></button></li>
+            <li><button type="button" id="ppuFollowingBtn"><b id="ppuStatFollowing">–</b><span data-i18n="profile.statFollowing">กำลังติดตาม</span></button></li>
+            <li><b id="ppuStatShops">–</b><span data-i18n="publicprofile.statShops">ร้าน</span></li>
+         </ul>
+
+         <div class="ppu-tabs" role="tablist" data-i18n-aria="publicprofile.tabsLabel" aria-label="เนื้อหาโปรไฟล์">
+            <button type="button" role="tab" class="ppu-tab active" id="ppuTabDiary" data-tab="diary" aria-controls="ppuPaneDiary" aria-selected="true" data-i18n="publicprofile.tabDiary">ไดอารี่</button>
+            <button type="button" role="tab" class="ppu-tab" id="ppuTabShops" data-tab="shops" aria-controls="ppuPaneShops" aria-selected="false" tabindex="-1" data-i18n="publicprofile.tabShops">ร้านโปรด</button>
+            <button type="button" role="tab" class="ppu-tab" id="ppuTabAbout" data-tab="about" aria-controls="ppuPaneAbout" aria-selected="false" tabindex="-1" data-i18n="publicprofile.tabAbout">เกี่ยวกับ</button>
+         </div>
+
+         <section class="ppu-pane" id="ppuPaneDiary" role="tabpanel" aria-labelledby="ppuTabDiary" tabindex="0">
+            <ul class="ppu-grid" id="ppDiaryList" hidden></ul>
+            <div class="ppu-empty" id="ppDiaryState" hidden>
+               <i class="fas fa-book-open" aria-hidden="true" id="ppDiaryIcon"></i>
+               <p id="ppDiaryMsg" role="status"></p>
+               <button type="button" class="jbtn jbtn-quiet" id="ppDiaryLogin" hidden data-i18n="auth.login">เข้าสู่ระบบ</button>
+            </div>
+            <p class="ppu-loading" id="ppDiaryLoading"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span data-i18n="common.loading">กำลังโหลด…</span></p>
+            <a href="#" class="jlink ppu-all" id="ppDiaryAll" hidden><span data-i18n="publicprofile.diaryAll">ดูไดอารี่ทั้งหมด</span><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+         </section>
+
+         <section class="ppu-pane" id="ppuPaneShops" role="tabpanel" aria-labelledby="ppuTabShops" tabindex="0" hidden>
+            <p class="ppu-note" id="ppShopsNote" hidden data-i18n="publicprofile.shopsNote">จัดอันดับจากร้านที่บันทึกในไดอารี่บ่อยที่สุด</p>
+            <ol class="ppu-shops" id="ppShopsList" hidden></ol>
+            <div class="ppu-empty" id="ppShopsState" hidden>
+               <i class="fas fa-store" aria-hidden="true"></i>
+               <p id="ppShopsMsg" role="status"></p>
+            </div>
+         </section>
+
+         <section class="ppu-pane" id="ppuPaneAbout" role="tabpanel" aria-labelledby="ppuTabAbout" tabindex="0" hidden>
+            <div class="jcard ppu-about">
+               <h3 data-i18n="publicprofile.aboutBio">แนะนำตัว</h3>
+               <p id="ppuAboutBio"></p>
+               <p class="ppu-joined" id="ppuJoined" hidden></p>
+            </div>
+            <section class="ppdna" id="ppDna" hidden aria-labelledby="ppDnaTit">
+               <div class="ppdna-head">
+                  <h3 class="ppdna-tit" id="ppDnaTit"><i class="fas fa-dna" aria-hidden="true"></i><span data-i18n="publicprofile.foodDna">Food DNA</span></h3>
+                  <span class="ppdna-match" id="ppDnaMatch" hidden></span>
+               </div>
+               <div class="ppdna-rows" id="ppDnaRows"></div>
+            </section>
+            <p class="ppu-note" id="ppDnaNone" hidden data-i18n="publicprofile.noDna">ยังไม่ได้ทำแบบทดสอบ Food DNA</p>
+         </section>
+      </main>
+
+      <!-- รายชื่อผู้ติดตาม / กำลังติดตาม ของคนนี้ (follows อ่านได้สาธารณะ) -->
+      <div class="fsheet" id="followSheet" hidden>
+         <div class="fsheet-box" role="dialog" aria-modal="true" aria-labelledby="fsCountFollowers">
+            <div class="fsheet-handle" aria-hidden="true"></div>
+            <div class="fsheet-head">
+               <div class="fsheet-tabs" role="tablist">
+                  <button type="button" class="fsheet-tab" role="tab" data-tab="followers"><span data-i18n="profile.statFollowers">ผู้ติดตาม</span> <b id="fsCountFollowers">0</b></button>
+                  <button type="button" class="fsheet-tab" role="tab" data-tab="following"><span data-i18n="profile.statFollowing">กำลังติดตาม</span> <b id="fsCountFollowing">0</b></button>
+               </div>
+               <button type="button" class="fsheet-close" id="fsheetClose" data-i18n-aria="common.close" aria-label="ปิด"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+            </div>
+            <div class="fsheet-list" id="fsheetList"></div>
+         </div>
+      </div>
+
+      <nav class="appnav">
+         <a href="home.html" class="anitem"><i class="fas fa-fire"></i><span data-i18n="nav.trending">เทรนด์</span></a>
+         <a href="roulette.html" class="ancenter"><img src="img/Dino/1.png" alt="สุ่มเมนู"/></a>
+         <a href="following.html" class="anitem active"><i class="fas fa-users"></i><span data-i18n="nav.following">ติดตาม</span></a>
+         <a href="profile.html" class="anitem"><i class="fas fa-user"></i><span data-i18n="nav.profile">โปรไฟล์</span></a>
+      </nav>
+
       <!-- ============================================================
          AUTH POPUP — เข้าสู่ระบบ / สมัครสมาชิก (เด้งอัตโนมัติเมื่อกดติดตามโดยยังไม่ล็อกอิน)
          ============================================================ -->
       <div id="authPop">
          <div class="apbox">
-            <button class="apclose" id="apClose"><i class="fas fa-times"></i></button>
+            <button class="apclose" id="apClose" data-i18n-title="common.close" title="ปิด"><i class="fas fa-times" aria-hidden="true"></i></button>
             <div class="aptabs">
                <button class="aptab active" id="apTabLogin" data-tab="login" data-i18n="auth.login">เข้าสู่ระบบ</button>
                <button class="aptab" id="apTabRegister" data-tab="register" data-i18n="auth.register">สมัครสมาชิก</button>
@@ -117,20 +184,20 @@
             <img class="apdino" src="img/Dino/4.png" alt="Dino ต้อนรับสมาชิกใหม่"/>
             <form id="loginForm" class="apform">
                <div class="aperr" id="loginErr"></div>
-               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <label class="flbl" for="loginEmail" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email" required/>
-               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <label class="flbl" for="loginPassword" data-i18n="auth.password">รหัสผ่าน</label>
                <input class="fctrl" type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-right-to-bracket"></i><span data-i18n="auth.login">เข้าสู่ระบบ</span></button>
                <p class="apnote"><span data-i18n="auth.noAccount">ยังไม่มีบัญชี?</span> <a href="#" data-switch="register" data-i18n="auth.registerLink">สมัครสมาชิกเลย</a></p>
             </form>
             <form id="registerForm" class="apform" style="display:none;">
                <div class="aperr" id="registerErr"></div>
-               <label class="flbl" data-i18n="auth.yourName">ชื่อของคุณ</label>
+               <label class="flbl" for="registerName" data-i18n="auth.yourName">ชื่อของคุณ</label>
                <input class="fctrl" type="text" id="registerName" placeholder="ชื่อ นามสกุล" autocomplete="name" required/>
-               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <label class="flbl" for="registerEmail" data-i18n="auth.email">อีเมล</label>
                <input class="fctrl" type="email" id="registerEmail" placeholder="you@email.com" autocomplete="email" required/>
-               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <label class="flbl" for="registerPassword" data-i18n="auth.password">รหัสผ่าน</label>
                <input class="fctrl" type="password" id="registerPassword" placeholder="อย่างน้อย 4 ตัวอักษร" autocomplete="new-password" required/>
                <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-egg"></i><span data-i18n="auth.createAccount">สร้างบัญชี</span></button>
                <p class="apnote"><span data-i18n="auth.haveAccount">มีบัญชีอยู่แล้ว?</span> <a href="#" data-switch="login" data-i18n="auth.loginLink">เข้าสู่ระบบ</a></p>

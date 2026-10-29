@@ -44,6 +44,12 @@
                <div class="aperr" id="editProfileErr"></div>
                <label class="flbl" for="editProfileName" data-i18n="auth.yourName">Your name</label>
                <input class="fctrl" type="text" id="editProfileName" required/>
+               <label class="flbl" for="editProfileUsername" data-i18n="settings.username">ชื่อผู้ใช้</label>
+               <div class="unamefield">
+                  <span aria-hidden="true">@</span>
+                  <input class="fctrl" type="text" id="editProfileUsername" maxlength="21" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" aria-describedby="editProfileUsernameHint"/>
+               </div>
+               <p class="unamehint" id="editProfileUsernameHint" data-i18n="settings.usernameHint">ใช้ a–z, 0–9, จุด หรือ _ ยาว 3–20 ตัว ให้คนอื่นค้นหาคุณเจอ</p>
                <label class="flbl" for="editProfileBio" data-i18n="settings.bio">Bio</label>
                <textarea class="fctrl" id="editProfileBio" rows="3" placeholder="บอกอะไรเกี่ยวกับตัวคุณสั้น ๆ ให้คนอื่นรู้จักคุณมากขึ้น" data-i18n-ph="settings.bioPlaceholder"></textarea>
                <label class="flbl" for="editProfileUni" data-i18n="settings.myUniversity">Your university</label>

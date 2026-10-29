@@ -326,6 +326,46 @@ function syncMyUniversityWithSupabase(onUpdated) {
 	}).catch(function() {});
 }
 
+/* --- ชื่อผู้ใช้ (@username) — SQL Phase 24 แยก query ต่างหากเหมือนมหาวิทยาลัย ยังไม่รัน SQL ก็ไม่ทำให้ sync อื่นพัง
+   บันทึกแบบรอผลจากเซิร์ฟเวอร์ก่อน (ชื่อซ้ำต้องบอกผู้ใช้ทันที ไม่ใช่เก็บในเครื่องแล้วค่อยล้มทีหลัง)
+   คืน Promise<{ ok: true } | { error: "taken" | "format" | "unavailable" | "auth" | "network" | "offline" | "server" }> --- */
+function sbSaveMyUsername(username) {
+	var me = getMe();
+	if (!me || !sbClient) return Promise.resolve({ error: "server" });
+	return Promise.resolve(sbClient.from("profiles").update({ username: username || null }).eq("id", me.id).select("username").single()).then(function(res) {
+		if (!res.error) return { ok: true };
+		var code = String(res.error.code || "");
+		if (code === "23505") return { error: "taken" };
+		if (code === "23514") return { error: "format" };
+		if (code === "42703" || code === "PGRST204" || /username/.test(res.error.message || "")) return { error: "unavailable" };
+		return { error: sbErrorReason(res.error) };
+	}, function(e) { return { error: sbErrorReason(e) }; });
+}
+function syncMyUsernameWithSupabase(onUpdated) {
+	var me = getMe();
+	if (!me || !sbClient) return;
+	sbClient.from("profiles").select("username").eq("id", me.id).single().then(function(res) {
+		if (res.error || !res.data) return;
+		if ((res.data.username || "") === (getMe().username || "")) return;
+		updateMe({ username: res.data.username || "" });
+		if (typeof onUpdated === "function") onUpdated();
+	}).catch(function() {});
+}
+// ชื่อผู้ใช้ของคนอื่น (อ่านได้ทุกคน) — คืน "" ถ้ายังไม่ตั้ง / null ถ้าถามไม่ได้
+function sbFetchUsername(userId) {
+	if (!sbClient || !/^[0-9a-f-]{36}$/i.test(userId)) return Promise.resolve(null);
+	return Promise.resolve(sbClient.from("profiles").select("username").eq("id", userId).single()).then(function(res) {
+		return res.error || !res.data ? null : (res.data.username || "");
+	}, function() { return null; });
+}
+// เลเวลสาธารณะ: นับกิจกรรมจริงบนเซิร์ฟเวอร์ (ฟังก์ชัน chimchim_public_xp) — คืน counts หรือ null ถ้ายังไม่รัน SQL / ถามไม่ได้
+function sbFetchPublicXp(userId) {
+	if (!sbClient || !/^[0-9a-f-]{36}$/i.test(userId)) return Promise.resolve(null);
+	return Promise.resolve(sbClient.rpc("chimchim_public_xp", { uid: userId })).then(function(res) {
+		return res.error || !res.data ? null : res.data;
+	}, function() { return null; });
+}
+
 /* =====================================================================
    รีวิวร้าน — ผลักขึ้นทันทีตอนส่ง + ดึงของคนอื่นมาผสานตอนเปิดดูร้าน (ดู mergeRemoteReviewsIntoLocal ใน core.js)
    ===================================================================== */

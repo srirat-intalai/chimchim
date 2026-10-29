@@ -815,3 +815,35 @@ drop policy if exists "diary_update_own" on public.diary_entries;
 create policy "diary_update_own" on public.diary_entries for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id and eaten_on between public.chimchim_diary_open_from() and public.chimchim_diary_today());
+
+-- =====================================================================
+-- Phase 24 — ชื่อผู้ใช้ (@username) + เลเวลสาธารณะที่ปลอมไม่ได้
+-- username: a-z 0-9 . _ ยาว 3–20 ตัว ขึ้นต้น/ลงท้ายด้วยตัวอักษรหรือตัวเลข ไม่ซ้ำกันทั้งระบบ (ว่างได้ = ยังไม่ตั้ง)
+--   ฐานข้อมูลบังคับรูปแบบและห้ามซ้ำเอง หน้าเว็บตรวจซ้ำอีกชั้นเพื่อบอกผู้ใช้ก่อนบันทึก
+--   แก้ได้เฉพาะของตัวเอง (policy profiles_update_own เดิม) / อ่านได้ทุกคนเหมือนชื่อ
+-- เลเวล: ไม่เก็บ XP เป็นคอลัมน์ เพราะเจ้าของแก้แถว profiles ของตัวเองได้ = ตั้ง Lv ตัวเองได้
+--   ใช้ฟังก์ชันนับกิจกรรมจริงจากตารางแทน (รีวิว โพสต์ Food DNA คอมเมนต์ ถูกใจ/บันทึก/ติดตาม)
+--   คืนแค่จำนวนรวมแต่ละหมวด ไม่คืนรายการว่าบันทึก/ถูกใจร้านไหน — หน้าเว็บคิด XP ด้วยกติกาเดียวกับโปรไฟล์ตัวเอง
+-- รันซ้ำได้
+-- =====================================================================
+alter table public.profiles add column if not exists username text;
+alter table public.profiles drop constraint if exists profiles_username_format;
+alter table public.profiles add constraint profiles_username_format
+  check (username is null or username ~ '^[a-z0-9][a-z0-9._]{1,18}[a-z0-9]$');
+create unique index if not exists profiles_username_key on public.profiles (username);
+
+create or replace function public.chimchim_public_xp(uid uuid)
+returns json language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'reviews', (select count(*) from public.reviews where user_id = uid),
+    'posts', (select count(*) from public.posts where user_id = uid),
+    'dna', coalesce((select case when food_dna is not null then 1 else 0 end from public.profiles where id = uid), 0),
+    'comments', (select count(*) from public.comments where author_id = uid),
+    'social', (select count(*) from public.likes_shops where user_id = uid)
+            + (select count(*) from public.likes_posts where user_id = uid)
+            + (select count(*) from public.saved_shops where user_id = uid)
+            + (select count(*) from public.follows where follower_id = uid)
+  );
+$$;
+revoke all on function public.chimchim_public_xp(uuid) from public;
+grant execute on function public.chimchim_public_xp(uuid) to anon, authenticated;

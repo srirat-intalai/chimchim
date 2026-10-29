@@ -4298,3 +4298,32 @@ h1.rdtitle {
   display: inline-block;
   min-height: 24px;
 }
+
+/* ---- ช่องชื่อผู้ใช้ (@username) ในหน้าตั้งค่า ---- */
+.unamefield { position: relative; }
+.unamefield > span {
+  position: absolute;
+  left: 16px;
+  top: calc(50% + 4px); /* .apform .fctrl มี margin-top 8px */
+  transform: translateY(-50%);
+  color: var(--rf-ink-2);
+  font-weight: 600;
+  pointer-events: none;
+}
+.unamefield .fctrl { padding-left: 34px; }
+.unamehint {
+  margin: 6px 2px 4px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--rf-ink-2);
+}
+.unamehint.is-error { color: #b8283e; }
+[data-theme="dark"] .unamehint.is-error { color: #ff8a8a; }
+/* ---- @username ใต้ชื่อในโปรไฟล์ ---- */
+.profhandle {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--rf-ink-2);
+  overflow-wrap: anywhere;
+}
+.profhandle[hidden] { display: none; }

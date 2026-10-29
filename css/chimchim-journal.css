@@ -1385,6 +1385,13 @@ a.jslot:hover .jslot-noimg {
   color: var(--j-ink);
   overflow-wrap: anywhere;
 }
+.ppu-handle {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--j-ink-2);
+  overflow-wrap: anywhere;
+}
+.ppu-handle[hidden] { display: none; }
 .ppu-role {
   display: inline-flex;
   align-items: center;
@@ -1662,7 +1669,7 @@ a.ppu-shop:hover { background: var(--j-bg); }
 @media (min-width: 640px) {
   .ppu-head {
     grid-template-columns: auto 1fr auto;
-    grid-template-areas: "av name act" "av role act" "av bio act";
+    grid-template-areas: "av name act" "av handle act" "av role act" "av bio act";
     justify-items: start;
     align-items: center;
     text-align: left;
@@ -1672,6 +1679,7 @@ a.ppu-shop:hover { background: var(--j-bg); }
   }
   .ppu-avatar { grid-area: av; margin-top: 0; align-self: start; }
   .ppu-name { grid-area: name; margin-top: 0; }
+  .ppu-handle { grid-area: handle; }
   .ppu-role { grid-area: role; }
   .ppu-bio { grid-area: bio; margin-top: 4px; }
   .ppu-actions { grid-area: act; margin-top: 0; align-self: start; }

@@ -283,6 +283,25 @@ function ppLoadFoodDna(userId, localDna) {
 	}).catch(function() {});
 }
 
+/* --- @ชื่อผู้ใช้ และเลเวล — เลเวลคนอื่นนับจากกิจกรรมจริงบนเซิร์ฟเวอร์ (SQL Phase 24) เท่านั้น
+   ถ้าถามไม่ได้ (ยังไม่รัน SQL / บัญชีทดลองในเครื่อง) คงป้าย "นักชิม ChimChim" ไว้ ไม่เดาเลเวล --- */
+function ppuSetHandle(username) {
+	var el = document.getElementById("ppuHandle");
+	el.textContent = username ? "@" + username : "";
+	el.hidden = !username;
+}
+function ppuLoadLevel(userId) {
+	if (typeof sbFetchPublicXp !== "function" || typeof เลเวลจากXP !== "function") return;
+	sbFetchPublicXp(userId).then(function(counts) {
+		if (!counts || ppUid !== userId) return;
+		var lv = เลเวลจากXP(xpจากจำนวน(counts));
+		var role = document.getElementById("ppuRole");
+		role.innerHTML = '<i class="fas fa-medal" aria-hidden="true"></i><span></span>';
+		role.querySelector("span").textContent = t("publicprofile.levelPill").replace("{n}", lv.level).replace("{name}", lv.name);
+		role.title = t("publicprofile.levelXp").replace("{xp}", lv.xp);
+	});
+}
+
 /* --- แท็บไดอารี่: การ์ดรูปอาหาร (ล่าสุด 12 รายการ) กดแล้วเปิดรายละเอียดในหน้าไดอารี่เดิม --- */
 function ppuEntryCard(user, e) {
 	var li = document.createElement("li");
@@ -632,6 +651,9 @@ if (ppIsBuShop) {
 			avatar.textContent = (user.name || "?").trim().charAt(0).toUpperCase();
 		}
 		document.getElementById("ppuName").textContent = user.name;
+		ppuSetHandle(user.username || "");
+		if (typeof sbFetchUsername === "function") sbFetchUsername(user.id).then(function(u) { if (u !== null) ppuSetHandle(u); });
+		ppuLoadLevel(user.id);
 		var bio = (user.bio || "").trim();
 		var bioEl = document.getElementById("ppuBio");
 		bioEl.textContent = bio;

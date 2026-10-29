@@ -171,6 +171,11 @@ function แจ้งปัญหาการเลือกรูป(p) {
 // ผู้ใช้คนนี้ต้องบันทึกขึ้นเซิร์ฟเวอร์ให้สำเร็จก่อนถึงจะนับว่าโพสต์/รีวิวสำเร็จไหม
 // (มี Supabase + เป็นบัญชี Supabase จริง (id เป็น UUID) — รีวิว/โพสต์ต้องล็อกอินก่อนเสมอ)
 // บัญชีทดลองแบบ localStorage ล้วน (id ไม่ใช่ UUID) เขียนขึ้นเซิร์ฟเวอร์ไม่ได้อยู่แล้ว จึงบันทึกในเครื่องอย่างเดียวเหมือนเดิม
+/* --- ชื่อผู้ใช้ (@username): a-z 0-9 . _ ยาว 3–20 ขึ้นต้น/ลงท้ายด้วยตัวอักษรหรือตัวเลข (ตรงกับ SQL Phase 24) --- */
+var CHIMCHIM_USERNAME_RE = /^[a-z0-9][a-z0-9._]{1,18}[a-z0-9]$/;
+function normalizeUsername(v) {
+	return String(v || "").trim().replace(/^@+/, "").toLowerCase();
+}
 function ต้องบันทึกขึ้นเซิร์ฟเวอร์() {
 	if (typeof sbClient === "undefined" || !sbClient) return false;
 	var s = getSession();
@@ -1184,6 +1189,12 @@ function นับคอมเมนต์ของฉัน(userId) {
 	});
 	return n;
 }
+// XP จากจำนวนกิจกรรมแต่ละหมวด — กติกาเดียวกันทั้งโปรไฟล์ตัวเองและเลเวลสาธารณะจากเซิร์ฟเวอร์ (SQL Phase 24)
+function xpจากจำนวน(counts) {
+	var xp = 0;
+	CHIMCHIM_XP_RULES.forEach(function(r) { xp += (Number(counts[r.key]) || 0) * r.xp; });
+	return xp;
+}
 // คืน { xp, counts: { reviews, posts, dna, comments, social } }
 function คำนวณXP(userId) {
 	var me = getUsers().filter(function(u) { return u.id === userId; })[0];
@@ -1194,9 +1205,7 @@ function คำนวณXP(userId) {
 		comments: นับคอมเมนต์ของฉัน(userId),
 		social: getLikedShops().length + getLikedPosts().length + getSavedShops().length + getFollowedShops().length + getFollowedUsers().length
 	};
-	var xp = 0;
-	CHIMCHIM_XP_RULES.forEach(function(r) { xp += (counts[r.key] || 0) * r.xp; });
-	return { xp: xp, counts: counts };
+	return { xp: xpจากจำนวน(counts), counts: counts };
 }
 // คืน { level (1-7), name, xp, min, next (null = ระดับสูงสุด), nextName, progress 0-1 }
 function เลเวลจากXP(xp) {

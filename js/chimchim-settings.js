@@ -12,6 +12,27 @@
 
 	document.getElementById("editProfileName").value = me.name || "";
 	document.getElementById("editProfileBio").value = me.bio || "";
+	var unameInput = document.getElementById("editProfileUsername");
+	var unameHint = document.getElementById("editProfileUsernameHint");
+	unameInput.value = me.username || "";
+	// คำอธิบายใต้ช่อง ↔ ข้อความผิดพลาด (เอา data-i18n ออกตอนโชว์ error ไม่งั้นสลับภาษาแล้วโดนเขียนทับ)
+	function setUnameHint(key, isError) {
+		if (isError) unameHint.removeAttribute("data-i18n"); else unameHint.setAttribute("data-i18n", key);
+		unameHint.textContent = t(key);
+		unameHint.classList.toggle("is-error", !!isError);
+		unameInput.classList.toggle("is-invalid", !!isError);
+		if (isError) unameInput.setAttribute("aria-invalid", "true"); else unameInput.removeAttribute("aria-invalid");
+	}
+	unameInput.addEventListener("input", function() {
+		var v = normalizeUsername(unameInput.value);
+		if (v && v.length >= 3 && !CHIMCHIM_USERNAME_RE.test(v)) setUnameHint("settings.usernameFormat", true);
+		else setUnameHint("settings.usernameHint", false);
+	});
+	if (typeof syncMyUsernameWithSupabase === "function") {
+		syncMyUsernameWithSupabase(function() {
+			if (document.activeElement !== unameInput) unameInput.value = getMe().username || "";
+		});
+	}
 	wireImageUpload("avatarFile", "avatarUrl", "avatarPreviewImg", "avatarUploadBox", me.avatar || null);
 
 	var uniSelect = document.getElementById("editProfileUni");
@@ -57,7 +78,43 @@
 			errBox.classList.add("show");
 			return;
 		}
-		var patch = { name: name, bio: document.getElementById("editProfileBio").value.trim() };
+		// ชื่อผู้ใช้: ตรวจรูปแบบก่อน แล้วบัญชีจริงต้องให้เซิร์ฟเวอร์ยืนยันว่าไม่ซ้ำก่อนบันทึกอย่างอื่น
+		var uname = normalizeUsername(unameInput.value);
+		var unameChanged = uname !== (getMe().username || "");
+		if (uname && !CHIMCHIM_USERNAME_RE.test(uname)) {
+			setUnameHint("settings.usernameFormat", true);
+			unameInput.focus();
+			return;
+		}
+		if (!unameChanged) { saveProfile(); return; }
+		if (typeof ต้องบันทึกขึ้นเซิร์ฟเวอร์ === "function" && ต้องบันทึกขึ้นเซิร์ฟเวอร์()) {
+			var submitBtn = document.getElementById("editProfileSubmitBtn");
+			submitBtn.disabled = true;
+			sbSaveMyUsername(uname).then(function(res) {
+				submitBtn.disabled = false;
+				if (res.error) {
+					setUnameHint(res.error === "taken" ? "settings.usernameTaken" : res.error === "format" ? "settings.usernameFormat" : res.error === "unavailable" ? "settings.usernameUnavailable" : "settings.usernameFailed", true);
+					unameInput.focus();
+					return;
+				}
+				saveProfile();
+			});
+			return;
+		}
+		// บัญชีทดลองในเครื่อง — ห้ามซ้ำกับบัญชีอื่นในเครื่องนี้
+		var meId = getMe().id;
+		if (uname && getUsers().some(function(u) { return u.id !== meId && (u.username || "") === uname; })) {
+			setUnameHint("settings.usernameTaken", true);
+			unameInput.focus();
+			return;
+		}
+		saveProfile();
+	});
+
+	function saveProfile() {
+		var errBox = document.getElementById("editProfileErr");
+		var name = document.getElementById("editProfileName").value.trim();
+		var patch = { name: name, bio: document.getElementById("editProfileBio").value.trim(), username: normalizeUsername(unameInput.value) };
 		var avatar = document.getElementById("avatarUrl").value;
 		if (avatar) patch.avatar = avatar;
 		var university = uniSelect ? uniSelect.value : "";
@@ -71,8 +128,10 @@
 		if (typeof sbSaveMyProfile === "function") sbSaveMyProfile(patch);
 		if (typeof sbSaveMyUniversity === "function" && uniSelect) sbSaveMyUniversity(university);
 		if (typeof refreshAuthUI === "function") refreshAuthUI();
+		unameInput.value = patch.username;
+		setUnameHint("settings.usernameHint", false);
 		if (typeof showToast === "function") showToast(t("settings.profileSavedToast"));
-	});
+	}
 })();
 
 function refreshSettingsUI() {

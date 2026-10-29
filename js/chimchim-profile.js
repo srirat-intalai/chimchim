@@ -410,6 +410,11 @@ function renderPersonalProfile() {
 			avatarEl.textContent = u.name.charAt(0).toUpperCase();
 		}
 		document.getElementById("profName").textContent = u.name;
+		var handleEl = document.getElementById("profHandle");
+		if (handleEl) {
+			handleEl.textContent = u.username ? "@" + u.username : "";
+			handleEl.hidden = !u.username;
+		}
 		var bioEl = document.getElementById("profBio");
 		if (bioEl) {
 			if (u.bio) {
@@ -492,6 +497,9 @@ function renderPersonalProfile() {
 			refreshProfileHeader(getMe());
 			refreshDnaCard(getMe());
 		});
+	}
+	if (typeof syncMyUsernameWithSupabase === "function") {
+		syncMyUsernameWithSupabase(function() { refreshProfileHeader(getMe()); });
 	}
 	if (typeof syncLikesAndFollowsWithSupabase === "function") {
 		// ผลเดียวกันใช้ทั้งตัวเลขติดตาม และแท็บร้านที่ถูกใจ (ไม่ยิงซ้ำสองรอบ)

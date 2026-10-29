@@ -34,6 +34,7 @@ function profileRowToPerson(row) {
 	return {
 		id: row.id,
 		name: row.name,
+		username: row.username || null,
 		avatarImg: row.avatar_url || row.avatar || null,
 		color: 'var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))',
 		university: row.university || null,
@@ -85,7 +86,10 @@ function loadPeople() {
 	function query(cols) {
 		return sbClient.from("profiles").select(cols).order("created_at", { ascending: false }).limit(60);
 	}
-	query("id, name, avatar_url, university, food_dna").then(function(res) {
+	// username มาจาก SQL Phase 24 — ยังไม่รันก็ถอยไปชุดเดิม
+	query("id, name, avatar_url, university, food_dna, username").then(function(res) {
+		return res.error ? query("id, name, avatar_url, university, food_dna") : res;
+	}).then(function(res) {
 		return res.error ? query("id, name, avatar_url, food_dna") : res;
 	}).then(function(res) {
 		return res.error ? query("id, name, food_dna") : res;
@@ -182,7 +186,11 @@ function renderCreators() {
 
 	if (q) {
 		// มีคำค้นหา: ค้นทั้งร้านและคนทุกคนที่รู้จัก ไม่สนตัวกรองที่เลือกอยู่
-		var found = everyone().filter(function(p) { return p.name.toLowerCase().indexOf(q) !== -1; });
+		// ค้นได้ทั้งชื่อ และ @ชื่อผู้ใช้
+		var uq = normalizeUsername(q);
+		var found = everyone().filter(function(p) {
+			return p.name.toLowerCase().indexOf(q) !== -1 || (!!uq && !!p.username && p.username.indexOf(uq) !== -1);
+		});
 		appendCards(found);
 		if (searchEmptyMsg) searchEmptyMsg.hidden = found.length > 0;
 	} else if (currentPeopleFilter === 'following') {
@@ -229,8 +237,17 @@ function renderCreators() {
 			return sbClient.from("profiles").select(cols).ilike("name", term).limit(8);
 		}
 		// ขอรูปโปรไฟล์มาด้วย ถ้าคอลัมน์ avatar_url ยังไม่มี (ยังไม่รัน SQL Phase 3) ค่อยถอยไปขอแค่ชื่อ
+		// ค้นด้วย @ชื่อผู้ใช้ด้วย ถ้าคำค้นเป็นรูปแบบชื่อผู้ใช้ได้ (หนี _ ที่เป็น wildcard ของ ilike) — ยังไม่รัน SQL Phase 24 ก็ข้ามไปเฉย ๆ
+		var uterm = normalizeUsername(currentPeopleSearch);
+		var byUsername = /^[a-z0-9._]{2,20}$/.test(uterm)
+			? Promise.resolve(sbClient.from("profiles").select("id, name, avatar_url, username").ilike("username", "%" + uterm.replace(/_/g, "\\_") + "%").limit(8)).then(function(r) { return r.error ? [] : (r.data || []); }, function() { return []; })
+			: Promise.resolve([]);
 		search("id, name, avatar_url").then(function(res) {
 			return res.error ? search("id, name") : res;
+		}).then(function(res) {
+			return byUsername.then(function(rows) {
+				return { error: res.error && !rows.length ? res.error : null, data: ((res && !res.error && res.data) || []).concat(rows) };
+			});
 		}).then(function(res) {
 			if (res.error || !res.data || !res.data.length) return;
 			if (currentPeopleSearch.trim().toLowerCase() !== q) return;

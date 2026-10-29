@@ -959,7 +959,7 @@ function buildFeedItemEl(item) {
 			ico.classList.toggle("far", !liked);
 			ico.classList.toggle("fas", liked);
 			likeBtn.classList.toggle("liked", liked);
-			likeBtn.querySelector("span").textContent = formatLikeCount(getPostLikeCount(item.id));
+			setCountText(likeBtn.querySelector("span"), getPostLikeCount(item.id));
 			showLikesLine(getPostLikeCount(item.id));
 		}
 		likeBtn.addEventListener("click", function() {
@@ -981,7 +981,7 @@ function buildFeedItemEl(item) {
 	// คอมเมนต์ล่าสุด 2 อันโชว์ใต้โพสต์เลย (ของทุกคน) + "ดูความคิดเห็นทั้งหมด N รายการ" กดแล้วเปิดโพสต์
 	function showCommentPreview(summary) {
 		var count = summary.count;
-		commentCountEl.textContent = count;
+		setCountText(commentCountEl, count);
 		commentsBox.hidden = !count;
 		if (!count) {
 			commentsBox.innerHTML = "";

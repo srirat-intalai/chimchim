@@ -63,23 +63,34 @@ var CHIMCHIM_LOCATION_PROMPT_DISMISSED_KEY = "chimchim_location_prompt_dismissed
 ----------------------------------------------------- */
 var currentTrendCat = sessionStorage.getItem('chimchim_trend_cat') || 'all';
 
+// การ์ด "ให้ชิมชิมสุ่มร้าน" พาหมวดที่เลือกอยู่บนหน้านี้ไปเป็นตัวเลือกในหน้าสุ่มด้วย (เลือกทั้งหมด = ไม่ส่ง)
+function updateRandomCtaLink() {
+    var cta = document.getElementById('homeRandomCta');
+    if (cta) cta.href = currentTrendCat === 'all' ? 'roulette.html' : 'roulette.html?cat=' + encodeURIComponent(currentTrendCat);
+}
+updateRandomCtaLink();
+
 function renderTrendCatStrip() {
     var strip = document.getElementById('trendCatStrip');
     if (!strip) return;
     strip.innerHTML = '';
 
-    var allChip = document.createElement('div');
+    var allChip = document.createElement('button');
+    allChip.type = 'button';
     allChip.className = 'trendcatchip' + (currentTrendCat === 'all' ? ' active' : '');
     allChip.setAttribute('data-cat', 'all');
-    allChip.innerHTML = '<div class="trendcaticon">🍽️</div><span data-i18n="home.catAll">' + t('home.catAll') + '</span>';
+    allChip.setAttribute('aria-pressed', currentTrendCat === 'all' ? 'true' : 'false');
+    allChip.innerHTML = '<span class="trendcaticon" aria-hidden="true">🍽️</span><span data-i18n="home.catAll">' + t('home.catAll') + '</span>';
     // หมายเหตุ: data-i18n อยู่บน <span> ลูกโดยตรง (ไม่ใช่ .trendcatchip เอง) กัน applyI18n() ไปเขียนทับไอคอนหมวดด้วย
     strip.appendChild(allChip);
 
     กลุ่มหมวดหมู่.forEach(function(กลุ่ม) {
-        var chip = document.createElement('div');
+        var chip = document.createElement('button');
+        chip.type = 'button';
         chip.className = 'trendcatchip' + (currentTrendCat === กลุ่ม.key ? ' active' : '');
         chip.setAttribute('data-cat', กลุ่ม.key);
-        chip.innerHTML = '<div class="trendcaticon">' + กลุ่ม.emoji + '</div><span>' + catGroupLabel(กลุ่ม.key) + '</span>';
+        chip.setAttribute('aria-pressed', currentTrendCat === กลุ่ม.key ? 'true' : 'false');
+        chip.innerHTML = '<span class="trendcaticon" aria-hidden="true">' + กลุ่ม.emoji + '</span><span>' + catGroupLabel(กลุ่ม.key) + '</span>';
         strip.appendChild(chip);
     });
 
@@ -87,8 +98,13 @@ function renderTrendCatStrip() {
         chip.addEventListener('click', function() {
             currentTrendCat = this.getAttribute('data-cat');
             sessionStorage.setItem('chimchim_trend_cat', currentTrendCat);
-            strip.querySelectorAll('.trendcatchip').forEach(function(c) { c.classList.remove('active'); });
+            strip.querySelectorAll('.trendcatchip').forEach(function(c) {
+                c.classList.remove('active');
+                c.setAttribute('aria-pressed', 'false');
+            });
             this.classList.add('active');
+            this.setAttribute('aria-pressed', 'true');
+            updateRandomCtaLink();
             renderMatchHero();
             renderRecommendedRow();
             var feedContainer = document.getElementById('communityFeed');
@@ -112,10 +128,22 @@ function ร้านอยู่ในหมวดที่เลือก(catO
    เรียก renderMatchHero() ซ้ำได้ทุกครั้งที่สลับภาษา เพื่อสร้างภาพชุดใหม่ให้ข้อความตรงโหมด
 ----------------------------------------------------- */
 var mhState = { ranked: [], currentIndex: 0 };
+var MH_MAX_SLIDES = 5;
 function updateHeroBadges() {
     var item = mhState.ranked[mhState.currentIndex];
     if (!item) return;
+    // % โชว์เฉพาะตอนมี Food DNA ของผู้ใช้จริง ไม่งั้นป้ายเดียวกันกลายเป็นปุ่มชวนทำ Food DNA แทน
+    document.getElementById('mhMatchBadge').hidden = !foodDNAPersonal;
+    document.getElementById('mhDnaCta').hidden = foodDNAPersonal;
     document.getElementById('mhMatchVal').textContent = matchHeadline(item.m);
+    document.getElementById('mhDish').textContent = item.r.เมนู;
+    document.getElementById('mhShop').textContent = item.r.ร้าน + ' · ฿' + item.r.ราคาต่ำ + '–' + item.r.ราคาสูง;
+    document.getElementById('mhCircleWrap').setAttribute('aria-label',
+        item.r.เมนู + ' · ' + item.r.ร้าน + ' — ' +
+        t('home.heroSlideLabel').replace('{n}', mhState.currentIndex + 1).replace('{total}', mhState.ranked.length));
+    document.querySelectorAll('#mhDots button').forEach(function(d, i) {
+        d.setAttribute('aria-current', i === mhState.currentIndex ? 'true' : 'false');
+    });
     // ระยะจริงจากหมุดร้านถึงตำแหน่งผู้ใช้ ถ้ามีพิกัดทั้งสองฝั่ง ไม่งั้นบอกตามจริงว่าเป็นระยะจากมหาลัย
     var dist = ข้อมูลระยะทาง(item.r);
     document.getElementById('mhDistVal').textContent = distanceText(dist.meters);
@@ -135,7 +163,7 @@ function renderMatchHero() {
             .sort(function(a, b) { return b.m - a.m; }),
         function(item) { return item.r.รูป; }
     );
-    mhState.ranked = หมุนเวียนตามวันนี้(mhDeduped, function(item) { return 'hero-' + item.r.id; }, 8);
+    mhState.ranked = หมุนเวียนตามวันนี้(mhDeduped, function(item) { return 'hero-' + item.r.id; }, MH_MAX_SLIDES);
     if (!mhState.ranked.length) {
         wrap.hidden = true;
         return;
@@ -146,58 +174,84 @@ function renderMatchHero() {
     mhState.ranked.forEach(function(item) {
         var img = document.createElement('img');
         img.src = item.r.รูป;
-        img.alt = item.r.เมนู;
+        img.alt = '';
         slidesEl.appendChild(img);
     });
+    var dotsEl = document.getElementById('mhDots');
+    dotsEl.innerHTML = '';
+    if (mhState.ranked.length > 1) {
+        mhState.ranked.forEach(function(item, i) {
+            var dot = document.createElement('button');
+            dot.type = 'button';
+            dot.setAttribute('aria-label', t('home.heroSlideLabel').replace('{n}', i + 1).replace('{total}', mhState.ranked.length));
+            dot.addEventListener('click', function() { mhGoTo(i); });
+            dotsEl.appendChild(dot);
+        });
+    }
     slidesEl.scrollLeft = 0;
     updateHeroBadges();
 
     if (!slidesEl.getAttribute('data-wired')) {
         slidesEl.setAttribute('data-wired', '1');
+        var circle = document.getElementById('mhCircleWrap');
+        function indexFromScroll() {
+            var idx = Math.round(slidesEl.scrollLeft / (slidesEl.clientWidth || 1));
+            return Math.max(0, Math.min(mhState.ranked.length - 1, idx));
+        }
         var scrollTimer;
         slidesEl.addEventListener('scroll', function() {
             clearTimeout(scrollTimer);
             scrollTimer = setTimeout(function() {
-                var w = slidesEl.clientWidth || 1;
-                var idx = Math.round(slidesEl.scrollLeft / w);
-                if (idx < 0) idx = 0;
-                if (idx >= mhState.ranked.length) idx = mhState.ranked.length - 1;
-                mhState.currentIndex = idx;
+                mhState.currentIndex = indexFromScroll();
                 updateHeroBadges();
             }, 80);
         });
-        document.getElementById('mhCircleWrap').addEventListener('click', function() {
-            var item = mhState.ranked[mhState.currentIndex];
+        // อ่านตำแหน่งจากภาพที่อยู่ตรงกลางตอนกดจริง ๆ ไม่ใช้ currentIndex ที่อาจยังไม่อัปเดต (กดตอนกำลังเลื่อน = เข้าผิดร้าน)
+        function openCurrent() {
+            var item = mhState.ranked[indexFromScroll()];
             if (item) window.location.href = 'restaurant.html?id=' + item.r.id;
+        }
+        circle.addEventListener('click', openCurrent);
+        circle.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') openCurrent();
+            else if (e.key === 'ArrowRight') { e.preventDefault(); mhStopAuto(); mhGoTo(mhState.currentIndex + 1); }
+            else if (e.key === 'ArrowLeft') { e.preventDefault(); mhStopAuto(); mhGoTo(mhState.currentIndex - 1); }
+        });
+        document.getElementById('mhDnaCta').addEventListener('click', function() {
+            // ยังไม่ล็อกอิน → สมัครก่อน (สมัครเสร็จระบบพาไปทำแบบทดสอบเอง) ล็อกอินแล้ว → ไปทำแบบทดสอบเลย
+            if (!getSession() && typeof openAuthPop === 'function') openAuthPop('register');
+            else window.location.href = 'profile-setup.html';
         });
 
-        /* --- เลื่อนอัตโนมัติทีละร้านทุก 5 วิ หยุดเองเมื่อผู้ใช้ปัดดู แล้วกลับมาเลื่อนอัตโนมัติอีกครั้ง --- */
+        /* --- เลื่อนอัตโนมัติทีละร้านทุก 5 วิ — หยุดถาวรทันทีที่ผู้ใช้แตะ/ปัด/โฟกัส (กันภาพเลื่อนหนีตอนกำลังอ่าน)
+           และไม่เลื่อนเองเลยถ้าระบบขอลดการเคลื่อนไหว --- */
+        var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         var mhAutoTimer = null;
-        var mhAutoPaused = false;
-        var mhResumeTimeout;
-        function mhStepAuto() {
-            if (mhAutoPaused || !mhState.ranked.length) return;
-            var w = slidesEl.clientWidth || 1;
-            var next = (mhState.currentIndex + 1) % mhState.ranked.length;
-            slidesEl.scrollTo({ left: next * w, behavior: 'smooth' });
-        }
-        function mhStartAuto() {
+        function mhStopAuto() {
             clearInterval(mhAutoTimer);
-            mhAutoTimer = setInterval(mhStepAuto, 5000);
+            mhAutoTimer = null;
         }
-        function mhPauseThenResume() {
-            mhAutoPaused = true;
-            clearTimeout(mhResumeTimeout);
-            mhResumeTimeout = setTimeout(function() {
-                mhAutoPaused = false;
-            }, 6000);
+        if (!reduceMotion) {
+            mhAutoTimer = setInterval(function() {
+                if (mhState.ranked.length > 1) mhGoTo((mhState.currentIndex + 1) % mhState.ranked.length);
+            }, 5000);
+            ['pointerdown', 'touchstart', 'wheel'].forEach(function(evt) {
+                slidesEl.addEventListener(evt, mhStopAuto, { passive: true });
+            });
+            circle.addEventListener('focus', mhStopAuto);
+            dotsEl.addEventListener('pointerdown', mhStopAuto);
+            dotsEl.addEventListener('focusin', mhStopAuto);
         }
-        ['pointerdown', 'touchstart', 'wheel'].forEach(function(evt) {
-            slidesEl.addEventListener(evt, mhPauseThenResume, { passive: true });
-        });
-        mhStartAuto();
     }
     wrap.hidden = false;
+}
+function mhGoTo(idx) {
+    var slidesEl = document.getElementById('mhSlides');
+    var n = mhState.ranked.length;
+    if (!slidesEl || !n) return;
+    idx = (idx + n) % n;
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    slidesEl.scrollTo({ left: idx * slidesEl.clientWidth, behavior: reduceMotion ? 'auto' : 'smooth' });
 }
 renderMatchHero();
 
@@ -216,7 +270,21 @@ function renderRecommendedRow() {
             .sort(function(a, b) { return b.m - a.m; }),
         function(x) { return x.r.รูป; }
     );
+    // ร้านที่อยู่ในวงกลมด้านบนแล้วไม่ต้องซ้ำในแถวนี้อีก (ถ้าตัดแล้วเหลือน้อยเกินไปค่อยยอมซ้ำ)
+    var heroIds = {};
+    mhState.ranked.forEach(function(item) { heroIds[item.r.id] = true; });
+    var notInHero = recDeduped.filter(function(x) { return !heroIds[x.r.id]; });
+    if (notInHero.length >= 3) recDeduped = notInHero;
     var แนะนำ = หมุนเวียนตามวันนี้(recDeduped, function(x) { return 'rec-' + x.r.id; }, 6);
+
+    var recTitle = document.getElementById('recTitle');
+    var recSub = document.getElementById('recSub');
+    if (recTitle && recSub) {
+        recTitle.setAttribute('data-i18n', foodDNAPersonal ? 'home.recommendedTitle' : 'home.recommendedTitleGuest');
+        recSub.setAttribute('data-i18n', foodDNAPersonal ? 'home.recommendedSub' : 'home.recommendedSubGuest');
+        recTitle.textContent = t(recTitle.getAttribute('data-i18n'));
+        recSub.textContent = t(recSub.getAttribute('data-i18n'));
+    }
     แนะนำ.forEach(function(x) {
         row.appendChild(buildMiniCard(x.r));
     });
@@ -301,14 +369,18 @@ renderRecommendedRow();
             return '<div class="spitem" data-goto-loc="' + escapeHtml(u) + '"><div class="spavatar" style="background:var(--green);"><i class="fas fa-location-dot"></i></div><div><div class="sptit">' + escapeHtml(u) + '</div><div class="spsub">' + t('search.locations') + '</div></div></div>';
         }).join("");
 
+        var peopleHtml = buildPeopleHtml(people);
+        // กลุ่ม "คน" ต้องมี wrapper เสมอ (ผลจาก Supabase มาเติมทีหลัง) เลยเช็คว่างจากเนื้อหาแต่ละกลุ่ม ไม่ใช่จาก html รวม
+        var nothingFound = !foodHtml && !shopHtml && !peopleHtml && !locHtml;
         var html =
             buildGroup('search.food', foodHtml) +
             buildGroup('search.restaurants', shopHtml) +
-            '<div id="spPeopleGroup">' + buildGroup('search.people', buildPeopleHtml(people)) + '</div>' +
+            '<div id="spPeopleGroup">' + buildGroup('search.people', peopleHtml) + '</div>' +
             buildGroup('search.locations', locHtml);
 
-        if (!html) {
-            html = '<p class="spempty">' + t('search.noResults') + '</p>';
+        if (nothingFound) {
+            html = '<div id="spPeopleGroup"></div>' +
+                '<p class="spempty">' + t('search.noResults') + '<br><a href="ai-finder.html">' + t('search.askAi') + '</a></p>';
         }
         panel.innerHTML = html;
         panel.hidden = false;
@@ -335,6 +407,8 @@ renderRecommendedRow();
                 });
                 var groupEl = document.getElementById("spPeopleGroup");
                 if (groupEl) groupEl.innerHTML = buildGroup('search.people', buildPeopleHtml(people));
+                var emptyEl = panel.querySelector(".spempty");
+                if (emptyEl) emptyEl.remove();
             }).catch(function() {});
         }
     }

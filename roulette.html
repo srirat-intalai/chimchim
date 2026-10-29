@@ -70,6 +70,36 @@
                <button type="button" class="rmodebtn" data-mode="mix"><span class="rmico"><i class="fas fa-dice"></i></span><span data-i18n="roulette.modeMix">Mix It Up</span></button>
             </div>
             <p class="rmodedesc" id="rmodeDesc" data-aos="fade-up"></p>
+            <div class="rmodenote" id="rmodeNote" role="status" hidden>
+               <span data-i18n="roulette.modeNeedsDna">โหมดนี้ใช้ Food DNA ของคุณ ตอนนี้เลยสุ่มแบบ “สุ่มมั่ว ๆ” ไปก่อน</span>
+               <button type="button" class="eggreclink" id="rmodeDnaBtn"><i class="fas fa-dna"></i><span data-i18n="roulette.doDna">ทำ Food DNA (30 วิ)</span></button>
+            </div>
+
+            <!-- ตัวเลือกเพิ่มเติม — ไม่บังคับ ไม่เลือกอะไรก็สุ่มได้เลย (พับไว้เป็นค่าเริ่มต้น) -->
+            <details class="rfilters" id="rFilters">
+               <summary>
+                  <i class="fas fa-sliders" aria-hidden="true"></i>
+                  <span data-i18n="roulette.filtersTitle">ตัวเลือกเพิ่มเติม</span>
+                  <span class="rfsummary" id="rFilterSummary"></span>
+                  <i class="fas fa-chevron-down rfchev" aria-hidden="true"></i>
+               </summary>
+               <div class="rfbody">
+                  <div class="rfgroup">
+                     <div class="rflbl" id="rfLblCat" data-i18n="roulette.filterCat">ประเภทอาหาร</div>
+                     <div class="rfchips" id="rfCat" role="group" aria-labelledby="rfLblCat"></div>
+                  </div>
+                  <div class="rfgroup">
+                     <div class="rflbl" id="rfLblBudget" data-i18n="roulette.filterBudget">งบต่อคน (ราคาเริ่มต้นของร้าน)</div>
+                     <div class="rfchips" id="rfBudget" role="group" aria-labelledby="rfLblBudget"></div>
+                  </div>
+                  <div class="rfgroup">
+                     <div class="rflbl" id="rfLblDist" data-i18n="roulette.filterDist">ระยะทาง</div>
+                     <div class="rfchips" id="rfDist" role="group" aria-labelledby="rfLblDist"></div>
+                     <p class="rfnote" id="rfDistNote"></p>
+                  </div>
+                  <button type="button" class="eggreclink rfclear" id="rfClear" hidden><i class="fas fa-rotate-left"></i><span data-i18n="roulette.filterClear">ล้างตัวเลือกทั้งหมด</span></button>
+               </div>
+            </details>
 
             <!-- ไข่ปริศนา (แทนวงล้อเดิม) — แตะ 3 ครั้ง: ขยับ → ร้าว → เปิด แล้วเผยร้านจริงที่สุ่มตามโหมดที่เลือก
                  ใช้รูปไข่เดิม img/Dino/3.png สองชั้นซ้อนกัน ตัดครึ่งเป็นรอยหยัก (clip-path) ตอนเปิดถึงแยกออกจากกัน -->
@@ -92,6 +122,7 @@
                <p class="egghint" id="eggHint" aria-live="polite"></p>
                <div class="eggerror" id="eggError" role="alert" hidden>
                   <p id="eggErrorText"></p>
+                  <div class="eggrelax" id="eggRelax" hidden></div>
                   <button type="button" class="wghostbtn" id="eggErrorRetry"><i class="fas fa-rotate"></i><span data-i18n="roulette.retry">ลองอีกครั้ง</span></button>
                </div>
             </div>
@@ -109,6 +140,7 @@
                   <p class="eggresult-menu" id="eggResultMenu"></p>
                   <div class="eggresult-meta" id="eggResultMeta"></div>
                   <p class="eggresult-why" id="eggResultWhy"></p>
+                  <p class="eggresult-pool" id="eggResultPool"></p>
                   <div class="eggresult-btns">
                      <a class="btn-red" id="eggViewBtn" href="#"><i class="fas fa-store"></i><span data-i18n="roulette.viewShop">ดูรายละเอียดร้าน</span></a>
                      <button type="button" class="wghostbtn" id="eggAgainBtn"><i class="fas fa-rotate"></i><span data-i18n="roulette.tryAgain">สุ่มอีกครั้ง</span></button>
@@ -119,7 +151,7 @@
             </div>
 
             <div class="wsimilar" id="wSimilarSection" hidden data-aos="fade-up">
-               <div class="rowtitle" style="font-size:.9rem;" data-i18n="roulette.similarShops">🍽️ ร้านที่คล้ายกัน</div>
+               <h2 class="rowtitle" style="font-size:.9rem;" data-i18n="roulette.similarShops">ร้านที่คล้ายกัน</h2>
                <div class="hrowwrap" id="wSimilarRow"></div>
             </div>
          </div>
@@ -140,7 +172,7 @@
          <div class="apbox spbox2">
             <button class="apclose" id="rpClose"><i class="fas fa-times"></i></button>
             <h4 class="sptitle2"><i class="fas fa-utensils me-2"></i><span data-i18n="roulette.recommendTitle">ร้านแนะนำสำหรับคุณ</span></h4>
-            <p class="apsub" data-i18n="roulette.recommendSub">เรียงจาก Match % ที่ตรงกับ Food DNA ของคุณมากที่สุด</p>
+            <p class="apsub" id="recommendPopSub" data-i18n="roulette.recommendSub">เรียงจาก Match % ที่ตรงกับ Food DNA ของคุณมากที่สุด</p>
             <div class="rprecgrid" id="recommendPopList"></div>
          </div>
       </div>

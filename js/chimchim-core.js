@@ -433,6 +433,7 @@ function applyPersonalFoodDNA() {
 		foodDNA.ระยะที่ยอมไป = me.foodDNA.ระยะที่ยอมไป;
 		// ชอบหมวด เก็บไว้ตอนทำแบบทดสอบอยู่แล้ว แต่เอามาใช้จริงในคำนวณMatch ด้วยเลย (เดิมเก็บไว้เฉยๆ ไม่ได้ใช้)
 		foodDNA.ชอบหมวด = me.foodDNA.ชอบหมวด || [];
+		foodDNAPersonal = true;
 		return;
 	}
 	var inferred = inferDnaFromBehavior();
@@ -440,6 +441,7 @@ function applyPersonalFoodDNA() {
 		if (inferred.ชอบชาติอาหาร.length) foodDNA.ชอบชาติอาหาร = inferred.ชอบชาติอาหาร;
 		if (inferred.ชอบรส.length) foodDNA.ชอบรส = inferred.ชอบรส;
 		if (inferred.ชอบหมวด.length) foodDNA.ชอบหมวด = inferred.ชอบหมวด;
+		if (inferred.ชอบชาติอาหาร.length || inferred.ชอบรส.length || inferred.ชอบหมวด.length) foodDNAPersonal = true;
 	}
 }
 
@@ -1390,6 +1392,11 @@ function formatLikeCount(n) {
 	if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
 	return String(n);
 }
+// ตัวเลขข้างไอคอน (หัวใจ/คอมเมนต์) — ติด data-zero ไว้ให้ CSS ซ่อนตอนเป็น 0 แถว "♡0 💬0" ทุกโพสต์ดูร้างกว่าความจริง
+function setCountText(el, n) {
+	el.textContent = formatLikeCount(n);
+	el.toggleAttribute("data-zero", !n);
+}
 
 /* =====================================================================
    บันทึกร้านไว้ดูทีหลัง (Save) — แยกจาก Like โดยเจตนา (ชอบตอนเห็น ≠ อยากเก็บไว้ดูอีกที)
@@ -1490,7 +1497,7 @@ function queueShopLikeCountFetch(shopId, countEl) {
 			ids.forEach(function(id) {
 				var count = ยอดรวมที่ค้างส่ง("likeShop", id, counts[id] || 0);
 				CHIMCHIM_REAL_SHOP_LIKE_COUNTS[id] = count;
-				(elsMap[id] || []).forEach(function(el) { el.textContent = formatLikeCount(count); });
+				(elsMap[id] || []).forEach(function(el) { setCountText(el, count); });
 			});
 		});
 	}, 40);
@@ -1513,12 +1520,19 @@ function initLikeUI(card) {
 		ico.classList.toggle("far", !liked);
 		ico.classList.toggle("fas", liked);
 		heart.classList.toggle("liked", liked);
-		countEl.textContent = formatLikeCount(getLikeCount(id));
+		heart.setAttribute("aria-pressed", liked ? "true" : "false");
+		setCountText(countEl, getLikeCount(id));
 	}
 	heart.addEventListener("click", function(e) {
 		e.stopPropagation();
 		toggleLikeShop(id);
 		refresh();
+	});
+	heart.addEventListener("keydown", function(e) {
+		if (e.key !== "Enter" && e.key !== " ") return;
+		e.preventDefault();
+		e.stopPropagation();
+		heart.click();
 	});
 	refresh();
 	queueShopLikeCountFetch(id, countEl);
@@ -1581,7 +1595,7 @@ function queuePostLikeCountFetch(postId, target) {
 				CHIMCHIM_REAL_POST_LIKE_COUNTS[id] = count;
 				(elsMap[id] || []).forEach(function(target) {
 					if (typeof target === "function") target(count);
-					else target.textContent = formatLikeCount(count);
+					else setCountText(target, count);
 				});
 			});
 		});
@@ -1629,11 +1643,15 @@ function buildMiniCard(ร้าน, onClick) {
 	var card = document.createElement("div");
 	card.className = "mcard card-enter";
 	card.setAttribute("data-id", ร้าน.id);
+	card.setAttribute("role", "link");
+	card.setAttribute("tabindex", "0");
+	card.setAttribute("aria-label", ร้าน.เมนู + " · " + ร้าน.ร้าน);
 	card.innerHTML =
 		'<div class="mimg">' +
-			'<img src="' + safeImgSrc(ร้าน.รูป) + '" alt="' + escapeHtml(ร้าน.เมนู) + '"/>' +
-			'<div class="mmatch" data-match-score="' + คะแนน + '">' + matchBadgeText(คะแนน) + "</div>" +
-			'<div class="mhrt"><i class="far fa-heart"></i></div>' +
+			'<img src="' + safeImgSrc(ร้าน.รูป) + '" alt=""/>' +
+			// ยังไม่มี Food DNA ของผู้ใช้จริง → ไม่โชว์ % (ตัวเลขจากโปรไฟล์ตัวอย่างไม่ได้บอกอะไรเกี่ยวกับคนนี้)
+			(foodDNAPersonal ? '<div class="mmatch" data-match-score="' + คะแนน + '">' + matchBadgeText(คะแนน) + "</div>" : "") +
+			'<div class="mhrt" role="button" tabindex="0" aria-label="' + escapeHtml(t("a11y.likeShop")) + '"><i class="far fa-heart"></i></div>' +
 		"</div>" +
 		'<div class="mbody">' +
 			'<div class="mcat">' + catEmoji(ร้าน.หมวด) + " " + escapeHtml(catLabel(ร้าน.หมวด)) + "</div>" +
@@ -1647,6 +1665,9 @@ function buildMiniCard(ร้าน, onClick) {
 		} else {
 			window.location.href = "restaurant.html?id=" + ร้าน.id;
 		}
+	});
+	card.addEventListener("keydown", function(e) {
+		if (e.target === card && e.key === "Enter") card.click();
 	});
 	initLikeUI(card);
 	return card;

@@ -31,27 +31,27 @@
          </a>
          <div class="apptop-actions">
             <div class="qsettingswrap">
-               <button type="button" id="quickSettingsBtn" class="apptop-btn" title="Settings"><i class="fas fa-gear"></i></button>
+               <button type="button" id="quickSettingsBtn" class="apptop-btn" data-i18n-title="profile.settings" title="ตั้งค่า"><i class="fas fa-gear"></i></button>
                <div class="qspanel" id="quickSettingsPanel" hidden>
                   <div class="qsrow">
                      <span class="qslbl" data-i18n="settings.appearance">Appearance</span>
                      <div class="qstoggle">
-                        <button type="button" data-theme-choice="light" title="Light"><i class="fas fa-sun"></i></button>
-                        <button type="button" data-theme-choice="dark" title="Dark"><i class="fas fa-moon"></i></button>
+                        <button type="button" data-theme-choice="light" data-i18n-title="settings.light" title="โหมดสว่าง"><i class="fas fa-sun"></i></button>
+                        <button type="button" data-theme-choice="dark" data-i18n-title="settings.dark" title="โหมดมืด"><i class="fas fa-moon"></i></button>
                      </div>
                   </div>
                   <div class="qsrow">
                      <span class="qslbl" data-i18n="settings.language">Language</span>
                      <div class="qstoggle">
-                        <button type="button" data-lang-choice="en" title="English">🇬🇧</button>
-                        <button type="button" data-lang-choice="th" title="ไทย">🇹🇭</button>
+                        <button type="button" data-lang-choice="en" title="English" aria-label="English">🇬🇧</button>
+                        <button type="button" data-lang-choice="th" title="ไทย" aria-label="ไทย">🇹🇭</button>
                      </div>
                   </div>
                   <a href="settings.html" class="qsmore" data-i18n="profile.settings">Settings</a>
                </div>
             </div>
             <button id="loginBtn" class="apptop-loginbtn" data-i18n="auth.login">เข้าสู่ระบบ</button>
-            <a href="profile.html" id="userAvatarLink" class="apptop-avatar" hidden><span id="userAvatarIco">🦖</span></a>
+            <a href="profile.html" id="userAvatarLink" class="apptop-avatar" data-i18n-aria="nav.profile" aria-label="โปรไฟล์" hidden><span id="userAvatarIco">🦖</span></a>
          </div>
       </header>
 
@@ -65,9 +65,53 @@
          </div>
          <div class="mb-3 searchwrap" data-aos="fade-up">
             <label class="homesearch" for="homeSearchInput"><i class="fas fa-search"></i>
-               <input type="text" id="homeSearchInput" data-i18n-ph="home.searchPlaceholder" placeholder="ค้นหาร้าน หรือเมนูที่อยากกิน..." autocomplete="off"/>
+               <input type="text" id="homeSearchInput" data-i18n-ph="home.searchPlaceholder" placeholder="ค้นหาร้าน หรือเมนูที่อยากกิน..." data-i18n-aria="home.searchPlaceholder" autocomplete="off"/>
             </label>
             <div class="searchpanel" id="searchPanel" hidden></div>
+         </div>
+
+         <a href="roulette.html" class="aipromo randompromo mb-3" id="homeRandomCta">
+            <img src="img/Dino/3.png" alt="" class="aipromo-dino"/>
+            <div class="aipromo-text">
+               <div class="aipromo-tit" data-i18n="home.randomTitle">คิดไม่ออก? ให้ชิมชิมสุ่มร้านให้</div>
+               <div class="aipromo-sub" data-i18n="home.randomSub">แตะไข่ แล้วได้ร้านจริงใกล้ ๆ เลย</div>
+            </div>
+            <i class="fas fa-arrow-right aipromo-go" aria-hidden="true"></i>
+         </a>
+
+         <div class="trendcatstrip mb-4" id="trendCatStrip" role="group" data-i18n-aria="home.catStripLabel" aria-label="หมวดอาหาร" data-aos="fade-up"></div>
+
+         <div class="mb-4" data-aos="fade-up">
+            <h2 class="rowtitle"><span id="recTitle" data-i18n="home.recommendedTitle">แนะนำสำหรับคุณ</span></h2>
+            <p class="rowsub" id="recSub" data-i18n="home.recommendedSub">เรียงตามความตรงใจจาก Food DNA ของคุณ ตั้งแต่ 70% ขึ้นไป</p>
+            <p class="rowsub" id="trendCatEmptyRec" hidden></p>
+
+            <div class="areanotice" id="areaNotice" hidden><i class="fas fa-location-dot"></i><span></span></div>
+            <div class="matchhero" id="matchHero" hidden>
+               <div class="mhring"></div>
+               <div class="mhcirclewrap" id="mhCircleWrap" role="link" tabindex="0">
+                  <div class="mhslides" id="mhSlides"></div>
+               </div>
+               <div class="mhbadge mhbadge-match" id="mhMatchBadge" hidden>
+                  <div class="mhicon"><i class="fas fa-bullseye"></i></div>
+                  <div><b id="mhMatchVal"></b><span data-i18n="home.matchHeroSub">ตาม Food DNA ของคุณ</span></div>
+               </div>
+               <button type="button" class="mhbadge mhbadge-match mhbadge-dna" id="mhDnaCta" hidden>
+                  <div class="mhicon"><i class="fas fa-dna"></i></div>
+                  <div><b data-i18n="home.dnaCtaTitle">ตรงใจคุณแค่ไหน?</b><span data-i18n="home.dnaCtaSub">ทำ Food DNA ใช้แค่ 30 วิ</span></div>
+               </button>
+               <div class="mhbadge mhbadge-dist">
+                  <div class="mhicon"><i class="fas fa-location-dot"></i></div>
+                  <div><b id="mhDistVal"></b><span id="mhDistLbl" data-i18n="home.fromYou">จากตำแหน่งคุณ</span></div>
+               </div>
+               <div class="mhcaption">
+                  <b id="mhDish"></b>
+                  <span id="mhShop"></span>
+               </div>
+               <div class="mhdots" id="mhDots"></div>
+            </div>
+
+            <div class="hrowwrap" id="recommendedRow"></div>
          </div>
 
          <div class="locationprompt mb-4" id="locationPrompt" hidden data-aos="fade-up">
@@ -77,33 +121,7 @@
                <div class="locationpromptdesc" data-i18n="home.locationPromptDesc">See restaurants closer to you first</div>
             </div>
             <button type="button" class="btn-red locationpromptbtn" id="locationPromptAllowBtn"><span data-i18n="home.locationPromptAllow">Allow</span></button>
-            <button type="button" class="locationpromptclose" id="locationPromptCloseBtn"><i class="fas fa-times"></i></button>
-         </div>
-
-         <div class="trendcatstrip mb-4" id="trendCatStrip" data-aos="fade-up"></div>
-
-         <div class="mb-4" data-aos="fade-up">
-            <div class="rowtitle"><i class="fas fa-bullseye" style="color:var(--primary);margin-right:4px;"></i><span data-i18n="home.recommendedTitle">แนะนำสำหรับคุณ</span></div>
-            <p class="rowsub" data-i18n="home.recommendedSub">แสดงเฉพาะร้าน Match 70% ขึ้นไป เรียงจากมากไปน้อย</p>
-            <p class="rowsub" id="trendCatEmptyRec" hidden></p>
-
-            <div class="areanotice" id="areaNotice" hidden><i class="fas fa-location-dot"></i><span></span></div>
-            <div class="matchhero" id="matchHero" hidden>
-               <div class="mhring"></div>
-               <div class="mhcirclewrap" id="mhCircleWrap">
-                  <div class="mhslides" id="mhSlides"></div>
-               </div>
-               <div class="mhbadge mhbadge-match">
-                  <div class="mhicon">🎯</div>
-                  <div><b id="mhMatchVal"></b><span data-i18n="home.matchHeroSub">Matches your taste perfectly</span></div>
-               </div>
-               <div class="mhbadge mhbadge-dist">
-                  <div class="mhicon">📍</div>
-                  <div><b id="mhDistVal"></b><span id="mhDistLbl" data-i18n="home.fromYou">from your location</span></div>
-               </div>
-            </div>
-
-            <div class="hrowwrap" id="recommendedRow"></div>
+            <button type="button" class="locationpromptclose" id="locationPromptCloseBtn" data-i18n-title="common.close" title="ปิด"><i class="fas fa-times"></i></button>
          </div>
 
          <a href="ai-finder.html" class="aipromo mb-4" data-aos="fade-up">
@@ -116,10 +134,10 @@
          </a>
 
          <div class="mb-4" data-aos="fade-up">
-            <div class="rowtitle" data-i18n="home.feedTitle">ฟีดชุมชน</div>
+            <h2 class="rowtitle" data-i18n="home.feedTitle">ฟีดชุมชน</h2>
             <p class="rowsub" data-i18n="home.feedSub">โพสต์จากร้านและเพื่อนนักชิมที่คุณติดตาม อัปเดตล่าสุดก่อนเสมอ</p>
             <div id="communityFeed"></div>
-            <p id="communityFeedEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:16px 0;" hidden data-i18n="home.feedEmpty">ยังไม่มีโพสต์ในฟีด ลองเป็นคนแรกที่โพสต์สิ!</p>
+            <p id="communityFeedEmpty" class="text-center feedempty" hidden data-i18n="home.feedEmpty">ยังไม่มีโพสต์ในฟีด ลองเป็นคนแรกที่โพสต์สิ!</p>
             <div id="communityFeedSentinel" style="height:1px;"></div>
             <p class="text-center feedloadingmore" id="communityFeedLoadingMore" hidden><i class="fas fa-spinner fa-spin"></i><span data-i18n="home.feedLoadingMore">กำลังโหลดโพสต์เพิ่ม...</span></p>
          </div>
@@ -139,7 +157,7 @@
          ============================================================ -->
       <div id="authPop">
          <div class="apbox">
-            <button class="apclose" id="apClose"><i class="fas fa-times"></i></button>
+            <button class="apclose" id="apClose" data-i18n-title="common.close" title="ปิด"><i class="fas fa-times"></i></button>
             <div class="aptabs">
                <button class="aptab active" id="apTabLogin" data-tab="login" data-i18n="auth.login">เข้าสู่ระบบ</button>
                <button class="aptab" id="apTabRegister" data-tab="register" data-i18n="auth.register">สมัครสมาชิก</button>

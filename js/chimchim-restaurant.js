@@ -52,9 +52,16 @@ function renderShopDetail() {
 	document.getElementById("rdPrice").textContent = "฿" + ร้านปัจจุบัน.ราคาต่ำ + "–" + ร้านปัจจุบัน.ราคาสูง;
 	document.getElementById("rdDistance").textContent = distanceText(ร้านปัจจุบัน.ระยะทาง);
 	document.getElementById("rdUni").textContent = t("restaurant.near") + ร้านปัจจุบัน.มหาลัย;
-	document.getElementById("rdMatchPct").setAttribute("data-match-score", คะแนน);
-	document.getElementById("rdMatchPct").innerHTML = matchBadgeText(คะแนน);
-	document.getElementById("rdMatchReason").textContent = เหตุผล;
+	// ยังไม่มี Food DNA ของผู้ใช้จริง → ไม่โชว์ % / เหตุผลที่คำนวณจากโปรไฟล์ตัวอย่าง ชวนทำ Food DNA แทน
+	var matchPctEl = document.getElementById("rdMatchPct");
+	matchPctEl.hidden = !foodDNAPersonal;
+	matchPctEl.setAttribute("data-match-score", คะแนน);
+	matchPctEl.innerHTML = matchBadgeText(คะแนน);
+	document.getElementById("rdMatchReason").textContent = foodDNAPersonal ? เหตุผล : t("restaurant.matchNeedsDna");
+	if (typeof logEvent === "function") {
+		var from = new URLSearchParams(window.location.search).get("from");
+		logEvent("shop_viewed", { shopId: ร้านปัจจุบัน.id, from: from || null });
+	}
 	document.getElementById("rdDesc").textContent = ร้านปัจจุบัน.community ?
 		(ร้านปัจจุบัน.คำโปรยกำหนดเอง || t("restaurant.postedBy").replace("{vendor}", ร้านปัจจุบัน.vendorName)) :
 		t("restaurant.defaultDesc");

@@ -92,7 +92,10 @@ function sbShopRowToLocal(row) {
 		hours: row.hours,
 		promo: row.promo,
 		lat: typeof row.lat === "number" ? row.lat : null,
-		lng: typeof row.lng === "number" ? row.lng : null
+		lng: typeof row.lng === "number" ? row.lng : null,
+		// สถานะตรวจสอบร้าน (SQL Phase 19) — ยังไม่ได้รัน SQL = ไม่มีคอลัมน์ → ถือว่ายังไม่ผ่านการตรวจ
+		reviewStatus: row.review_status || "pending",
+		reviewNote: row.review_note || null
 	};
 }
 // พิกัดจริงของร้าน — แยก query ต่างหากจาก sbSaveMyShop (เหตุผลเดียวกับ sbSaveMyUniversity/sbSetShopSave
@@ -156,7 +159,7 @@ function sbFetchCommunityShops() {
 			return res.data.map(sbShopRowToLocal);
 		}).catch(function() { return []; });
 }
-// จุดเรียกหลัก — เรียกจากแต่ละหน้าที่โชว์รายชื่อร้าน (home.html, ai-finder.html, roulette.html, restaurant.html)
+// จุดเรียกหลัก — เรียกจากแต่ละหน้าที่โชว์รายชื่อร้าน (home.html, roulette.html, restaurant.html)
 // หลัง initial render เดิมเสร็จแล้ว: (1) sync ร้านของฉันขึ้น Supabase ถ้ายังไม่เคย sync มาก่อน
 // (2) ดึงร้านของทุกคนจาก Supabase มาผสานกับ รายการร้าน แล้วเรียก onUpdated() ให้หน้านั้น re-render
 // ทำแบบ "เสริมเงียบ ๆ" ไม่บล็อกการโหลดหน้าแรก และล้มเหลวได้โดยไม่ทำหน้าเว็บพัง (แค่ไม่มีข้อมูลข้ามเครื่อง)
@@ -700,9 +703,11 @@ function sbFetchCommentSummaries(postIds) {
 }
 /* --- ส่งคอมเมนต์ที่เพิ่งรายงานให้ AI ตรวจ (server.js /api/moderate-comment) ผิดจริง → เซิร์ฟเวอร์ซ่อนให้ทุกเครื่อง
    คืน Promise<{ checked, hidden, explanation } | null> (null = เรียกไม่ได้ / เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า) --- */
-var CHIMCHIM_AI_MODERATE_URL = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
-	? "http://localhost:8787/api/moderate-comment"
-	: "https://chimchim.onrender.com/api/moderate-comment";
+// เซิร์ฟเวอร์ AI (server.js) — deploy แยกจากตัวเว็บ ถ้า URL บน Render ไม่ใช่ตัวนี้ให้แก้ตรงนี้ที่เดียว
+var CHIMCHIM_AI_SERVER = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+	? "http://localhost:8787"
+	: "https://chimchim.onrender.com";
+var CHIMCHIM_AI_MODERATE_URL = CHIMCHIM_AI_SERVER + "/api/moderate-comment";
 function sbRequestCommentModeration(remoteCommentId) {
 	if (!remoteCommentId) return Promise.resolve(null);
 	return fetch(CHIMCHIM_AI_MODERATE_URL, {
@@ -712,6 +717,37 @@ function sbRequestCommentModeration(remoteCommentId) {
 	}).then(function(res) {
 		return res.json().catch(function() { return null; });
 	}).catch(function() { return null; });
+}
+/* --- Token สำหรับช่อง Prompt บนหน้าสุ่มร้าน (SQL Phase 20) — หักที่เซิร์ฟเวอร์เท่านั้น หน้าเว็บแค่อ่านยอด --- */
+// คืน Promise<{ left, daily } | null> (null = ยังไม่ล็อกอิน / ยังไม่ได้รัน SQL / เน็ตหลุด)
+function sbPromptTokensLeft() {
+	if (!sbClient || !getSession()) return Promise.resolve(null);
+	return Promise.resolve(sbClient.rpc("chimchim_prompt_tokens_left")).then(function(res) {
+		if (res.error || !res.data || typeof res.data.left !== "number") return null;
+		return res.data;
+	}).catch(function() { return null; });
+}
+// ส่ง Prompt ให้เซิร์ฟเวอร์แปลงเป็นเงื่อนไข — requestId เดิม = ไม่หักซ้ำ (เซิร์ฟเวอร์ตอบผลเดิม)
+// คืน Promise<{ filters, left, empty?, refunded? } | { error, left?, refunded? }> ไม่ throw
+function sbPromptFilters(prompt, requestId, vocab) {
+	if (!sbClient) return Promise.resolve({ error: "auth" });
+	return Promise.resolve(sbClient.auth.getSession()).then(function(res) {
+		var token = res && res.data && res.data.session ? res.data.session.access_token : null;
+		if (!token) return { error: "auth" };
+		return fetch(CHIMCHIM_AI_SERVER + "/api/prompt-filters", {
+			method: "POST",
+			headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+			body: JSON.stringify({ prompt: prompt, requestId: requestId, vocab: vocab })
+		}).then(function(r) {
+			return r.json().catch(function() { return {}; }).then(function(data) {
+				if (r.ok && data && data.filters) return data;
+				if (r.status === 429) return { error: "too_many_requests" };
+				return { error: (data && data.error) || "server", left: data && data.left, refunded: data && data.refunded };
+			});
+		}, function() {
+			return { error: "network" };
+		});
+	}).catch(function() { return { error: "network" }; });
 }
 function sbFetchCommentCounts(postIds) {
 	return sbFetchCommentSummaries(postIds).then(function(sum) {

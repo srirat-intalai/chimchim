@@ -4523,3 +4523,237 @@ button.mhbadge {
 .eggresult-meta .eggresult-unverified {
   color: var(--rf-ink-2);
 }
+
+/* ---- สถานะตรวจสอบร้านที่ผู้ใช้เพิ่ม (หน้าร้าน) — บอกด้วยไอคอน+ข้อความ ไม่ใช่สีอย่างเดียว ---- */
+.rdreviewstatus {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--rf-fill);
+  color: var(--rf-ink-2);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.rdreviewstatus i {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.rdreviewstatus.is-approved i {
+  color: #2f8a5b;
+}
+.rdreviewstatus.is-rejected {
+  color: var(--rf-ink);
+}
+.rdreviewstatus.is-rejected i {
+  color: #c2410c;
+}
+
+/* =====================================================================
+   หน้าสุ่มร้าน — ช่อง Prompt (ใช้ Token) + การ์ดเมนูฟักออกมาเหนือไข่ + โทนม่วงแทนดำ
+   ===================================================================== */
+.rprompt {
+  margin: 0 0 12px;
+  padding: 12px 12px 10px;
+  border-radius: 20px;
+  background: var(--rf-surface);
+  border: 1px solid rgba(104, 66, 181, 0.16);
+  box-shadow: var(--rf-shadow-sm);
+}
+.rprompt-lbl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-left: 2px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--rf-ink);
+}
+.rprompt-lbl i {
+  color: var(--rf-brand);
+}
+.rprompt-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.rprompt-input {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  min-height: 46px;
+  max-height: 120px;
+  resize: none;
+  overflow-y: auto;
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--rf-line);
+  background: var(--rf-brand-tint);
+  color: var(--rf-ink);
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.rprompt-input::placeholder {
+  color: var(--rf-ink-2);
+}
+.rprompt-input:focus {
+  outline: none;
+  border-color: rgba(104, 66, 181, 0.55);
+  box-shadow: 0 0 0 4px rgba(104, 66, 181, 0.14);
+}
+/* ตัวอย่างแถวเดียวเลื่อนได้ ขอบขวาจางบอกว่ายังมีต่อ */
+.rprompt-examples {
+  display: flex;
+  gap: 6px;
+  margin: 8px -12px 0;
+  padding: 0 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+.rprompt-examples::-webkit-scrollbar {
+  display: none;
+}
+.rprompt-examples .rfchip {
+  flex-shrink: 0;
+  white-space: nowrap;
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+.rprompt-cost {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  color: var(--rf-ink-2);
+  line-height: 1.45;
+}
+.rprompt-btn {
+  width: auto;
+  flex: 0 0 auto;
+  min-height: 46px;
+  padding: 10px 16px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+.rprompt-btn:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+.rprompt-msg {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: var(--rf-ink-2);
+  line-height: 1.5;
+}
+.rprompt-msg.is-error {
+  color: #b42318;
+}
+[data-theme="dark"] .rprompt-msg.is-error {
+  color: #ff9b8f;
+}
+.rpromptactive {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 10px 10px 10px 14px;
+  border-radius: 16px;
+  background: var(--rf-brand-tint);
+  color: var(--rf-ink);
+  font-size: 0.8rem;
+}
+.rpromptactive > i {
+  margin-top: 3px;
+  color: var(--rf-brand);
+}
+.rpromptactive-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.45;
+}
+.rpromptactive-note {
+  color: var(--rf-ink-2);
+}
+.rpromptclear {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: var(--rf-surface);
+  color: var(--rf-ink-2);
+  cursor: pointer;
+}
+
+/* ตัวเลือกที่เลือกอยู่บนหน้านี้ใช้ม่วงของแบรนด์ (เดิมเป็นดำ) */
+.rfchip.active {
+  background: var(--rf-brand-grad);
+  color: #fff;
+}
+
+/* ---- พื้นที่ฟักไข่: การ์ดอยู่บน ไข่อยู่ล่าง ----
+   isolation สร้าง stacking context เฉพาะพื้นที่นี้ การ์ด (z-index 1) จึงอยู่หน้าไข่ (auto) โดยไม่ไปชนชั้นอื่นของหน้า */
+.egghatch {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+}
+.egghatch .eggresult {
+  position: relative;
+  z-index: 1;
+  margin: 4px 0 0;
+  transform-origin: 50% 100%;
+}
+/* เปิดแล้ว: ไข่ย่อ (150px) ดึงขึ้นมาชิดใต้การ์ด — ครึ่งบนของกรอบไข่โปร่ง (เปลือกบนหายไปแล้ว)
+   ขอบเปลือกล่างอยู่ราว 46% ของกรอบ ดึงขึ้น 60px = ขอบเปลือกห่างใต้การ์ดราว 9px ไม่ทับเนื้อหาการ์ด */
+.egghatch .eggresult:not([hidden]) + .eggstage {
+  margin-top: -60px;
+}
+.egghatch .eggresult.is-in {
+  animation: eggHatchUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes eggHatchUp {
+  from { opacity: 0; transform: translateY(72px) scale(0.82); }
+  60% { opacity: 1; }
+  to { opacity: 1; transform: none; }
+}
+.eggresult-menu {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.eggresult-menu i {
+  color: var(--rf-ink-2);
+  font-size: 0.8em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .egghatch .eggresult.is-in {
+    animation: none;
+  }
+}
+
+/* หน้าที่ไม่ได้โหลด Bootstrap (เช่น roulette.html) — คลาสที่ตั้ง display: flex ชนะ [hidden] ของเบราว์เซอร์
+   ทำให้ของที่ควรซ่อนโผล่ (ปุ่มล้างตัวเลือก/ทางผ่อนเงื่อนไข ฯลฯ) ใช้กติกาเดียวกับ Bootstrap ที่หน้าอื่นมีอยู่แล้ว */
+[hidden] {
+  display: none !important;
+}
+
+/* ไข่ปรับตามความสูงจอ — จอเตี้ยไข่ไม่จมใต้แถบเมนูล่างตั้งแต่ยังไม่สุ่ม */
+.eggbtn {
+  width: min(300px, 74vw, 34vh);
+}
+/* ตัวเลือกเพิ่มเติมอยู่ใต้พื้นที่ฟักไข่แล้ว */
+.egghatch + .rfilters {
+  margin-top: 6px;
+}

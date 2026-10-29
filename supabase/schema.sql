@@ -605,3 +605,194 @@ alter table public.shops add constraint shops_price_range
 alter table public.shops drop constraint if exists shops_distance_range;
 alter table public.shops add constraint shops_distance_range
   check (distance_m between 0 and 100000) not valid;
+
+-- =====================================================================
+-- Phase 19 — ตรวจสอบร้านที่ผู้ใช้เพิ่มก่อนเข้าระบบแนะนำ/สุ่ม
+-- review_status: pending (รอตรวจ) / approved (ทีมตรวจข้อมูลร้านแล้ว) / rejected (ไม่ผ่าน)
+-- "ตรวจข้อมูลร้าน" = ชื่อ ที่ตั้ง รูป หมวด มีอยู่จริงและถูกต้อง — ไม่ใช่การรับรองรสชาติ/คุณภาพอาหาร
+-- - ร้านตั้งต้นของระบบ (vendor_id null) = approved / ร้านที่ผู้ใช้เพิ่มไว้แล้วทั้งหมด = pending (ยังไม่เคยมีใครตรวจ)
+-- - ร้านใหม่ที่ผู้ใช้เพิ่ม = pending เสมอ / เจ้าของเปลี่ยนสถานะเองผ่าน API ไม่ได้ (trigger คงค่าเดิมไว้ แบบเดียวกับ is_hidden)
+-- - เจ้าของแก้ข้อมูลหลัก (ชื่อ/เมนู/หมวด/รูป/พิกัด/มหาลัย) → กลับไป pending ให้ตรวจใหม่ (กันผ่านแล้วค่อยเปลี่ยนเป็นร้านอื่น)
+-- - ร้านที่ไม่ผ่าน: เห็นได้เฉพาะเจ้าของ (จะได้รู้เหตุผลและแก้ไข) / ร้านรอตรวจ: ยังเปิดหน้าร้าน/ค้นหาเจอได้ปกติ
+-- เปลี่ยนสถานะได้เฉพาะ service role (scripts/admin-review-shops.js) — ไม่ลบ/ไม่แก้ข้อมูลร้านเดิม รันซ้ำได้
+-- =====================================================================
+-- เพิ่มคอลัมน์พร้อม default 'pending' = ทุกแถวเดิมเป็น pending ทันที โดยไม่ต้อง UPDATE ร้านของผู้ใช้
+-- (UPDATE จะตรวจ constraint NOT VALID ของ Phase 18 ซ้ำ ร้านเก่าที่ตัวเลขผิดกติกาจะทำให้ทั้งสคริปต์ล้ม)
+alter table public.shops add column if not exists review_status text not null default 'pending';
+alter table public.shops add column if not exists review_note text;
+alter table public.shops add column if not exists reviewed_at timestamptz;
+alter table public.shops drop constraint if exists shops_review_status_check;
+alter table public.shops add constraint shops_review_status_check
+  check (review_status in ('pending', 'approved', 'rejected'));
+-- ร้านตั้งต้นของระบบ (ทีมใส่เอง ผู้ใช้สร้าง vendor_id null ไม่ได้ตาม policy insert) = ผ่านการตรวจแล้ว
+update public.shops set review_status = 'approved'
+  where vendor_id is null and review_status = 'pending';
+
+create or replace function public.chimchim_shop_review_guard()
+returns trigger language plpgsql as $$
+begin
+  if current_user not in ('anon', 'authenticated') then
+    return new;
+  end if;
+  if tg_op = 'INSERT' then
+    new.review_status := 'pending';
+    new.review_note := null;
+    new.reviewed_at := null;
+    return new;
+  end if;
+  new.review_status := old.review_status;
+  new.review_note := old.review_note;
+  new.reviewed_at := old.reviewed_at;
+  if (new.shop_name, new.menu_name, new.category, new.image_url, new.lat, new.lng, new.university)
+     is distinct from (old.shop_name, old.menu_name, old.category, old.image_url, old.lat, old.lng, old.university) then
+    new.review_status := 'pending';
+    new.reviewed_at := null;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists shops_review_guard on public.shops;
+create trigger shops_review_guard before insert or update on public.shops
+  for each row execute function public.chimchim_shop_review_guard();
+
+drop policy if exists "shops_select_all" on public.shops;
+drop policy if exists "shops_select_visible" on public.shops;
+create policy "shops_select_visible" on public.shops for select
+  using (review_status <> 'rejected' or auth.uid() = vendor_id);
+
+-- =====================================================================
+-- Phase 20 — Token สำหรับช่อง Prompt บนหน้าสุ่มร้าน (ไข่ปริศนา)
+-- กติกา: สมาชิกได้ฟรีวันละ 5 Token (นับวันตามเวลาไทย ไม่สะสมข้ามวัน) / ให้ AI ตีความ Prompt 1 ครั้ง = 1 Token
+-- - การสุ่มพื้นฐานและตัวเลือกเพิ่มเติม (งบ/หมวด/ระยะ) ฟรีเสมอ ไม่ใช้ Token
+-- - หักที่เซิร์ฟเวอร์เท่านั้น (server.js ใช้ service role เรียก chimchim_spend_prompt_token) ผู้ใช้เขียนตารางนี้เองไม่ได้
+-- - request_id ไม่ซ้ำ = กดซ้ำ/ส่งซ้ำด้วยคำขอเดิมไม่หักซ้ำ (ได้ผลเดิมกลับไป)
+-- - AI ล้มเหลว หรืออ่านไม่พบเงื่อนไขเรื่องอาหารเลย → เซิร์ฟเวอร์คืน Token (status = refunded)
+-- - AI ตีความได้แล้วแม้ไม่เจอร้านตรงเงื่อนไข = หักตามปกติ (แอปแจ้งก่อนกดยืนยัน)
+-- ไม่เก็บข้อความ Prompt ของผู้ใช้ เก็บแค่เงื่อนไขที่ AI แปลงได้ (ใช้ตอบซ้ำเมื่อส่ง request_id เดิม) รันซ้ำได้
+-- =====================================================================
+create table if not exists public.prompt_token_spends (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  request_id uuid not null unique,
+  spent_on date not null,
+  status text not null default 'charged' check (status in ('charged', 'refunded')),
+  result jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists prompt_token_spends_user_day on public.prompt_token_spends (user_id, spent_on);
+alter table public.prompt_token_spends enable row level security;
+drop policy if exists "prompt_token_spends_select_own" on public.prompt_token_spends;
+create policy "prompt_token_spends_select_own" on public.prompt_token_spends for select using (auth.uid() = user_id);
+-- ไม่มี policy insert/update/delete = ผู้ใช้ทั่วไปเพิ่ม/แก้/ลบแถวเองไม่ได้ (service role ข้าม RLS ได้)
+
+create or replace function public.chimchim_prompt_daily_tokens()
+returns int language sql immutable as $$ select 5 $$;
+
+-- ยอดคงเหลือวันนี้ของผู้ใช้ที่ล็อกอินอยู่ (หน้าเว็บเรียกได้ — อ่านของตัวเองเท่านั้น)
+create or replace function public.chimchim_prompt_tokens_left()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'daily', public.chimchim_prompt_daily_tokens(),
+    'left', greatest(0, public.chimchim_prompt_daily_tokens() - (
+      select count(*)::int from public.prompt_token_spends
+      where user_id = auth.uid() and status = 'charged'
+        and spent_on = (now() at time zone 'Asia/Bangkok')::date
+    ))
+  );
+$$;
+revoke execute on function public.chimchim_prompt_tokens_left() from public, anon;
+grant execute on function public.chimchim_prompt_tokens_left() to authenticated;
+
+-- หัก 1 Token แบบ atomic (ล็อกต่อผู้ใช้ กันยิงพร้อมกันหลายคำขอจนเกินโควตา)
+-- คืน { status: charged | replay | in_progress | insufficient | conflict, left, result? }
+create or replace function public.chimchim_spend_prompt_token(p_user uuid, p_request uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  today date := (now() at time zone 'Asia/Bangkok')::date;
+  daily int := public.chimchim_prompt_daily_tokens();
+  used int;
+  existing public.prompt_token_spends%rowtype;
+begin
+  perform pg_advisory_xact_lock(hashtextextended(p_user::text, 20));
+  select count(*)::int into used from public.prompt_token_spends
+    where user_id = p_user and status = 'charged' and spent_on = today;
+  select * into existing from public.prompt_token_spends where request_id = p_request;
+  if found then
+    if existing.user_id <> p_user then
+      return jsonb_build_object('status', 'conflict');
+    end if;
+    if existing.status = 'charged' then
+      -- คำขอเดิมที่ประมวลผลเสร็จแล้ว → ส่งผลเดิม ไม่หักซ้ำ / ยังไม่เสร็จ → บอกให้รอ (กันเรียก AI ฟรีซ้ำ ๆ)
+      return jsonb_build_object('status', case when existing.result is null then 'in_progress' else 'replay' end,
+        'left', greatest(0, daily - used), 'result', existing.result);
+    end if;
+    -- เคยถูกคืน Token (AI ล้มเหลว) แล้วผู้ใช้ลองใหม่ด้วยคำขอเดิม → หักใหม่ได้ถ้ายังมีโควตา
+    if used >= daily then
+      return jsonb_build_object('status', 'insufficient', 'left', 0);
+    end if;
+    update public.prompt_token_spends set status = 'charged', spent_on = today, result = null where id = existing.id;
+    return jsonb_build_object('status', 'charged', 'left', daily - used - 1);
+  end if;
+  if used >= daily then
+    return jsonb_build_object('status', 'insufficient', 'left', 0);
+  end if;
+  insert into public.prompt_token_spends (user_id, request_id, spent_on) values (p_user, p_request, today);
+  return jsonb_build_object('status', 'charged', 'left', daily - used - 1);
+end;
+$$;
+revoke execute on function public.chimchim_spend_prompt_token(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.chimchim_spend_prompt_token(uuid, uuid) to service_role;
+
+-- =====================================================================
+-- Phase 21 — ไดอารี่อาหาร (Food Diary) — บันทึกมื้ออาหารส่วนตัว อ่าน/เขียนได้เฉพาะเจ้าของ
+-- หน้า diary.html และส่วน "ไดอารี่ของฉัน" ในโปรไฟล์ใช้ตารางนี้ชุดเดียวกัน (js/chimchim-diary-store.js)
+-- รูปอยู่ใน Storage bucket "chimchim-images" โฟลเดอร์ <user id>/diary/ (policy อัปไฟล์จาก Phase 16 ใช้ได้เลย)
+-- หมายเหตุ: bucket เป็นสาธารณะ — คนที่มี URL รูปเปิดดูรูปได้ (URL สุ่มเดายาก) แต่ข้อความบันทึกเห็นได้เฉพาะเจ้าของ
+-- ไม่แตะตารางอื่น รันซ้ำได้
+-- =====================================================================
+create table if not exists public.diary_entries (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  eaten_on date not null,
+  eaten_at time,
+  dish text not null check (char_length(btrim(dish)) between 1 and 80),
+  shop_name text check (shop_name is null or char_length(shop_name) <= 80),
+  shop_id bigint references public.shops(id) on delete set null,
+  rating smallint check (rating is null or rating between 1 and 5),
+  note text check (note is null or char_length(note) <= 500),
+  image_url text check (image_url is null or image_url ~ '^https://'),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists diary_entries_user_day on public.diary_entries (user_id, eaten_on desc);
+alter table public.diary_entries enable row level security;
+drop policy if exists "diary_select_own" on public.diary_entries;
+create policy "diary_select_own" on public.diary_entries for select using (auth.uid() = user_id);
+drop policy if exists "diary_insert_own" on public.diary_entries;
+create policy "diary_insert_own" on public.diary_entries for insert with check (auth.uid() = user_id);
+drop policy if exists "diary_update_own" on public.diary_entries;
+create policy "diary_update_own" on public.diary_entries for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "diary_delete_own" on public.diary_entries;
+create policy "diary_delete_own" on public.diary_entries for delete using (auth.uid() = user_id);
+
+-- =====================================================================
+-- Phase 22 — ความเป็นส่วนตัวของไดอารี่อาหาร
+-- profiles.diary_visibility: 'private' (ค่าเริ่มต้น — เห็นเฉพาะเจ้าของ) / 'public' (ผู้ใช้ที่ล็อกอินแล้วทุกคนเห็นได้)
+-- บังคับที่ RLS ของ diary_entries จริง ไม่ใช่แค่ซ่อนบนหน้าจอ — ยิง API ตรงก็อ่านไดอารี่ส่วนตัวของคนอื่นไม่ได้
+-- ไม่มีระดับ "เฉพาะผู้ติดตาม" เพราะระบบติดตามของแอปเป็นแบบทางเดียว ใครก็กดติดตามได้ จึงกันใครไม่ได้จริง
+-- ไดอารี่ทุกเล่มที่มีอยู่แล้วเป็น private (ไม่เปิดเผยของใครโดยไม่ได้ตั้งใจ) / แก้/เพิ่ม/ลบ ยังทำได้เฉพาะเจ้าของ รันซ้ำได้
+-- =====================================================================
+alter table public.profiles add column if not exists diary_visibility text not null default 'private';
+alter table public.profiles drop constraint if exists profiles_diary_visibility_check;
+alter table public.profiles add constraint profiles_diary_visibility_check check (diary_visibility in ('private', 'public'));
+
+create or replace function public.chimchim_diary_is_public(owner uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.profiles p where p.id = owner and p.diary_visibility = 'public');
+$$;
+
+drop policy if exists "diary_select_own" on public.diary_entries;
+drop policy if exists "diary_select_visible" on public.diary_entries;
+create policy "diary_select_visible" on public.diary_entries for select
+  using (auth.uid() = user_id or (auth.uid() is not null and public.chimchim_diary_is_public(user_id)));

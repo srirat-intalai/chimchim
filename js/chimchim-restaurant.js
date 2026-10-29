@@ -52,6 +52,21 @@ function renderShopDetail() {
 	document.getElementById("rdPrice").textContent = "฿" + ร้านปัจจุบัน.ราคาต่ำ + "–" + ร้านปัจจุบัน.ราคาสูง;
 	document.getElementById("rdDistance").textContent = distanceText(ร้านปัจจุบัน.ระยะทาง);
 	document.getElementById("rdUni").textContent = t("restaurant.near") + ร้านปัจจุบัน.มหาลัย;
+	// สถานะตรวจสอบของร้านที่ผู้ใช้เพิ่ม (ร้านตั้งต้นของทีมไม่ต้องแสดง) — ตรวจ "ข้อมูลร้าน" ไม่ใช่รับรองรสชาติ
+	var reviewEl = document.getElementById("rdReviewStatus");
+	if (reviewEl) {
+		var st = ร้านปัจจุบัน.community ? ร้านปัจจุบัน.สถานะตรวจสอบ : null;
+		reviewEl.hidden = !st;
+		if (st) {
+			reviewEl.className = "rdreviewstatus is-" + st;
+			var icon = { approved: "fa-circle-check", pending: "fa-hourglass-half", rejected: "fa-circle-exclamation" }[st] || "fa-circle-info";
+			var text = t("restaurant.review_" + st);
+			if (st === "rejected" && ร้านปัจจุบัน.หมายเหตุตรวจสอบ) text += " — " + ร้านปัจจุบัน.หมายเหตุตรวจสอบ;
+			reviewEl.innerHTML = '<i class="fas ' + icon + '" aria-hidden="true"></i><span></span>';
+			reviewEl.querySelector("span").textContent = text;
+		}
+	}
+
 	// ยังไม่มี Food DNA ของผู้ใช้จริง → ไม่โชว์ % / เหตุผลที่คำนวณจากโปรไฟล์ตัวอย่าง ชวนทำ Food DNA แทน
 	var matchPctEl = document.getElementById("rdMatchPct");
 	matchPctEl.hidden = !foodDNAPersonal;

@@ -175,6 +175,146 @@ function wireSwitcherButtons() {
 }
 
 /* =====================================================================
+   ไดอารี่ของฉัน (3 รายการล่าสุด) + สถิติการกิน + ร้านโปรด — อ่านจาก chimchim-diary-store.js
+   ชุดเดียวกับหน้า diary.html ทุกตัวเลขคำนวณจากบันทึกจริง ไม่มีบันทึก = แสดงสถานะว่าง ไม่เติมค่าสมมติ
+   ===================================================================== */
+// bootProfile() ถูกเรียกตั้งแต่ต้นไฟล์ ก่อนบรรทัดนี้ทำงาน — จึงตั้งค่าเริ่มต้นในฟังก์ชัน ไม่ใช่ตอนประกาศตัวแปร
+var profCal;
+function renderProfileDiary() {
+	if (typeof diaryLoad !== "function") return;
+	profCal = profCal || { month: null, selected: null, entries: [] };
+	var card = document.getElementById("profDiaryCard");
+	var extras = document.getElementById("profDiaryExtras");
+	card.hidden = false;
+	extras.hidden = false;
+	document.getElementById("profDiaryStart").hidden = false;
+	var params = new URLSearchParams(window.location.search);
+	// เพิ่งบันทึกจากปุ่มใต้ปฏิทิน (?diaryDate=) → เปิดเดือน/วันของบันทึกนั้นให้เห็นทันที
+	var startKey = diaryParseKey(params.get("diaryDate")) ? params.get("diaryDate") : (profCal.selected || diaryToday());
+	profCal.selected = startKey;
+	var d0 = diaryParseKey(startKey);
+	if (!profCal.month) profCal.month = new Date(d0.getFullYear(), d0.getMonth(), 1);
+	if (params.get("diarySaved") === "1") {
+		showToast(t("diary.saved"));
+		history.replaceState(null, "", "profile.html?as=self");
+	}
+	if (!card.__wired) {
+		card.__wired = true;
+		renderDiaryWeekdays(document.getElementById("profCalWeek"));
+		document.getElementById("profCalPrev").addEventListener("click", function() { shiftProfCal(-1); });
+		document.getElementById("profCalNext").addEventListener("click", function() { shiftProfCal(1); });
+	}
+	paint(diarySort(diaryReadCache()));
+	diaryLoad().then(function(res) {
+		var note = document.getElementById("profDiaryNote");
+		note.hidden = res.source !== "cache";
+		note.textContent = note.hidden ? "" : t("profile.diaryLoadFailed");
+		paint(res.entries);
+	});
+
+	function paint(entries) {
+		profCal.entries = entries;
+		paintProfCalendar();
+		// ปุ่มใต้ปฏิทิน: ยังไม่มีบันทึก = ชวนเริ่มมื้อแรก / มีแล้ว = บันทึกมื้อต่อไป (เปิดฟอร์มที่วันที่เลือกถ้าไม่ใช่อนาคต)
+		var none = !entries.length;
+		document.getElementById("profDiaryStartMsg").hidden = !none;
+		document.getElementById("profDiaryAddText").textContent = t(none ? "profile.diaryStart" : "profile.diaryAdd");
+		document.getElementById("profDiaryAll").hidden = none;
+
+		var st = diaryStats(entries);
+		var stats = document.getElementById("profStats");
+		stats.innerHTML = "";
+		if (st.total) {
+			[["profile.statsTotal", st.total], ["profile.statsShops", diaryShopCount(entries)], ["profile.statsMonth", st.thisMonth]].forEach(function(row) {
+				var div = document.createElement("div");
+				div.innerHTML = "<dd></dd><dt></dt>";
+				div.querySelector("dd").textContent = row[1];
+				div.querySelector("dt").textContent = t(row[0]);
+				stats.appendChild(div);
+			});
+		}
+		stats.hidden = !st.total;
+		document.getElementById("profStatsEmpty").hidden = st.total > 0;
+
+		// ร้านโปรด = ร้านที่กลับไปกินซ้ำตามไดอารี่ (2 ครั้งขึ้นไป) ตามด้วยร้านที่กด "บันทึกร้าน" ไว้ — ไม่ซ้ำร้านเดิม สูงสุด 5 ร้าน
+		var favs = st.favShops.map(function(s) { return { name: s.name, shopId: s.shopId, note: t("profile.favTimes").replace("{n}", s.count) }; });
+		var seenIds = {};
+		favs.forEach(function(f) { if (f.shopId) seenIds[f.shopId] = true; });
+		(typeof getSavedShops === "function" ? getSavedShops() : []).forEach(function(id) {
+			var r = typeof หาร้านจากId === "function" ? หาร้านจากId(id) : null;
+			if (!r || seenIds[id]) return;
+			seenIds[id] = true;
+			favs.push({ name: r.ร้าน, shopId: id, note: t("profile.favSaved") });
+		});
+		favs = favs.slice(0, 5);
+		var fav = document.getElementById("profFavList");
+		fav.innerHTML = "";
+		favs.forEach(function(s) {
+			var li = document.createElement("li");
+			var name = s.shopId ? document.createElement("a") : document.createElement("span");
+			if (s.shopId) name.href = "restaurant.html?id=" + encodeURIComponent(s.shopId) + "&from=profile";
+			name.textContent = s.name;
+			var note = document.createElement("small");
+			note.textContent = s.note;
+			li.appendChild(name);
+			li.appendChild(note);
+			fav.appendChild(li);
+		});
+		fav.hidden = !favs.length;
+		document.getElementById("profFavEmpty").hidden = favs.length > 0;
+	}
+}
+function shiftProfCal(delta) {
+	var m = profCal.month;
+	profCal.month = new Date(m.getFullYear(), m.getMonth() + delta, 1);
+	paintProfCalendar();
+}
+function selectProfCalDate(key) {
+	profCal.selected = key;
+	var d = diaryParseKey(key);
+	if (d.getMonth() !== profCal.month.getMonth() || d.getFullYear() !== profCal.month.getFullYear()) profCal.month = new Date(d.getFullYear(), d.getMonth(), 1);
+	paintProfCalendar();
+}
+// ปฏิทิน (ตัวเดียวกับหน้าไดอารี่) + รายการของวันที่เลือกใต้ปุ่มบันทึก
+function paintProfCalendar() {
+	renderDiaryCalendar({
+		label: document.getElementById("profCalMonth"),
+		grid: document.getElementById("profCalGrid")
+	}, profCal.month, profCal.selected, profCal.entries, selectProfCalDate);
+	var key = profCal.selected;
+	var dayEntries = profCal.entries.filter(function(e) { return e.date === key; });
+	var add = document.getElementById("profDiaryAdd");
+	add.href = "diary.html?new=1&return=profile" + (key <= diaryToday() ? "&date=" + encodeURIComponent(key) : "");
+	var section = document.getElementById("profCalDay");
+	// ยังไม่มีบันทึกเลยสักมื้อ: ข้อความชวนเริ่มใต้ปุ่มบอกแล้ว ไม่ต้องมีกล่องวันว่างซ้ำ
+	section.hidden = !profCal.entries.length;
+	if (section.hidden) return;
+	document.getElementById("profCalDayLabel").textContent = key === diaryToday()
+		? t("diary.today") + " · " + diaryFormatDate(key, { day: "numeric", month: "long" })
+		: diaryFormatDate(key, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+	var list = document.getElementById("profDiaryList");
+	list.innerHTML = "";
+	dayEntries.forEach(function(e) {
+		var li = document.createElement("li");
+		li.innerHTML =
+			'<a class="jrecent-item">' +
+				(e.img ? '<img alt="" loading="lazy"/>' : '<span class="jrecent-noimg" aria-hidden="true"><i class="fas fa-utensils"></i></span>') +
+				'<span class="jrecent-text"><b></b><small></small></span>' +
+				'<i class="fas fa-chevron-right" aria-hidden="true"></i>' +
+			"</a>";
+		li.querySelector("a").href = "diary.html?entry=" + encodeURIComponent(e.id) + "&date=" + encodeURIComponent(e.date);
+		if (e.img) li.querySelector("img").src = safeImgSrc(e.img);
+		li.querySelector("b").textContent = e.dish;
+		li.querySelector("small").textContent = [e.time ? e.time + (getLang() === "th" ? " น." : "") : "", e.shop].filter(Boolean).join(" · ");
+		list.appendChild(li);
+	});
+	list.hidden = !dayEntries.length;
+	var empty = document.getElementById("profCalDayEmpty");
+	empty.hidden = dayEntries.length > 0;
+	empty.textContent = empty.hidden ? "" : t("diary.emptyOtherDay");
+}
+
+/* =====================================================================
    โปรไฟล์ร้าน — ข้อมูลจากแถวร้านที่ตรวจสิทธิ์แล้ว (เจ้าของจริงเท่านั้น), โพสต์ของร้าน, รีวิวจากลูกค้า
    ซ่อนส่วนของโปรไฟล์ส่วนตัวทั้งหมด (อีเมล เลเวล Food DNA ถูกใจ บันทึกไว้ รีวิวของฉัน กำลังติดตาม)
    ===================================================================== */
@@ -182,7 +322,7 @@ function renderShopProfile(shop) {
 	var key = String(shop.numId);
 	document.getElementById("profContent").hidden = false;
 	document.body.classList.add("prof-shopmode");
-	["profEmail", "profLevelCard", "dnaCardBtn", "selfBtnRow", "ptabLikes", "ptabReviews", "ptabSaves", "igFollowingBtn"].forEach(function(id) {
+	["profEmail", "profLevelCard", "dnaCardBtn", "selfBtnRow", "ptabLikes", "ptabReviews", "ptabSaves", "igFollowingBtn", "profDiaryCard", "profDiaryExtras"].forEach(function(id) {
 		var el = document.getElementById(id);
 		if (el) el.hidden = true;
 	});
@@ -204,7 +344,11 @@ function renderShopProfile(shop) {
 	document.getElementById("shopPageLink").href = "restaurant.html?id=" + encodeURIComponent(key);
 
 	// ข้อมูลร้านที่มีอยู่จริงเท่านั้น (ช่องไหนว่างไม่แสดง ไม่เติมค่าสมมติ)
+	// สถานะตรวจสอบโชว์ให้เจ้าของเห็นก่อนเสมอ — บอกว่าร้านเข้าระบบแนะนำหรือยัง และถ้าไม่ผ่านต้องแก้อะไร
+	var reviewText = t("shop.review_" + (shop.reviewStatus || "pending"));
+	if (shop.reviewStatus === "rejected" && shop.reviewNote) reviewText += " — " + shop.reviewNote;
 	var info = [
+		[t("shop.reviewStatusLabel"), reviewText],
 		[t("shop.featuredDish"), shop.dish],
 		[t("shop.category"), shop.cat ? catLabel(shop.cat) : ""],
 		[t("profile.shopPrice"), (shop.priceLow || shop.priceHigh) ? "฿" + (shop.priceLow || 0) + " – ฿" + (shop.priceHigh || 0) : ""],
@@ -311,6 +455,7 @@ function renderPersonalProfile() {
 	refreshProfileHeader(me);
 	document.getElementById("profEmail").textContent = session.email;
 	refreshLevelCard();
+	renderProfileDiary();
 
 	/* --- Food DNA (ทุกบัญชี) — กดปุ่มเพื่อดูรายละเอียดเป็น popup --- */
 	var dnaCardBtn = document.getElementById("dnaCardBtn");
@@ -382,28 +527,90 @@ function renderPersonalProfile() {
 	}
 	if (typeof syncLikesAndFollowsWithSupabase === "function") {
 		// ผลเดียวกันใช้ทั้งตัวเลขติดตาม และแท็บร้านที่ถูกใจ (ไม่ยิงซ้ำสองรอบ)
-		syncLikesAndFollowsWithSupabase(function() { refreshFollowingStat(); renderProfileActivity(); });
+		// ถูกใจ/ติดตาม ยังใช้คำนวณ XP (ไม่มีแท็บกิจกรรมแล้ว จึงไม่ต้องวาดแท็บใหม่)
+		syncLikesAndFollowsWithSupabase(refreshFollowingStat);
 	}
-	if (typeof syncPostsWithSupabase === "function") {
-		syncPostsWithSupabase(function() { renderMyPosts(); });
-	}
+	// โปรไฟล์ส่วนตัว = โปรไฟล์ไดอารี่อาหาร ไม่มีโพสต์/แท็บกิจกรรม/ตัวเลขโพสต์-ผู้ติดตามแบบโซเชียลแล้ว
+	// (ข้อมูลโพสต์เดิมยังอยู่ครบ ฟีดหน้าแรกและโปรไฟล์ร้านยังใช้) — โพสต์/รีวิวเดิมยังนับ XP เลยยัง sync ไว้
+	document.body.classList.add("prof-diarymode");
+	document.querySelector("#profContent .ighead .igstats").hidden = true;
+	if (typeof syncPostsWithSupabase === "function") syncPostsWithSupabase(refreshLevelCard);
+	syncPersonalExtras(me);
+	setupDiaryPrivacy();
+}
 
-	/* --- ปุ่มแชร์โปรไฟล์ (สไตล์ IG) — คัดลอกลิงก์โปรไฟล์สาธารณะไปคลิปบอร์ด --- */
-	var igShareBtn = document.getElementById("igShareBtn");
-	if (igShareBtn) {
-		igShareBtn.addEventListener("click", function() {
-			var link = window.location.origin + window.location.pathname.replace(/profile\.html$/, "") + "public-profile.html?u=" + encodeURIComponent(session.id);
-			if (navigator.clipboard && navigator.clipboard.writeText) {
-				navigator.clipboard.writeText(link).then(function() {
-					showToast(t("profile.linkCopied"));
-				}).catch(function() {});
+// รีวิวของฉัน (นับ XP) และร้านที่บันทึกไว้ (ขึ้นใน "ร้านอาหารโปรด") จาก Supabase — เผื่อทำไว้จากเครื่องอื่น
+function syncPersonalExtras(me) {
+	if (typeof sbClient !== "undefined" && sbClient && me && /^[0-9a-f-]{36}$/i.test(me.id)) {
+		Promise.resolve(sbClient.from("reviews").select("*").eq("user_id", me.id)).then(function(res) {
+			if (res.error || !res.data) return;
+			var byShop = {};
+			res.data.forEach(function(row) {
+				(byShop[row.shop_id] = byShop[row.shop_id] || []).push(sbReviewRowToLocal(row));
+			});
+			Object.keys(byShop).forEach(function(shopId) { mergeRemoteReviewsIntoLocal(shopId, byShop[shopId]); });
+			refreshLevelCard();
+		}).catch(function() {});
+	}
+	if (typeof syncSavedShopsWithSupabase === "function") syncSavedShopsWithSupabase(renderProfileDiary);
+}
+
+/* --- ความเป็นส่วนตัวของไดอารี่ — ปุ่มบนหัวโปรไฟล์บอกสถานะจริงจากฐานข้อมูล กดแล้วเลือก ส่วนตัว/สาธารณะ --- */
+function setupDiaryPrivacy() {
+	if (typeof diaryGetMyVisibility !== "function") return;
+	var btn = document.getElementById("diaryPrivacyBtn");
+	var dialog = document.getElementById("diaryPrivacyDialog");
+	var form = document.getElementById("dpForm");
+	var current = diaryCachedVisibility();
+	var localOnly = !diaryUsesServer();
+	function paintButton() {
+		document.getElementById("diaryPrivacyIcon").className = "fas " + (current === "public" ? "fa-globe" : "fa-lock");
+		var label = document.getElementById("diaryPrivacyLabel");
+		label.setAttribute("data-i18n", current === "public" ? "profile.privacyPublic" : "profile.privacyPrivate");
+		label.textContent = t(label.getAttribute("data-i18n"));
+	}
+	paintButton();
+	diaryGetMyVisibility().then(function(res) {
+		current = res.visibility;
+		paintButton();
+	});
+	btn.addEventListener("click", function() {
+		form.querySelector('input[value="' + current + '"]').checked = true;
+		var pub = form.querySelector('input[value="public"]');
+		pub.disabled = localOnly;
+		var note = document.getElementById("dpNote");
+		note.hidden = !localOnly;
+		note.textContent = localOnly ? t("profile.privacyLocalOnly") : "";
+		document.getElementById("dpErr").hidden = true;
+		dialog.showModal();
+	});
+	dialog.querySelectorAll("[data-close]").forEach(function(b) {
+		b.addEventListener("click", function() { dialog.close(); });
+	});
+	form.addEventListener("submit", function(e) {
+		e.preventDefault();
+		var picked = form.querySelector('input[name="dpVis"]:checked');
+		if (!picked || picked.value === current) {
+			dialog.close();
+			return;
+		}
+		var save = document.getElementById("dpSave");
+		save.disabled = true;
+		diarySetMyVisibility(picked.value).then(function(res) {
+			save.disabled = false;
+			if (res.error) {
+				// ไม่เปลี่ยนสถานะบนปุ่มถ้าฐานข้อมูลยังไม่ได้บันทึกจริง
+				var err = document.getElementById("dpErr");
+				err.textContent = t(res.error === "localOnly" ? "profile.privacyLocalOnly" : "profile.privacySaveFailed");
+				err.hidden = false;
+				return;
 			}
+			current = res.visibility;
+			paintButton();
+			dialog.close();
+			showToast(t(current === "public" ? "profile.privacyNowPublic" : "profile.privacyNowPrivate"));
 		});
-	}
-
-	/* --- โพสต์ของฉัน (ทุกบัญชี) — เป็นแท็บแรกของแถบกิจกรรม --- */
-	initMyPosts();
-	setupProfileTabs(me);
+	});
 }
 
 /* --- โพสต์ของฉัน: ฟอร์มเพิ่มโพสต์ + แสดงกริดโพสต์ ---

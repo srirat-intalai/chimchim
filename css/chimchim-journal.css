@@ -1,0 +1,1119 @@
+/* =====================================================================
+   CHIMCHIM JOURNAL — โทน "Food Journal" สำหรับหน้าโปรไฟล์และไดอารี่ (body.journal)
+   ขาวนวล/ครีมเป็นพื้น ม่วงหม่นใช้เฉพาะปุ่มหลัก สถานะที่เลือก และจุดที่จำเป็น
+   โหลดต่อจาก chimchim-refresh.css เฉพาะ profile.html / diary.html — หน้าอื่นของแอปไม่เปลี่ยน
+   ===================================================================== */
+body.journal {
+  --j-bg: #faf9f6;
+  --j-card: #ffffff;
+  --j-cream: #f3ede3;
+  --j-line: #e8e3dc;
+  --j-ink: #29272d;
+  /* ข้อความรอง: #77737B ตามแบรนด์บนการ์ดขาวผ่าน AA (4.7:1) แต่บนพื้นขาวนวล/ครีมไม่ถึง 4.5:1
+     จึงใช้ค่าเข้มขึ้นเล็กน้อยในโทนเดียวกันสำหรับตัวหนังสือเล็ก */
+  --j-ink-2: #6c6870;
+  --j-brand: #7865a8;
+  --j-brand-deep: #51436f;
+  --j-brand-tint: #efebf5;
+  --j-danger: #a8342b;
+  --j-radius: 18px;
+  --j-shadow: 0 1px 2px rgba(41, 39, 45, 0.04), 0 8px 24px -16px rgba(41, 39, 45, 0.18);
+}
+/* โหมดมืดของแอปยังใช้ได้ — ใช้โทนเข้มเดิมของแอป ไม่บังคับพื้นขาวตอนผู้ใช้เลือกโหมดมืด */
+[data-theme="dark"] body.journal {
+  --j-bg: #15131b;
+  --j-card: #1e1b26;
+  --j-cream: #262230;
+  --j-line: rgba(255, 255, 255, 0.08);
+  --j-ink: #f5f2fa;
+  --j-ink-2: #b4adc2;
+  --j-brand: #a593d6;
+  --j-brand-deep: #c9bdf0;
+  --j-brand-tint: #2c2640;
+  --j-danger: #ff9b8f;
+}
+/* ส่งโทนนี้ต่อให้คอมโพเนนต์เดิมของหน้าโปรไฟล์ (การ์ดเลเวล แท็บ ปุ่ม) ที่อ่านจากตัวแปร --rf-* อยู่แล้ว */
+:root:not([data-theme="dark"]) body.journal {
+  --rf-bg: var(--j-bg);
+  --rf-surface: var(--j-card);
+  --rf-fill: var(--j-cream);
+  --rf-line: var(--j-line);
+  --rf-ink: var(--j-ink);
+  --rf-ink-2: var(--j-ink-2);
+  --rf-brand: var(--j-brand);
+  --rf-brand-grad: linear-gradient(135deg, var(--j-brand) 0%, var(--j-brand-deep) 100%);
+  --rf-brand-tint: var(--j-brand-tint);
+  --rf-glow: 0 6px 16px -10px rgba(81, 67, 111, 0.5);
+  --rf-shadow-sm: var(--j-shadow);
+  --rf-ink-grad: linear-gradient(135deg, var(--j-brand) 0%, var(--j-brand-deep) 100%);
+  --primary: var(--j-brand);
+  --dark: var(--j-brand-deep);
+  --cream2: var(--j-cream);
+  --text: var(--j-ink);
+  --text-muted: var(--j-ink-2);
+  --color-focus-ring: var(--j-brand);
+  background: var(--j-bg);
+}
+body.journal ::selection {
+  background: var(--j-brand-tint);
+  color: var(--j-ink);
+}
+
+/* ---------------- ปุ่ม ---------------- */
+.jbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.jbtn-primary {
+  background: var(--j-brand);
+  color: #fff;
+}
+.jbtn-primary:hover {
+  background: var(--j-brand-deep);
+  color: #fff;
+}
+[data-theme="dark"] .jbtn-primary {
+  color: #15131b;
+}
+.jbtn-quiet {
+  background: var(--j-card);
+  border-color: var(--j-line);
+  color: var(--j-ink);
+}
+.jbtn-quiet:hover {
+  border-color: var(--j-ink-2);
+}
+.jbtn-danger {
+  background: transparent;
+  border-color: var(--j-line);
+  color: var(--j-danger);
+}
+.jbtn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.jicon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--j-line);
+  background: var(--j-card);
+  color: var(--j-ink);
+  cursor: pointer;
+}
+.jicon:hover {
+  border-color: var(--j-ink-2);
+}
+.jlink,
+.jlinkbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--j-brand-deep);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.jlink:hover,
+.jlinkbtn:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.jlink i,
+.jlinkbtn i {
+  font-size: 0.75em;
+}
+.jvisually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.jbanner {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--j-cream);
+  color: var(--j-ink);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.jbanner.is-warn {
+  border: 1px solid #e3c9a6;
+}
+.jmuted {
+  margin: 0;
+  color: var(--j-ink-2);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+.jnote {
+  margin: 4px 0 0;
+  color: var(--j-ink-2);
+  font-size: 0.78rem;
+}
+.jtag {
+  display: inline-block;
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--j-brand-tint);
+  color: var(--j-brand-deep);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* ===================================================================
+   หน้าไดอารี่
+   =================================================================== */
+.diarypage {
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+.jhead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  background: var(--j-bg);
+  border-bottom: 1px solid var(--j-line);
+}
+.jback {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--j-ink);
+  text-decoration: none;
+}
+.jback:hover {
+  background: var(--j-cream);
+  color: var(--j-ink);
+}
+.jhead-text {
+  flex: 1;
+  min-width: 0;
+}
+.jhead-text h1 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--j-ink);
+}
+.jhead-text p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--j-ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jmain {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+}
+.jpanel {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-radius);
+  box-shadow: var(--j-shadow);
+}
+.jguest {
+  max-width: 440px;
+  margin: 40px auto;
+  padding: 28px 24px;
+  text-align: center;
+}
+.jguest h2 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  color: var(--j-ink);
+}
+.jguest p {
+  margin: 0 0 18px;
+  color: var(--j-ink-2);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+/* ---------------- ปฏิทิน ---------------- */
+.jcal {
+  padding: 14px 12px 12px;
+}
+.jcal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 0 2px;
+}
+.jcal-month {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--j-ink);
+}
+.jcal-week,
+.jcal-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+.jcal-week {
+  margin-bottom: 4px;
+}
+.jcal-week span {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--j-ink-2);
+  padding: 4px 0;
+}
+.jcal-grid {
+  display: grid;
+  gap: 4px;
+}
+.jcal-cell {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent center / cover no-repeat;
+  color: var(--j-ink);
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.jcal-cell.is-blank {
+  cursor: default;
+}
+.jcal-cell:not(.is-blank):hover {
+  background-color: var(--j-cream);
+}
+.jcal-num {
+  position: relative;
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+.jcal-cell.is-future .jcal-num {
+  color: var(--j-ink-2);
+}
+.jcal-cell.is-today .jcal-num {
+  font-weight: 800;
+  color: var(--j-brand-deep);
+}
+/* มีบันทึกแต่ไม่มีรูป: จุดเล็กใต้ตัวเลข */
+.jcal-cell.has-entry:not(.has-photo)::after {
+  content: "";
+  position: absolute;
+  bottom: 14%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: var(--j-brand);
+}
+/* มีรูป: รูปอาหารเต็มช่อง + ไล่เงาด้านล่างให้ตัวเลขอ่านออกบนรูปทุกแบบ */
+.jcal-cell.has-photo {
+  box-shadow: inset 0 0 0 1px rgba(41, 39, 45, 0.06);
+}
+.jcal-cell.has-photo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(to top, rgba(20, 18, 24, 0.62), rgba(20, 18, 24, 0.08) 65%);
+}
+.jcal-cell.has-photo .jcal-num {
+  align-self: flex-end;
+  margin-bottom: 6%;
+  color: #fff;
+  font-weight: 700;
+}
+.jcal-more {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--j-card);
+  color: var(--j-ink);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 18px;
+}
+.jcal-cell.is-selected {
+  outline: 2px solid var(--j-brand);
+  outline-offset: 1px;
+}
+.jcal-cell.is-selected:not(.has-photo) {
+  background-color: var(--j-brand-tint);
+}
+.jcal-summary {
+  margin: 10px 2px 0;
+  font-size: 0.78rem;
+  color: var(--j-ink-2);
+}
+
+/* ---------------- บันทึกของวัน ---------------- */
+.jday {
+  margin-top: 20px;
+}
+.jday-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 2px 12px;
+}
+.jday-head h2 {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--j-ink);
+}
+.jday-count {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--j-ink-2);
+}
+.jlist {
+  display: grid;
+  gap: 14px;
+}
+.jentry {
+  overflow: hidden;
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-radius);
+  box-shadow: var(--j-shadow);
+}
+.jentry-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--j-cream);
+}
+.jentry-body {
+  padding: 14px 16px 10px;
+}
+.jentry-dish {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--j-ink);
+  letter-spacing: -0.005em;
+}
+.jentry-shop {
+  margin: 2px 0 0;
+  font-size: 0.86rem;
+  color: var(--j-ink);
+}
+.jentry-meta {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: var(--j-ink-2);
+}
+.jentry-note {
+  margin: 10px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--j-ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.jentry .jlinkbtn {
+  margin-top: 4px;
+}
+.jempty {
+  padding: 28px 20px;
+  border: 1px dashed var(--j-line);
+  border-radius: var(--j-radius);
+  background: var(--j-card);
+  text-align: center;
+}
+.jempty p {
+  margin: 0 0 14px;
+  color: var(--j-ink-2);
+  font-size: 0.9rem;
+}
+
+/* แท็บเล็ต: บันทึกเป็นแนวนอน (รูปซ้าย ข้อความขวา) */
+@media (min-width: 560px) {
+  .jentry:not(.no-photo) {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+  }
+  .jentry:not(.no-photo) .jentry-img {
+    height: 100%;
+    aspect-ratio: auto;
+    min-height: 160px;
+  }
+}
+/* Desktop: ปฏิทินซ้าย (ติดอยู่ระหว่างเลื่อน) รายการขวา */
+@media (min-width: 900px) {
+  .jlayout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .jlayout > .jbanner {
+    grid-column: 1 / -1;
+  }
+  .jcal {
+    position: sticky;
+    top: 86px;
+  }
+  .jday {
+    margin-top: 0;
+  }
+}
+
+/* ---------------- Dialog (ฟอร์ม / รายละเอียด) ---------------- */
+.jsheet {
+  width: min(520px, 100%);
+  max-width: 100%;
+  max-height: min(92vh, 860px);
+  padding: 0;
+  border: none;
+  border-radius: 22px;
+  background: var(--j-card);
+  color: var(--j-ink);
+  box-shadow: 0 30px 80px -20px rgba(20, 18, 24, 0.45);
+  overflow: hidden;
+}
+.jsheet[open] {
+  display: flex;
+  flex-direction: column;
+}
+.jsheet::backdrop {
+  background: rgba(41, 39, 45, 0.45);
+}
+.jsheet > .jform {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: inherit;
+}
+.jsheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 12px 20px;
+  border-bottom: 1px solid var(--j-line);
+}
+.jsheet-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.jsheet-kicker {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--j-ink-2);
+}
+.jsheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
+  overscroll-behavior: contain;
+}
+.jsheet-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--j-line);
+  background: var(--j-card);
+}
+.jsheet-foot .jbtn-danger {
+  margin-right: auto;
+}
+/* มือถือ: ขึ้นจากด้านล่างแบบ bottom sheet ปุ่มบันทึกอยู่ในระยะนิ้วโป้ง */
+@media (max-width: 599px) {
+  .jsheet {
+    width: 100%;
+    margin: auto 0 0;
+    border-radius: 22px 22px 0 0;
+    max-height: 92vh;
+  }
+}
+
+/* ฟอร์ม */
+.jphoto {
+  position: relative;
+  margin-bottom: 16px;
+  border: 1px dashed var(--j-line);
+  border-radius: 16px;
+  background: var(--j-bg);
+  overflow: hidden;
+}
+.jphoto img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+.jphoto-pick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 96px;
+  padding: 14px;
+  color: var(--j-ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.jphoto-pick i {
+  color: var(--j-brand);
+  font-size: 1.1rem;
+}
+.jphoto-pick small {
+  color: var(--j-ink-2);
+  font-weight: 400;
+}
+.jphoto.has-photo {
+  border-style: solid;
+}
+.jphoto.has-photo .jphoto-pick {
+  min-height: 48px;
+  border-top: 1px solid var(--j-line);
+  background: var(--j-card);
+}
+.jphoto:focus-within {
+  outline: 2px solid var(--j-brand);
+  outline-offset: 2px;
+}
+.jphoto-remove {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(20, 18, 24, 0.6);
+  color: #fff;
+  cursor: pointer;
+}
+.jfield {
+  margin: 0 0 14px;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+.jfield label,
+.jfield legend {
+  display: block;
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--j-ink);
+}
+.jfield label small,
+.jfield legend small {
+  margin-left: 4px;
+  font-weight: 400;
+  color: var(--j-ink-2);
+}
+.jfield label em {
+  font-style: normal;
+  color: var(--j-danger);
+}
+.jfield input,
+.jfield textarea {
+  display: block;
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 14px;
+  border: 1px solid var(--j-line);
+  border-radius: 12px;
+  background: var(--j-card);
+  color: var(--j-ink);
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.jfield textarea {
+  resize: vertical;
+  min-height: 92px;
+}
+.jfield input::placeholder,
+.jfield textarea::placeholder {
+  color: var(--j-ink-2);
+}
+.jfield input:focus,
+.jfield textarea:focus {
+  outline: none;
+  border-color: var(--j-brand);
+  box-shadow: 0 0 0 3px var(--j-brand-tint);
+}
+.jfield [aria-invalid="true"] {
+  border-color: var(--j-danger);
+}
+.jfield-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.jfeel-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.jchip {
+  min-height: 38px;
+  padding: 6px 14px;
+  border: 1px solid var(--j-line);
+  border-radius: 999px;
+  background: var(--j-card);
+  color: var(--j-ink);
+  font: inherit;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+.jchip.active {
+  background: var(--j-brand);
+  border-color: var(--j-brand);
+  color: #fff;
+}
+[data-theme="dark"] .jchip.active {
+  color: #15131b;
+}
+.jcount {
+  margin: 4px 0 0;
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--j-ink-2);
+}
+.jerr {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--j-danger);
+}
+.jerr-form {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fbeeec;
+}
+[data-theme="dark"] .jerr-form {
+  background: #3a2422;
+}
+
+/* รายละเอียด */
+.jdetail-img {
+  display: block;
+  width: calc(100% + 40px);
+  margin: -16px -20px 16px;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--j-cream);
+}
+.jdetail-dish {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.jdetail-shop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 12px;
+  font-size: 0.92rem;
+}
+.jdetail-shop i {
+  color: var(--j-ink-2);
+}
+.jdetail-shop a {
+  color: var(--j-brand-deep);
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+.jdetail-note {
+  margin: 14px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+/* ===================================================================
+   หน้าโปรไฟล์ — การ์ดไดอารี่/สถิติ/ร้านโปรด + ปรับการ์ดเดิมให้เป็นโทนเดียวกัน
+   =================================================================== */
+.journal .profcard,
+.jcard {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-radius);
+  box-shadow: var(--j-shadow);
+}
+.jcard {
+  margin: 0 0 14px;
+  padding: 16px;
+}
+.jcard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.jcard-head h2,
+.jcard-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--j-ink);
+}
+.jcard-title {
+  margin-bottom: 12px;
+}
+.jcard .jempty {
+  padding: 18px 12px;
+  border-style: dashed;
+  box-shadow: none;
+}
+.jrecent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.jrecent li + li {
+  border-top: 1px solid var(--j-line);
+}
+.jrecent-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 8px 2px;
+  color: var(--j-ink);
+  text-decoration: none;
+}
+.jrecent-item:hover {
+  color: var(--j-ink);
+}
+.jrecent-item:hover b {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.jrecent-item img,
+.jrecent-noimg {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--j-cream);
+}
+.jrecent-noimg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--j-ink-2);
+}
+.jrecent-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.jrecent-text b {
+  font-size: 0.92rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jrecent-text small {
+  font-size: 0.78rem;
+  color: var(--j-ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jrecent-item > i {
+  color: var(--j-ink-2);
+  font-size: 0.75rem;
+}
+.jcard-pair {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.jcard-pair .jcard {
+  margin: 0;
+}
+/* สถิติ → ร้านโปรด เรียงลงมาทีละการ์ดทุกขนาดจอ (คอลัมน์โปรไฟล์กว้างแค่ 480–640px วางคู่กันแล้วตัวเลขสถิติเบียดจนตัดบรรทัด) */
+.jstats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.jstats div {
+  padding: 10px 8px;
+  border-radius: 12px;
+  background: var(--j-bg);
+  text-align: center;
+}
+.jstats dd {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--j-ink);
+}
+.jstats dt {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--j-ink-2);
+}
+.jfav {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: fav;
+}
+.jfav li {
+  counter-increment: fav;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+}
+.jfav li::before {
+  content: counter(fav);
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--j-cream);
+  color: var(--j-ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 24px;
+  text-align: center;
+}
+.jfav li a,
+.jfav li span {
+  flex: 1;
+  min-width: 0;
+  color: var(--j-ink);
+  font-size: 0.9rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jfav li a {
+  text-underline-offset: 3px;
+}
+.jfav li small {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: var(--j-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- แก้ชนกับสไตล์เดิมของแอป ----------------
+   style.css ให้ทุก <section> มี padding 88px (ของหน้า landing เดิม) และจำกัดหน้าแอปไว้ 480–640px
+   หน้าไดอารี่ต้องใช้ section แบบไม่มี padding และขยายได้ถึง 960px เพื่อวางปฏิทินคู่รายการบน Desktop */
+.diarypage section,
+.journal .jcard {
+  padding-left: 0;
+  padding-right: 0;
+}
+.diarypage .jday {
+  padding: 0;
+}
+.diarypage .jcal {
+  padding: 14px 12px 12px;
+}
+.diarypage .jguest {
+  padding: 28px 24px;
+}
+.journal .jcard {
+  padding: 16px;
+}
+@media (min-width: 900px) {
+  body.appshell.diarypage {
+    max-width: 960px;
+  }
+}
+/* คำอธิบายใต้หัวข้อ: ขึ้นบรรทัดใหม่ได้ ไม่ตัดเป็น … บนจอแคบ */
+.jhead-text p {
+  white-space: normal;
+  overflow: visible;
+  line-height: 1.4;
+}
+/* รูปในรายละเอียดเต็มขอบกล่อง (กฎ img { max-width: 100% } เดิมของแอปทำให้สั้นกว่ากล่อง)
+   และหัวข้อใช้สีตัวหนังสือหลัก ไม่รับสีม่วงจากกฎ h2 เดิม */
+.jdetail-img {
+  max-width: none;
+}
+.journal .jdetail-dish,
+.journal .jsheet-head h2 {
+  color: var(--j-ink);
+}
+
+/* ---------------- ความเป็นส่วนตัวของไดอารี่ (ตัวเลือกแบบการ์ด) ---------------- */
+.jradios {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+.jradio {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--j-line);
+  border-radius: 14px;
+  background: var(--j-card);
+  cursor: pointer;
+}
+.jradio:has(input:checked) {
+  border-color: var(--j-brand);
+  background: var(--j-brand-tint);
+}
+.jradio:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.jradio input {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--j-brand);
+}
+.jradio-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.jradio-text b {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: var(--j-ink);
+}
+.jradio-text b i {
+  color: var(--j-ink-2);
+  font-size: 0.85em;
+}
+.jradio-text small {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--j-ink-2);
+}
+
+/* ---------------- หัวโปรไฟล์แบบไดอารี่ (ไม่มีตัวเลขโพสต์/ผู้ติดตาม) ---------------- */
+.prof-diarymode .ighead {
+  margin-bottom: 10px;
+}
+.prof-diarymode #diaryPrivacyBtn i {
+  margin-right: 6px;
+}
+.journal #ppDiary {
+  margin-top: 14px;
+}
+.journal #ppDiary .jbtn {
+  margin-top: 10px;
+}
+
+/* ---------------- ปฏิทินไดอารี่บนหน้าโปรไฟล์ + ปุ่มบันทึกใต้ปฏิทิน ---------------- */
+.jprofcal .jcal-head {
+  margin-top: 4px;
+}
+.jprofcal .jcal-month {
+  font-size: 0.98rem;
+}
+.jprofcal .jcal-num {
+  font-size: 0.84rem;
+}
+.jstart {
+  margin: -4px 0 16px;
+}
+.jstart-msg {
+  margin: 0 4px 10px;
+  text-align: center;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--j-ink-2);
+}
+.jbtn-block {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+}
+.jprofday {
+  margin: 0 0 16px;
+  padding: 0 2px;
+}
+.jprofday-label {
+  margin: 0 0 4px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--j-ink);
+}
+.jprofday .jmuted {
+  padding: 8px 0;
+}

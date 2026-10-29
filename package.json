@@ -2,7 +2,8 @@
   "type": "module",
   "scripts": {
     "server": "node server.js",
-    "admin:reports": "node scripts/admin-view-reports.js"
+    "admin:reports": "node scripts/admin-view-reports.js",
+    "admin:shops": "node scripts/admin-review-shops.js"
   },
   "dependencies": {
     "@google/genai": "^2.22.0",

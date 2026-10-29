@@ -380,7 +380,7 @@ renderRecommendedRow();
 
         if (nothingFound) {
             html = '<div id="spPeopleGroup"></div>' +
-                '<p class="spempty">' + t('search.noResults') + '<br><a href="ai-finder.html">' + t('search.askAi') + '</a></p>';
+                '<p class="spempty">' + t('search.noResults') + '<br><a href="roulette.html">' + t('search.tryRandom') + '</a></p>';
         }
         panel.innerHTML = html;
         panel.hidden = false;

@@ -234,6 +234,49 @@ function ppRenderFoodDna(dna, isMe) {
 	}
 }
 // ดึง Food DNA ล่าสุดจาก Supabase (คนที่ไม่เคยเห็นในเครื่องนี้ หรืออัปเดตจากเครื่องอื่น)
+/* --- ไดอารี่อาหารของผู้ใช้คนนี้: 3 รายการล่าสุด + ลิงก์ดูทั้งหมด (diary.html?u=) — ส่วนตัว/ยังไม่ล็อกอิน บอกตรง ๆ --- */
+function ppRenderDiary(user) {
+	if (typeof diaryLoadFor !== "function") return;
+	var box = document.getElementById("ppDiary");
+	var list = document.getElementById("ppDiaryList");
+	var msg = document.getElementById("ppDiaryMsg");
+	var all = document.getElementById("ppDiaryAll");
+	var login = document.getElementById("ppDiaryLogin");
+	box.hidden = false;
+	msg.textContent = "";
+	login.onclick = function() { if (typeof openAuthPop === "function") openAuthPop("login"); };
+	diaryLoadFor(user.id).then(function(res) {
+		list.innerHTML = "";
+		var blocked = res.visibility === "private" && !res.own;
+		if (res.error === "auth" || blocked || (res.error && !res.entries.length)) {
+			msg.textContent = t(res.error === "auth" ? "publicprofile.diaryLogin" : blocked ? "publicprofile.diaryPrivate" : "publicprofile.diaryFailed");
+			login.hidden = res.error !== "auth";
+			list.hidden = true;
+			all.hidden = true;
+			return;
+		}
+		login.hidden = true;
+		res.entries.slice(0, 3).forEach(function(e) {
+			var li = document.createElement("li");
+			li.innerHTML =
+				'<a class="jrecent-item">' +
+					(e.img ? '<img alt="" loading="lazy"/>' : '<span class="jrecent-noimg" aria-hidden="true"><i class="fas fa-utensils"></i></span>') +
+					'<span class="jrecent-text"><b></b><small></small></span>' +
+					'<i class="fas fa-chevron-right" aria-hidden="true"></i>' +
+				"</a>";
+			li.querySelector("a").href = "diary.html?u=" + encodeURIComponent(user.id) + "&entry=" + encodeURIComponent(e.id) + "&date=" + encodeURIComponent(e.date);
+			if (e.img) li.querySelector("img").src = safeImgSrc(e.img);
+			li.querySelector("b").textContent = e.dish;
+			li.querySelector("small").textContent = diaryFormatDate(e.date) + (e.shop ? " · " + e.shop : "");
+			list.appendChild(li);
+		});
+		list.hidden = !res.entries.length;
+		msg.textContent = res.entries.length ? "" : t("publicprofile.diaryEmpty");
+		all.hidden = !res.entries.length;
+		all.href = "diary.html?u=" + encodeURIComponent(user.id);
+	});
+}
+
 function ppLoadFoodDna(userId, localDna) {
 	var isMe = !!(ppSession && ppSession.id === userId);
 	ppRenderFoodDna(localDna || null, isMe);
@@ -357,8 +400,10 @@ if (ppIsBuShop) {
 		}
 
 		ppLoadFoodDna(user.id, user.foodDNA || null);
-		ppRenderPosts(getPostsByUser(user.id), user.name, "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))");
-		ppSetStats({ posts: getPostsByUser(user.id).length, followId: user.id, followerOf: /^[0-9a-f-]{36}$/i.test(user.id) ? user.id : null });
+		// โปรไฟล์ผู้ใช้ = ไดอารี่อาหาร ไม่ใช่กริดโพสต์/ตัวเลขโพสต์-ผู้ติดตามแบบโซเชียล (เพจร้านยังเป็นโพสต์ตามเดิม)
+		document.getElementById("ppStats").hidden = true;
+		document.getElementById("ppPostsCard").hidden = true;
+		ppRenderDiary(user);
 	}
 	if (user) {
 		renderRealUserProfile(user);

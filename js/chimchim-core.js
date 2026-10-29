@@ -562,8 +562,15 @@ function กรองร้านตามพื้นที่(list) {
 	}).filter(Boolean).sort(function(a, b) { return a.d - b.d; }).slice(0, CHIMCHIM_AREA_FALLBACK_MAX);
 	return { list: near.map(function(x) { return x.r; }), area: area, fallback: true, km: near.length ? Math.max(1, Math.round(near[0].d / 1000)) : null };
 }
+// ร้านที่เข้าระบบแนะนำ/สุ่ม/AI ได้: ร้านตั้งต้นของทีม หรือร้านที่ผู้ใช้เพิ่มแล้วทีมตรวจข้อมูลผ่านแล้ว
+// ร้านรอตรวจยังเปิดหน้าร้าน/ค้นหาเจอได้ (หน้าเหล่านั้นอ่าน รายการร้าน ตรง ๆ ไม่ผ่านฟังก์ชันนี้)
+function ร้านแนะนำได้(r) {
+	return !r.community || r.สถานะตรวจสอบ === "approved";
+}
+// ร้านสำหรับระบบแนะนำ (หน้าแรก/ไข่สุ่ม/AI Finder) — ตามพื้นที่ที่เลือก และผ่านการตรวจสอบแล้วเท่านั้น
 function ร้านในพื้นที่() {
-	return กรองร้านตามพื้นที่(typeof รายการร้าน !== "undefined" ? รายการร้าน : []).list;
+	var list = (typeof รายการร้าน !== "undefined" ? รายการร้าน : []).filter(ร้านแนะนำได้);
+	return กรองร้านตามพื้นที่(list).list;
 }
 
 function getUserLocation() {
@@ -831,6 +838,9 @@ function shopToร้าน(shop) {
 		เวลาเปิดกำหนดเอง: shop.hours || null,
 		โปรโมชั่นกำหนดเอง: shop.promo || null,
 		คำโปรยกำหนดเอง: shop.desc || null,
+		// ร้านที่ผู้ใช้เพิ่ม: pending / approved / rejected (ร้านในเครื่องที่ยังไม่ sync = pending)
+		สถานะตรวจสอบ: shop.reviewStatus || "pending",
+		หมายเหตุตรวจสอบ: shop.reviewNote || null,
 		community: true
 	};
 }

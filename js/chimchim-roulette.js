@@ -76,8 +76,33 @@ function ผ่านเงื่อนไข(r, f) {
 	if (f.dist > 0 && ข้อมูลระยะทาง(r).meters > f.dist) return false;
 	return true;
 }
-function ร้านที่ผ่านเงื่อนไข(f) {
-	return ร้านทั้งหมดที่สุ่มได้().filter(function(r) { return ผ่านเงื่อนไข(r, f); });
+// เงื่อนไขจาก Prompt (AI แปลงคำพูดเป็นค่าในคำศัพท์จริงของแอป ดู /api/prompt-filters ใน server.js)
+// ทุกข้อที่มีค่าต้องผ่านทั้งหมด / include ไม่ใช่ตัวกรอง แต่ใช้ถ่วงให้ร้านที่ตรงเมนูที่อยากกินมีโอกาสมากกว่า
+var promptFilters = null;
+function ข้อความค้นของร้าน(r) {
+	return [r.เมนู, r.ร้าน, r.หมวด, catLabel(r.หมวด)].concat(r.แท็ก || []).join(" ").toLowerCase();
+}
+function ผ่านเงื่อนไขPrompt(r, pf) {
+	if (!pf) return true;
+	if (pf.groups.length && pf.groups.indexOf(กลุ่มของหมวด(r.หมวด)) === -1) return false;
+	if (pf.cuisines.length && pf.cuisines.indexOf(r.ชาติอาหาร) === -1) return false;
+	if (pf.flavors.length && !(r.รส || []).some(function(x) { return pf.flavors.indexOf(x) !== -1; })) return false;
+	if (pf.budgetMax && !(typeof r.ราคาต่ำ === "number" && r.ราคาต่ำ <= pf.budgetMax)) return false;
+	if (pf.distanceMax && ข้อมูลระยะทาง(r).meters > pf.distanceMax) return false;
+	if (pf.exclude.length) {
+		var text = ข้อความค้นของร้าน(r);
+		if (pf.exclude.some(function(w) { return text.indexOf(w.toLowerCase()) !== -1; })) return false;
+	}
+	return true;
+}
+function ตรงเมนูที่อยากกิน(r, pf) {
+	if (!pf || !pf.include.length) return false;
+	var text = ข้อความค้นของร้าน(r);
+	return pf.include.some(function(w) { return text.indexOf(w.toLowerCase()) !== -1; });
+}
+function ร้านที่ผ่านเงื่อนไข(f, pf) {
+	if (pf === undefined) pf = promptFilters;
+	return ร้านทั้งหมดที่สุ่มได้().filter(function(r) { return ผ่านเงื่อนไข(r, f) && ผ่านเงื่อนไขPrompt(r, pf); });
 }
 function budgetLabel(b) {
 	return b ? t("roulette.budgetMax").replace("{n}", b) : t("roulette.noLimit");
@@ -87,6 +112,7 @@ function distLabel(d) {
 }
 function filterSummaryText() {
 	var parts = [];
+	if (promptFilters) parts.push(promptFilters.summary || t("roulette.promptActive"));
 	if (rFilters.cat !== "all") parts.push(catGroupLabel(rFilters.cat));
 	if (rFilters.budget) parts.push(budgetLabel(rFilters.budget));
 	if (rFilters.dist) parts.push(distLabel(rFilters.dist));
@@ -154,7 +180,7 @@ var ร้านล่าสุดที่เปิดได้ = null;
 function สุ่มร้านตามโหมด(mode) {
 	if (typeof รายการร้าน === "undefined" || !Array.isArray(รายการร้าน)) return { error: "nodata" };
 	var pool = ร้านที่ผ่านเงื่อนไข(rFilters);
-	if (!pool.length) return { error: filtersActive() ? "filtered" : "empty" };
+	if (!pool.length) return { error: filtersActive() || promptFilters ? "filtered" : "empty" };
 
 	var seen = getSeenShops();
 	var fresh = pool.filter(function(r) { return seen.indexOf(r.id) === -1; });
@@ -175,6 +201,8 @@ function สุ่มร้านตามโหมด(mode) {
 	} else {
 		weights = คะแนน.map(function() { return 1; });
 	}
+	// ร้านที่ตรงเมนู/วัตถุดิบที่ผู้ใช้พิมพ์ว่าอยากกิน มีโอกาสออกมากขึ้น 3 เท่า (ไม่ใช่บังคับ — คำเรียกเมนูไม่ตรงกันเป๊ะได้)
+	weights = weights.map(function(w, i) { return ตรงเมนูที่อยากกิน(fresh[i], promptFilters) ? w * 3 : w; });
 	var idx = สุ่มถ่วงน้ำหนัก(weights);
 	return { ร้าน: fresh[idx], คะแนน: foodDNAPersonal ? คะแนน[idx] : null, poolSize: pool.length, wrapped: wrapped };
 }
@@ -268,6 +296,17 @@ function showEggError(kind) {
 			relax.appendChild(b);
 		});
 	}
+	if (kind === "filtered" && promptFilters && ร้านที่ผ่านเงื่อนไข(rFilters, null).length) {
+		var pb = document.createElement("button");
+		pb.type = "button";
+		pb.className = "rfchip";
+		pb.textContent = t("roulette.relaxPrompt") + " (" + t("roulette.shopCount").replace("{n}", ร้านที่ผ่านเงื่อนไข(rFilters, null).length) + ")";
+		pb.addEventListener("click", function() {
+			clearPromptFilters();
+			pickAndReveal(true);
+		});
+		relax.appendChild(pb);
+	}
 	relax.hidden = kind !== "filtered" || !relax.children.length;
 	document.getElementById("eggErrorRetry").hidden = kind === "filtered";
 	eggError.hidden = false;
@@ -280,7 +319,7 @@ function relaxOptions() {
 	function tryOpt(key, value, label) {
 		var f = { cat: rFilters.cat, budget: rFilters.budget, dist: rFilters.dist };
 		f[key] = value;
-		var n = ร้านที่ผ่านเงื่อนไข(f).length;
+		var n = ร้านที่ผ่านเงื่อนไข(f, promptFilters).length;
 		if (n) out.push({ key: key, value: value, label: label + " (" + t("roulette.shopCount").replace("{n}", n) + ")" });
 	}
 	if (rFilters.budget) {
@@ -424,10 +463,12 @@ function revealEggResult(restoring, reroll) {
 	if (!matchEl.hidden) matchEl.innerHTML = matchBadgeText(pick.คะแนน);
 
 	document.getElementById("eggResultCat").innerHTML = ร้าน.หมวด ? (catEmoji(ร้าน.หมวด) + " " + escapeHtml(catLabel(ร้าน.หมวด))) : "";
-	document.getElementById("eggResultName").textContent = ร้าน.ร้าน || "";
+	// ชื่อเมนูเด่นก่อน (สิ่งที่จะได้กิน) แล้วค่อยชื่อร้าน — ไม่มีเมนูใช้ชื่อร้านเป็นหัวข้อแทน
+	document.getElementById("eggResultName").textContent = ร้าน.เมนู || ร้าน.ร้าน || "";
 	var menuEl = document.getElementById("eggResultMenu");
-	menuEl.hidden = !ร้าน.เมนู;
-	menuEl.textContent = ร้าน.เมนู ? (t("roulette.resultMenu") + ": " + ร้าน.เมนู) : "";
+	menuEl.hidden = !(ร้าน.เมนู && ร้าน.ร้าน);
+	menuEl.innerHTML = menuEl.hidden ? "" : '<i class="fas fa-store" aria-hidden="true"></i><span></span>';
+	if (!menuEl.hidden) menuEl.querySelector("span").textContent = ร้าน.ร้าน;
 
 	// แสดงเฉพาะข้อมูลที่มีจริง — ช่องไหนว่างไม่โชว์
 	var meta = [];
@@ -448,7 +489,7 @@ function revealEggResult(restoring, reroll) {
 	var poolEl = document.getElementById("eggResultPool");
 	if (typeof pick.poolSize === "number") {
 		var poolText = t("roulette.poolSize").replace("{n}", pick.poolSize);
-		if (filtersActive()) poolText += " · " + filterSummaryText();
+		if (filtersActive() || promptFilters) poolText += " · " + filterSummaryText();
 		if (pick.wrapped) poolText += " · " + t("roulette.wrapped");
 		poolEl.textContent = poolText;
 		poolEl.hidden = false;
@@ -571,6 +612,198 @@ setEggState("idle");
 	setEggState("result");
 	scheduleEggExpiry(saved.at);
 })();
+
+/* =====================================================================
+   ช่อง Prompt (ใช้ Token) — พิมพ์ความต้องการ → เซิร์ฟเวอร์หัก 1 Token แล้วให้ AI แปลงเป็นเงื่อนไข
+   → แอปกรอง/สุ่มจากร้านจริงตามเงื่อนไขนั้น (AI ไม่ได้เลือกร้านเอง) สุ่มพื้นฐานไม่ต้องใช้ Token เสมอ
+   กันหักซ้ำ 2 ชั้น: ปุ่มล็อกระหว่างรอ + requestId เดิมสำหรับข้อความเดิม (เซิร์ฟเวอร์ไม่หักซ้ำ ตอบผลเดิม)
+   ===================================================================== */
+var PROMPT_EXAMPLE_KEYS = ["roulette.promptEx1", "roulette.promptEx2", "roulette.promptEx3"];
+var promptTokens = null;   // { left, daily } จากฐานข้อมูล / null = ยังไม่รู้
+var promptBusy = false;
+var promptReq = null;      // { text, id } — ข้อความเดิมส่งซ้ำ (เช่น เน็ตหลุดกลางทาง) ใช้ id เดิม
+var rPromptForm = document.getElementById("rPrompt");
+var rPromptInput = document.getElementById("rPromptInput");
+var rPromptBtn = document.getElementById("rPromptBtn");
+var rPromptMsg = document.getElementById("rPromptMsg");
+
+function newRequestId() {
+	if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
+	return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, function(c) {
+		return (c ^ (window.crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16);
+	});
+}
+// คำศัพท์จริงจากร้านที่สุ่มได้ตอนนี้ — AI ต้องเลือกจากชุดนี้เท่านั้น (เซิร์ฟเวอร์ตัดค่าที่ไม่อยู่ในชุดทิ้ง)
+function promptVocab() {
+	var shops = ร้านทั้งหมดที่สุ่มได้();
+	var uniq = function(list) { return list.filter(function(v, i) { return v && list.indexOf(v) === i; }); };
+	return {
+		groups: กลุ่มหมวดหมู่.map(function(g) { return g.key; }).filter(function(key) {
+			return shops.some(function(r) { return หมวดย่อยในกลุ่ม(key).indexOf(r.หมวด) !== -1; });
+		}),
+		cuisines: uniq(shops.map(function(r) { return r.ชาติอาหาร; })),
+		flavors: uniq([].concat.apply([], shops.map(function(r) { return r.รส || []; })))
+	};
+}
+function showPromptMsg(text, isError) {
+	rPromptMsg.textContent = text || "";
+	rPromptMsg.hidden = !text;
+	rPromptMsg.classList.toggle("is-error", !!isError);
+}
+function renderPromptCost() {
+	var cost = document.getElementById("rPromptCost");
+	var btnText = document.getElementById("rPromptBtnText");
+	if (!getSession()) {
+		cost.textContent = t("roulette.promptGuestCost");
+		btnText.textContent = t("roulette.promptLogin");
+		return;
+	}
+	btnText.textContent = t("roulette.promptSubmit");
+	cost.textContent = promptTokens
+		? t("roulette.promptCostLeft").replace("{left}", promptTokens.left).replace("{daily}", promptTokens.daily)
+		: t("roulette.promptCost");
+}
+function refreshPromptTokens() {
+	if (typeof sbPromptTokensLeft !== "function") return;
+	sbPromptTokensLeft().then(function(data) {
+		promptTokens = data;
+		renderPromptCost();
+	});
+}
+function renderPromptActive() {
+	var box = document.getElementById("rPromptActive");
+	box.hidden = !promptFilters;
+	if (!promptFilters) return;
+	document.getElementById("rPromptSummary").textContent = promptFilters.summary || "";
+	var un = document.getElementById("rPromptUnsupported");
+	un.hidden = !promptFilters.unsupported.length;
+	un.textContent = un.hidden ? "" : t("roulette.promptUnsupported").replace("{items}", promptFilters.unsupported.join(", "));
+}
+function clearPromptFilters() {
+	promptFilters = null;
+	renderPromptActive();
+	if (eggState === "firstTap" || eggState === "secondTap" || eggState === "error") resetEgg();
+}
+// ได้เงื่อนไขแล้ว → ไข่ยังไม่เปิด: ฟักให้เลย (แอนิเมชันเปิดไข่ตามปกติ) / เปิดอยู่แล้ว: สุ่มร้านใหม่ตามเงื่อนไขทันที
+function hatchWithPrompt() {
+	if (eggState === "result") {
+		pickAndReveal(true);
+		return;
+	}
+	clearEggTimers();
+	eggBusy = false;
+	eggError.hidden = true;
+	eggPick = สุ่มร้านตามโหมด(โหมดที่ใช้จริง());
+	if (eggPick.error) {
+		showEggError(eggPick.error);
+		return;
+	}
+	if (typeof logEvent === "function") logEvent("roulette_started", { mode: โหมดที่ใช้จริง(), filters: rFilters, prompt: true });
+	if (prefersReducedMotion()) {
+		setEggState("reducedMotionReveal");
+		revealEggResult();
+		return;
+	}
+	eggHatch.scrollIntoView({ behavior: "smooth", block: "center" });
+	openEgg();
+}
+
+var PROMPT_ERROR_KEY = {
+	insufficient: "roulette.promptErrNoTokens",
+	ai_failed: "roulette.promptErrAi",
+	in_progress: "roulette.promptErrBusy",
+	auth: "roulette.promptErrAuth",
+	too_many_requests: "roulette.promptErrRate",
+	not_configured: "roulette.promptErrUnavailable",
+	token_unavailable: "roulette.promptErrUnavailable",
+	network: "roulette.promptErrNetwork"
+};
+rPromptForm.addEventListener("submit", function(e) {
+	e.preventDefault();
+	if (promptBusy) return;
+	var text = rPromptInput.value.trim();
+	if (!getSession()) {
+		if (typeof openAuthPop === "function") openAuthPop("login");
+		return;
+	}
+	if (!text) {
+		showPromptMsg(t("roulette.promptErrEmpty"), true);
+		rPromptInput.focus();
+		return;
+	}
+	if (promptTokens && promptTokens.left <= 0) {
+		showPromptMsg(t("roulette.promptErrNoTokens"), true);
+		return;
+	}
+	if (!promptReq || promptReq.text !== text) promptReq = { text: text, id: newRequestId() };
+	promptBusy = true;
+	rPromptBtn.disabled = true;
+	rPromptBtn.setAttribute("aria-busy", "true");
+	var btnText = document.getElementById("rPromptBtnText");
+	btnText.textContent = t("roulette.promptReading");
+	showPromptMsg("");
+	sbPromptFilters(text, promptReq.id, promptVocab()).then(function(res) {
+		promptBusy = false;
+		rPromptBtn.disabled = false;
+		rPromptBtn.removeAttribute("aria-busy");
+		if (typeof res.left === "number" && promptTokens) promptTokens.left = res.left;
+		renderPromptCost();
+		if (res.error) {
+			// เน็ตหลุด/เซิร์ฟเวอร์ไม่ตอบ → เก็บ requestId ไว้ กดอีกครั้งด้วยข้อความเดิมจะได้ผลเดิมโดยไม่หักซ้ำ
+			if (res.error !== "network" && res.error !== "in_progress") promptReq = null;
+			showPromptMsg(t(PROMPT_ERROR_KEY[res.error] || "roulette.promptErrUnavailable"), true);
+			if (typeof logEvent === "function") logEvent("roulette_prompt_failed", { reason: res.error });
+			return;
+		}
+		promptReq = null;
+		if (res.empty) {
+			showPromptMsg(t("roulette.promptErrNoFood"), true);
+			return;
+		}
+		promptFilters = res.filters;
+		renderPromptActive();
+		showPromptMsg(t("roulette.promptUsed").replace("{left}", typeof res.left === "number" ? res.left : "?"));
+		if (typeof logEvent === "function") logEvent("roulette_prompt_used", { replay: !!res.replay });
+		hatchWithPrompt();
+	});
+});
+// ช่องพิมพ์สูงตามข้อความ (เริ่ม 1 บรรทัด สูงสุดราว 4 บรรทัด) — ไม่ดันไข่ลงไปใต้จอตั้งแต่ยังไม่พิมพ์
+function fitPromptInput() {
+	rPromptInput.style.height = "auto";
+	rPromptInput.style.height = Math.min(rPromptInput.scrollHeight + 2, 120) + "px";
+}
+rPromptInput.addEventListener("input", fitPromptInput);
+rPromptInput.addEventListener("keydown", function(e) {
+	// Enter = ส่ง / Shift+Enter = ขึ้นบรรทัดใหม่ (ระหว่างพิมพ์ภาษาไทยด้วย IME ไม่ส่ง)
+	if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+		e.preventDefault();
+		rPromptForm.requestSubmit ? rPromptForm.requestSubmit() : rPromptBtn.click();
+	}
+});
+document.getElementById("rPromptClear").addEventListener("click", function() {
+	clearPromptFilters();
+	showPromptMsg("");
+	rPromptInput.focus();
+});
+(function renderPromptExamples() {
+	var box = document.getElementById("rPromptExamples");
+	PROMPT_EXAMPLE_KEYS.forEach(function(key) {
+		var b = document.createElement("button");
+		b.type = "button";
+		b.className = "rfchip";
+		b.textContent = t(key);
+		// ตัวอย่างแค่เติมข้อความให้แก้ต่อได้ ไม่ส่งเอง (กดยืนยันเองทุกครั้ง ไม่หัก Token โดยไม่ตั้งใจ)
+		b.addEventListener("click", function() {
+			rPromptInput.value = t(key);
+			fitPromptInput();
+			rPromptInput.focus();
+		});
+		box.appendChild(b);
+	});
+})();
+var eggHatch = document.getElementById("eggHatch");
+renderPromptCost();
+refreshPromptTokens();
 
 /* =====================================================================
    ร้านที่คล้ายกัน + popup รายละเอียด (ของเดิม ใช้ต่อใต้การ์ดผลลัพธ์)

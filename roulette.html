@@ -75,6 +75,81 @@
                <button type="button" class="eggreclink" id="rmodeDnaBtn"><i class="fas fa-dna"></i><span data-i18n="roulette.doDna">ทำ Food DNA (30 วิ)</span></button>
             </div>
 
+            <!-- Prompt (ใช้ Token) — ให้ AI แปลงคำพูดเป็นเงื่อนไขกรองร้านจริง ไม่พิมพ์ก็สุ่มพื้นฐานได้ฟรีเหมือนเดิม -->
+            <form class="rprompt" id="rPrompt" novalidate>
+               <label class="rprompt-lbl" for="rPromptInput"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span data-i18n="roulette.promptLabel">วันนี้อยากกินอะไรเป็นพิเศษ?</span></label>
+               <div class="rprompt-row">
+                  <textarea class="rprompt-input" id="rPromptInput" rows="1" maxlength="200" data-i18n-ph="roulette.promptPlaceholder" placeholder="เช่น อาหารไทย ไม่เกิน 100 บาท"></textarea>
+                  <button type="submit" class="btn-red rprompt-btn" id="rPromptBtn"><i class="fas fa-egg" aria-hidden="true"></i><span id="rPromptBtnText">สุ่ม · 1 Token</span></button>
+               </div>
+               <div class="rprompt-examples" id="rPromptExamples"></div>
+               <p class="rprompt-cost" id="rPromptCost"></p>
+               <p class="rprompt-msg" id="rPromptMsg" role="status" aria-live="polite" hidden></p>
+            </form>
+            <div class="rpromptactive" id="rPromptActive" hidden>
+               <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>
+               <div class="rpromptactive-text">
+                  <b data-i18n="roulette.promptActive">ใช้เงื่อนไขจาก Prompt</b>
+                  <span id="rPromptSummary"></span>
+                  <span class="rpromptactive-note" id="rPromptUnsupported" hidden></span>
+               </div>
+               <button type="button" class="rpromptclear" id="rPromptClear" data-i18n-title="roulette.promptClear" title="ล้างเงื่อนไขจาก Prompt"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+            </div>
+
+
+            <!-- ไข่ปริศนา (แทนวงล้อเดิม) — แตะ 3 ครั้ง: ขยับ → ร้าว → เปิด แล้วเผยร้านจริงที่สุ่มตามโหมดที่เลือก
+                 ใช้รูปไข่เดิม img/Dino/3.png สองชั้นซ้อนกัน ตัดครึ่งเป็นรอยหยัก (clip-path) ตอนเปิดถึงแยกออกจากกัน -->
+            <!-- พื้นที่ฟักไข่: การ์ดเมนูอยู่บน ไข่อยู่ล่าง (DOM เรียงตามภาพ) — การ์ดลอยขึ้นจากไข่ตอนเปิด -->
+            <div class="egghatch" id="eggHatch">
+               <!-- การ์ดร้านที่เปิดได้ — โชว์เฉพาะข้อมูลที่มีจริงของร้านนั้น -->
+               <div class="eggresult" id="eggResult" hidden aria-live="polite">
+                  <div class="eggresult-media">
+                     <img id="eggResultImg" src="" alt=""/>
+                     <div class="eggresult-noimg" id="eggResultNoImg" hidden><i class="fas fa-utensils"></i></div>
+                     <span class="eggresult-match" id="eggResultMatch" hidden></span>
+                  </div>
+                  <div class="eggresult-body">
+                     <div class="eggresult-cat" id="eggResultCat"></div>
+                     <h3 class="eggresult-name" id="eggResultName"></h3>
+                     <p class="eggresult-menu" id="eggResultMenu"></p>
+                     <div class="eggresult-meta" id="eggResultMeta"></div>
+                     <p class="eggresult-why" id="eggResultWhy"></p>
+                     <p class="eggresult-pool" id="eggResultPool"></p>
+                     <div class="eggresult-btns">
+                        <a class="btn-red" id="eggViewBtn" href="#"><i class="fas fa-store"></i><span data-i18n="roulette.viewShop">ดูรายละเอียดร้าน</span></a>
+                        <button type="button" class="wghostbtn" id="eggAgainBtn"><i class="fas fa-rotate"></i><span data-i18n="roulette.tryAgain">สุ่มอีกครั้ง</span></button>
+                     </div>
+                     <p class="eggkeepnote" id="eggKeepNote"></p>
+                     <button type="button" class="eggreclink" id="wfeedBtn"><i class="fas fa-utensils"></i><span data-i18n="roulette.viewRecommended">ดูร้านแนะนำ</span></button>
+                  </div>
+               </div>
+
+               <div class="eggstage" id="eggStage" data-state="idle">
+                  <button type="button" class="eggbtn" id="eggBtn" aria-describedby="eggHint">
+                     <span class="eggglow" aria-hidden="true"></span>
+                     <span class="eggbody" aria-hidden="true">
+                        <img class="eggshell eggshell-bottom" src="img/Dino/3.png" alt="" draggable="false"/>
+                        <img class="eggshell eggshell-top" src="img/Dino/3.png" alt="" draggable="false"/>
+                        <svg class="eggcracks" viewBox="0 0 100 100" preserveAspectRatio="none">
+                           <polyline class="crack crack-1" points="40,46 46,51 52,45 57,50"/>
+                           <polyline class="crack crack-2" points="27,49 32,45 40,46 46,51 52,45 57,50 64,45 69,50 74,46"/>
+                           <polyline class="crack crack-3" points="46,51 44,57 47,61"/>
+                           <polyline class="crack crack-4" points="64,45 66,39 63,35"/>
+                        </svg>
+                     </span>
+                     <span class="eggshadow" aria-hidden="true"></span>
+                  </button>
+                  <div class="eggsteps" aria-hidden="true"><span></span><span></span><span></span></div>
+                  <p class="egghint" id="eggHint" aria-live="polite"></p>
+                  <div class="eggerror" id="eggError" role="alert" hidden>
+                     <p id="eggErrorText"></p>
+                     <div class="eggrelax" id="eggRelax" hidden></div>
+                     <button type="button" class="wghostbtn" id="eggErrorRetry"><i class="fas fa-rotate"></i><span data-i18n="roulette.retry">ลองอีกครั้ง</span></button>
+                  </div>
+               </div>
+
+            </div>
+
             <!-- ตัวเลือกเพิ่มเติม — ไม่บังคับ ไม่เลือกอะไรก็สุ่มได้เลย (พับไว้เป็นค่าเริ่มต้น) -->
             <details class="rfilters" id="rFilters">
                <summary>
@@ -101,55 +176,6 @@
                </div>
             </details>
 
-            <!-- ไข่ปริศนา (แทนวงล้อเดิม) — แตะ 3 ครั้ง: ขยับ → ร้าว → เปิด แล้วเผยร้านจริงที่สุ่มตามโหมดที่เลือก
-                 ใช้รูปไข่เดิม img/Dino/3.png สองชั้นซ้อนกัน ตัดครึ่งเป็นรอยหยัก (clip-path) ตอนเปิดถึงแยกออกจากกัน -->
-            <div class="eggstage" id="eggStage" data-state="idle">
-               <button type="button" class="eggbtn" id="eggBtn" aria-describedby="eggHint">
-                  <span class="eggglow" aria-hidden="true"></span>
-                  <span class="eggbody" aria-hidden="true">
-                     <img class="eggshell eggshell-bottom" src="img/Dino/3.png" alt="" draggable="false"/>
-                     <img class="eggshell eggshell-top" src="img/Dino/3.png" alt="" draggable="false"/>
-                     <svg class="eggcracks" viewBox="0 0 100 100" preserveAspectRatio="none">
-                        <polyline class="crack crack-1" points="40,46 46,51 52,45 57,50"/>
-                        <polyline class="crack crack-2" points="27,49 32,45 40,46 46,51 52,45 57,50 64,45 69,50 74,46"/>
-                        <polyline class="crack crack-3" points="46,51 44,57 47,61"/>
-                        <polyline class="crack crack-4" points="64,45 66,39 63,35"/>
-                     </svg>
-                  </span>
-                  <span class="eggshadow" aria-hidden="true"></span>
-               </button>
-               <div class="eggsteps" aria-hidden="true"><span></span><span></span><span></span></div>
-               <p class="egghint" id="eggHint" aria-live="polite"></p>
-               <div class="eggerror" id="eggError" role="alert" hidden>
-                  <p id="eggErrorText"></p>
-                  <div class="eggrelax" id="eggRelax" hidden></div>
-                  <button type="button" class="wghostbtn" id="eggErrorRetry"><i class="fas fa-rotate"></i><span data-i18n="roulette.retry">ลองอีกครั้ง</span></button>
-               </div>
-            </div>
-
-            <!-- การ์ดร้านที่เปิดได้ — โชว์เฉพาะข้อมูลที่มีจริงของร้านนั้น -->
-            <div class="eggresult" id="eggResult" hidden aria-live="polite">
-               <div class="eggresult-media">
-                  <img id="eggResultImg" src="" alt=""/>
-                  <div class="eggresult-noimg" id="eggResultNoImg" hidden><i class="fas fa-utensils"></i></div>
-                  <span class="eggresult-match" id="eggResultMatch" hidden></span>
-               </div>
-               <div class="eggresult-body">
-                  <div class="eggresult-cat" id="eggResultCat"></div>
-                  <h3 class="eggresult-name" id="eggResultName"></h3>
-                  <p class="eggresult-menu" id="eggResultMenu"></p>
-                  <div class="eggresult-meta" id="eggResultMeta"></div>
-                  <p class="eggresult-why" id="eggResultWhy"></p>
-                  <p class="eggresult-pool" id="eggResultPool"></p>
-                  <div class="eggresult-btns">
-                     <a class="btn-red" id="eggViewBtn" href="#"><i class="fas fa-store"></i><span data-i18n="roulette.viewShop">ดูรายละเอียดร้าน</span></a>
-                     <button type="button" class="wghostbtn" id="eggAgainBtn"><i class="fas fa-rotate"></i><span data-i18n="roulette.tryAgain">สุ่มอีกครั้ง</span></button>
-                  </div>
-                  <p class="eggkeepnote" id="eggKeepNote"></p>
-                  <button type="button" class="eggreclink" id="wfeedBtn"><i class="fas fa-utensils"></i><span data-i18n="roulette.viewRecommended">ดูร้านแนะนำ</span></button>
-               </div>
-            </div>
-
             <div class="wsimilar" id="wSimilarSection" hidden data-aos="fade-up">
                <h2 class="rowtitle" style="font-size:.9rem;" data-i18n="roulette.similarShops">ร้านที่คล้ายกัน</h2>
                <div class="hrowwrap" id="wSimilarRow"></div>
@@ -159,7 +185,6 @@
 
       <nav class="appnav">
          <a href="home.html" class="anitem"><i class="fas fa-fire"></i><span data-i18n="nav.trending">เทรนด์</span></a>
-         <a href="ai-finder.html" class="anitem"><i class="fas fa-brain"></i><span data-i18n="nav.ai">AI</span></a>
          <a href="roulette.html" class="ancenter"><img src="img/Dino/1.png" alt="สุ่มเมนู"/></a>
          <a href="following.html" class="anitem"><i class="fas fa-users"></i><span data-i18n="nav.following">ติดตาม</span></a>
          <a href="profile.html" class="anitem"><i class="fas fa-user"></i><span data-i18n="nav.profile">โปรไฟล์</span></a>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="th">
+   <head>
+      <meta charset="UTF-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="author" content="CHIMCHIM">
+      <link rel="manifest" href="manifest.json">
+      <meta name="theme-color" content="#FAF9F6">
+      <meta name="apple-mobile-web-app-capable" content="yes">
+      <meta name="apple-mobile-web-app-status-bar-style" content="default">
+      <meta name="apple-mobile-web-app-title" content="ChimChim">
+      <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+      <meta name="description" content="ChimChim - ไดอารี่อาหาร บันทึกมื้ออร่อยและความทรงจำของคุณ">
+      <title>ไดอารี่ - ChimChim</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+      <link rel="stylesheet" href="css/all.min.css"/>
+      <link rel="stylesheet" href="css/style.css" />
+      <link rel="stylesheet" href="css/chimchim-refresh.css" />
+      <link rel="stylesheet" href="css/chimchim-journal.css" />
+   </head>
+   <body class="appshell journal diarypage">
+      <header class="jhead">
+         <a href="profile.html" class="jback" data-i18n-aria="diary.back" aria-label="กลับไปโปรไฟล์"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+         <div class="jhead-text">
+            <h1 data-i18n="diary.title">ไดอารี่</h1>
+            <p data-i18n="diary.subtitle">บันทึกมื้ออร่อยและความทรงจำของคุณ</p>
+         </div>
+         <button type="button" class="jbtn jbtn-primary" id="diaryAddBtn"><i class="fas fa-plus" aria-hidden="true"></i><span data-i18n="diary.add">เพิ่มบันทึก</span></button>
+      </header>
+
+      <main class="jmain">
+         <!-- ยังไม่ล็อกอิน: ไดอารี่ผูกกับบัญชี -->
+         <section class="jpanel jguest" id="diaryGuest" hidden>
+            <h2 data-i18n="diary.guestTitle">เข้าสู่ระบบเพื่อเริ่มไดอารี่</h2>
+            <p data-i18n="diary.guestDesc">บันทึกมื้ออาหารของคุณจะผูกกับบัญชี เปิดดูย้อนหลังได้ทุกเมื่อ</p>
+            <button type="button" class="jbtn jbtn-primary" id="diaryLoginBtn" data-i18n="auth.login">เข้าสู่ระบบ</button>
+         </section>
+
+         <div class="jlayout" id="diaryApp" hidden>
+            <p class="jbanner" id="diaryBanner" role="status" hidden></p>
+
+            <!-- ปฏิทิน -->
+            <section class="jpanel jcal" aria-labelledby="calMonthLabel">
+               <div class="jcal-head">
+                  <button type="button" class="jicon" id="calPrev" data-i18n-aria="diary.prevMonth" aria-label="เดือนก่อนหน้า"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                  <h2 class="jcal-month" id="calMonthLabel" aria-live="polite"></h2>
+                  <button type="button" class="jicon" id="calNext" data-i18n-aria="diary.nextMonth" aria-label="เดือนถัดไป"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+               </div>
+               <div class="jcal-week" id="calWeekdays" aria-hidden="true"></div>
+               <div class="jcal-grid" id="calGrid" role="grid"></div>
+               <p class="jcal-summary" id="calSummary"></p>
+            </section>
+
+            <!-- บันทึกของวันที่เลือก -->
+            <section class="jday" aria-labelledby="dayLabel">
+               <div class="jday-head">
+                  <h2 id="dayLabel"></h2>
+                  <span class="jday-count" id="dayCount"></span>
+               </div>
+               <div class="jlist" id="dayList" aria-busy="true"></div>
+               <div class="jempty" id="dayEmpty" hidden>
+                  <p id="dayEmptyText" data-i18n="diary.emptyDay">วันนี้ยังไม่มีบันทึกอาหาร</p>
+                  <button type="button" class="jbtn jbtn-quiet" id="dayEmptyAdd"><i class="fas fa-plus" aria-hidden="true"></i><span data-i18n="diary.add">เพิ่มบันทึก</span></button>
+               </div>
+            </section>
+         </div>
+      </main>
+
+      <!-- ฟอร์มเพิ่มบันทึก -->
+      <dialog class="jsheet" id="diaryForm" aria-labelledby="diaryFormTitle">
+         <form class="jform" id="diaryFormEl" novalidate>
+            <div class="jsheet-head">
+               <h2 id="diaryFormTitle" data-i18n="diary.formTitle">บันทึกมื้ออาหาร</h2>
+               <button type="button" class="jicon" data-close data-i18n-aria="common.close" aria-label="ปิด"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+            </div>
+            <div class="jsheet-body">
+               <div class="jphoto" id="dfPhotoBox">
+                  <img id="dfPhotoPreview" alt="" hidden/>
+                  <label class="jphoto-pick" for="dfPhoto">
+                     <i class="fas fa-camera" aria-hidden="true"></i>
+                     <span id="dfPhotoLabel" data-i18n="diary.pickPhoto">เลือกรูปอาหาร</span>
+                     <small data-i18n="diary.optional">ไม่บังคับ</small>
+                  </label>
+                  <input type="file" id="dfPhoto" accept="image/*" class="jvisually-hidden"/>
+                  <button type="button" class="jphoto-remove" id="dfPhotoRemove" hidden data-i18n-aria="diary.removePhoto" aria-label="เอารูปออก"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+               </div>
+
+               <div class="jfield">
+                  <label for="dfDish"><span data-i18n="diary.dish">ชื่อเมนู</span> <em aria-hidden="true">*</em></label>
+                  <input type="text" id="dfDish" maxlength="80" required autocomplete="off" data-i18n-ph="diary.dishPh" placeholder="เช่น ข้าวมันไก่ต้ม"/>
+                  <p class="jerr" id="dfDishErr" hidden></p>
+               </div>
+               <div class="jfield">
+                  <label for="dfShop"><span data-i18n="diary.shop">ชื่อร้าน</span> <small data-i18n="diary.optional">ไม่บังคับ</small></label>
+                  <input type="text" id="dfShop" maxlength="80" list="dfShopList" autocomplete="off" data-i18n-ph="diary.shopPh" placeholder="พิมพ์ชื่อร้าน หรือเลือกจากร้านในแอป"/>
+                  <datalist id="dfShopList"></datalist>
+                  <p class="jerr" id="dfShopErr" hidden></p>
+               </div>
+               <div class="jfield-row">
+                  <div class="jfield">
+                     <label for="dfDate" data-i18n="diary.date">วันที่กิน</label>
+                     <input type="date" id="dfDate" required/>
+                     <p class="jerr" id="dfDateErr" hidden></p>
+                  </div>
+                  <div class="jfield">
+                     <label for="dfTime"><span data-i18n="diary.time">เวลา</span> <small data-i18n="diary.optional">ไม่บังคับ</small></label>
+                     <input type="time" id="dfTime"/>
+                  </div>
+               </div>
+               <fieldset class="jfield jfeel">
+                  <legend><span data-i18n="diary.feeling">ความรู้สึกหลังกิน</span> <small data-i18n="diary.optional">ไม่บังคับ</small></legend>
+                  <div class="jfeel-opts" id="dfFeel"></div>
+               </fieldset>
+               <div class="jfield">
+                  <label for="dfNote"><span data-i18n="diary.note">ความทรงจำ / รีวิวสั้น ๆ</span> <small data-i18n="diary.optional">ไม่บังคับ</small></label>
+                  <textarea id="dfNote" rows="3" maxlength="500" data-i18n-ph="diary.notePh" placeholder="กินกับใคร อร่อยตรงไหน อยากกลับไปอีกไหม"></textarea>
+                  <p class="jcount"><span id="dfNoteCount">0</span>/500</p>
+                  <p class="jerr" id="dfNoteErr" hidden></p>
+               </div>
+               <p class="jerr jerr-form" id="dfFormErr" role="alert" hidden></p>
+               <p class="jnote" id="dfStorageNote" hidden></p>
+            </div>
+            <div class="jsheet-foot">
+               <button type="button" class="jbtn jbtn-quiet" data-close data-i18n="diary.cancel">ยกเลิก</button>
+               <button type="submit" class="jbtn jbtn-primary" id="dfSave"><span id="dfSaveText" data-i18n="diary.save">บันทึก</span></button>
+            </div>
+         </form>
+      </dialog>
+
+      <!-- รายละเอียดบันทึก -->
+      <dialog class="jsheet" id="diaryDetail" aria-labelledby="ddDish">
+         <div class="jsheet-head">
+            <p class="jsheet-kicker" id="ddDate"></p>
+            <button type="button" class="jicon" data-close data-i18n-aria="common.close" aria-label="ปิด"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+         </div>
+         <div class="jsheet-body">
+            <img class="jdetail-img" id="ddImg" alt="" hidden/>
+            <h2 class="jdetail-dish" id="ddDish"></h2>
+            <p class="jdetail-shop" id="ddShop" hidden></p>
+            <p class="jtag" id="ddFeel" hidden></p>
+            <p class="jdetail-note" id="ddNote" hidden></p>
+         </div>
+         <div class="jsheet-foot">
+            <button type="button" class="jbtn jbtn-danger" id="ddDelete"><i class="fas fa-trash-can" aria-hidden="true"></i><span data-i18n="diary.delete">ลบบันทึก</span></button>
+            <button type="button" class="jbtn jbtn-quiet" data-close data-i18n="common.close">ปิด</button>
+         </div>
+      </dialog>
+
+      <!-- ============================================================
+         AUTH POPUP — เข้าสู่ระบบ / สมัครสมาชิก
+         ============================================================ -->
+      <div id="authPop">
+         <div class="apbox">
+            <button class="apclose" id="apClose" data-i18n-title="common.close" title="ปิด"><i class="fas fa-times"></i></button>
+            <div class="aptabs">
+               <button class="aptab active" id="apTabLogin" data-tab="login" data-i18n="auth.login">เข้าสู่ระบบ</button>
+               <button class="aptab" id="apTabRegister" data-tab="register" data-i18n="auth.register">สมัครสมาชิก</button>
+            </div>
+            <img class="apdino" src="img/Dino/4.png" alt=""/>
+            <form id="loginForm" class="apform">
+               <div class="aperr" id="loginErr"></div>
+               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <input class="fctrl" type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email" required/>
+               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <input class="fctrl" type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required/>
+               <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-right-to-bracket"></i><span data-i18n="auth.login">เข้าสู่ระบบ</span></button>
+               <p class="apnote"><span data-i18n="auth.noAccount">ยังไม่มีบัญชี?</span> <a href="#" data-switch="register" data-i18n="auth.registerLink">สมัครสมาชิกเลย</a></p>
+            </form>
+            <form id="registerForm" class="apform" style="display:none;">
+               <div class="aperr" id="registerErr"></div>
+               <label class="flbl" data-i18n="auth.yourName">ชื่อของคุณ</label>
+               <input class="fctrl" type="text" id="registerName" placeholder="ชื่อ นามสกุล" autocomplete="name" required/>
+               <label class="flbl" data-i18n="auth.email">อีเมล</label>
+               <input class="fctrl" type="email" id="registerEmail" placeholder="you@email.com" autocomplete="email" required/>
+               <label class="flbl" data-i18n="auth.password">รหัสผ่าน</label>
+               <input class="fctrl" type="password" id="registerPassword" placeholder="อย่างน้อย 4 ตัวอักษร" autocomplete="new-password" required/>
+               <button type="submit" class="btn-red w-100 justify-content-center mt-2"><i class="fas fa-egg"></i><span data-i18n="auth.createAccount">สร้างบัญชี</span></button>
+               <p class="apnote"><span data-i18n="auth.haveAccount">มีบัญชีอยู่แล้ว?</span> <a href="#" data-switch="login" data-i18n="auth.loginLink">เข้าสู่ระบบ</a></p>
+               <p class="apdisclaimer"><i class="fas fa-circle-info me-1"></i><span data-i18n="auth.disclaimer">ระบบสมาชิกเวอร์ชันทดลอง ฟีเจอร์อาจเปลี่ยนระหว่างพัฒนา</span></p>
+            </form>
+         </div>
+      </div>
+
+      <div id="appToast"></div>
+
+      <script src="js/chimchim-i18n.js"></script>
+      <script src="js/chimchim-data.js" defer></script>
+      <script src="js/chimchim-core.js" defer></script>
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
+      <script src="js/chimchim-supabase-config.js" defer></script>
+      <script src="js/chimchim-supabase-client.js" defer></script>
+      <script src="js/chimchim-community.js" defer></script>
+      <script src="js/chimchim-diary-store.js" defer></script>
+      <script src="js/chimchim-diary-calendar.js" defer></script>
+      <script src="js/chimchim-diary.js" defer></script>
+      <script>
+         if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function() {
+               navigator.serviceWorker.register("sw.js").catch(function() {});
+            });
+         }
+      </script>
+   </body>
+</html>

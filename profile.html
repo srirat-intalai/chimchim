@@ -20,8 +20,9 @@
       <link rel="stylesheet" href="css/all.min.css"/>
       <link rel="stylesheet" href="css/style.css" />
       <link rel="stylesheet" href="css/chimchim-refresh.css" />
+      <link rel="stylesheet" href="css/chimchim-journal.css" />
    </head>
-   <body class="appshell">
+   <body class="appshell journal">
       <header class="apptop">
          <a href="home.html" class="apptop-logo">
             <div class="aico"><img src="img/Dino/8.png" alt="CHIMCHIM"/></div>
@@ -107,7 +108,7 @@
          </div>
          <div class="igbtnrow" id="selfBtnRow">
             <a href="settings.html" class="igbtn" data-i18n="profile.editProfile">แก้ไขโปรไฟล์</a>
-            <button type="button" class="igbtn" id="igShareBtn"><i class="fas fa-share me-1"></i><span data-i18n="profile.shareProfile">แชร์โปรไฟล์</span></button>
+            <button type="button" class="igbtn" id="diaryPrivacyBtn" aria-haspopup="dialog"><i class="fas fa-lock" id="diaryPrivacyIcon" aria-hidden="true"></i><span id="diaryPrivacyLabel" data-i18n="profile.privacyPrivate">ไดอารี่: ส่วนตัว</span></button>
          </div>
 
          <!-- Food DNA — กดเป็นปุ่มเพื่อดูรายละเอียดเป็น popup แทนที่จะกางไว้เต็มหน้าตลอด -->
@@ -115,6 +116,46 @@
             <div class="profcardtit"><i class="fas fa-dna me-1"></i><span data-i18n="profile.foodDna">Food DNA ของคุณ</span></div>
             <p class="profcardbtnhint" id="dnaCardHint"></p>
          </button>
+
+         <!-- ไดอารี่ของฉัน + สถิติการกิน + ร้านโปรด — ข้อมูลชุดเดียวกับหน้า diary.html (chimchim-diary-store.js)
+              แสดงเฉพาะโปรไฟล์ส่วนตัว (โปรไฟล์ร้านไม่มีไดอารี่) -->
+         <section class="jcard jprofcal" id="profDiaryCard" aria-labelledby="profCalTitle" hidden>
+            <div class="jcard-head">
+               <h2 id="profCalTitle" data-i18n="profile.diaryTitle">ไดอารี่ของฉัน</h2>
+               <a href="diary.html" class="jlink" id="profDiaryAll"><span data-i18n="profile.diaryAllFull">ดูไดอารี่ทั้งหมด</span><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+            </div>
+            <p class="jbanner is-warn" id="profDiaryNote" role="status" hidden></p>
+            <div class="jcal-head">
+               <button type="button" class="jicon" id="profCalPrev" data-i18n-aria="diary.prevMonth" aria-label="เดือนก่อนหน้า"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+               <h3 class="jcal-month" id="profCalMonth" aria-live="polite"></h3>
+               <button type="button" class="jicon" id="profCalNext" data-i18n-aria="diary.nextMonth" aria-label="เดือนถัดไป"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+            </div>
+            <div class="jcal-week" id="profCalWeek" aria-hidden="true"></div>
+            <div class="jcal-grid" id="profCalGrid" role="grid" aria-labelledby="profCalMonth"></div>
+         </section>
+         <!-- ปุ่มบันทึกอยู่ใต้ปฏิทินทันที — เปิดฟอร์มบันทึกเดิมของหน้าไดอารี่ บันทึกเสร็จกลับมาที่ปฏิทินนี้ -->
+         <div class="jstart" id="profDiaryStart" hidden>
+            <p class="jstart-msg" id="profDiaryStartMsg" hidden data-i18n="profile.diaryStartMsg">ยังไม่มีบันทึกมื้ออาหาร มาเริ่มเก็บความทรงจำมื้อแรกกัน</p>
+            <a class="jbtn jbtn-primary jbtn-block" id="profDiaryAdd" href="diary.html?new=1&amp;return=profile"><i class="fas fa-plus" aria-hidden="true"></i><span id="profDiaryAddText"></span></a>
+         </div>
+         <!-- บันทึกของวันที่เลือกบนปฏิทิน -->
+         <section class="jprofday" id="profCalDay" aria-labelledby="profCalDayLabel" hidden>
+            <h3 class="jprofday-label" id="profCalDayLabel"></h3>
+            <ul class="jrecent" id="profDiaryList"></ul>
+            <p class="jmuted" id="profCalDayEmpty" hidden></p>
+         </section>
+         <div class="jcard-pair" id="profDiaryExtras" hidden>
+            <section class="jcard" aria-labelledby="profStatsTitle">
+               <h2 class="jcard-title" id="profStatsTitle" data-i18n="profile.statsTitle">สถิติการกิน</h2>
+               <dl class="jstats" id="profStats"></dl>
+               <p class="jmuted" id="profStatsEmpty" hidden data-i18n="profile.statsEmpty">สถิติจะขึ้นเมื่อคุณเริ่มบันทึกมื้ออาหารในไดอารี่</p>
+            </section>
+            <section class="jcard" aria-labelledby="profFavTitle">
+               <h2 class="jcard-title" id="profFavTitle" data-i18n="profile.favTitle">ร้านอาหารโปรด</h2>
+               <ol class="jfav" id="profFavList"></ol>
+               <p class="jmuted" id="profFavEmpty" hidden data-i18n="profile.favEmpty">ร้านที่คุณกลับไปกินซ้ำ (บันทึกในไดอารี่ 2 ครั้งขึ้นไป) หรือกดบันทึกร้านไว้ จะขึ้นที่นี่</p>
+            </section>
+         </div>
 
          <!-- กิจกรรมของฉัน — แถบแท็บไอคอนแบบ IG: โพสต์ / ร้านที่ถูกใจ / รีวิว / บันทึกไว้ (สลับเนื้อหาด้านล่างโดยไม่โหลดหน้าใหม่) -->
          <div class="proftabs" id="profTabs" role="tablist" data-i18n-aria="profile.myActivity" aria-label="กิจกรรมของฉัน" hidden>
@@ -175,7 +216,6 @@
 
       <nav class="appnav">
          <a href="home.html" class="anitem"><i class="fas fa-fire"></i><span data-i18n="nav.trending">เทรนด์</span></a>
-         <a href="ai-finder.html" class="anitem"><i class="fas fa-brain"></i><span data-i18n="nav.ai">AI</span></a>
          <a href="roulette.html" class="ancenter"><img src="img/Dino/1.png" alt="สุ่มเมนู"/></a>
          <a href="following.html" class="anitem"><i class="fas fa-users"></i><span data-i18n="nav.following">ติดตาม</span></a>
          <a href="profile.html" class="anitem active"><i class="fas fa-user"></i><span data-i18n="nav.profile">โปรไฟล์</span></a>
@@ -242,6 +282,35 @@
          </div>
       </div>
 
+      <!-- ความเป็นส่วนตัวของไดอารี่ — บันทึกลงฐานข้อมูลจริง (profiles.diary_visibility, SQL Phase 22) -->
+      <dialog class="jsheet" id="diaryPrivacyDialog" aria-labelledby="dpTitle">
+         <form class="jform" id="dpForm" novalidate>
+            <div class="jsheet-head">
+               <h2 id="dpTitle" data-i18n="profile.privacyTitle">ใครดูไดอารี่ของคุณได้</h2>
+               <button type="button" class="jicon" data-close data-i18n-aria="common.close" aria-label="ปิด"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+            </div>
+            <div class="jsheet-body">
+               <fieldset class="jradios">
+                  <legend class="jvisually-hidden" data-i18n="profile.privacyTitle">ใครดูไดอารี่ของคุณได้</legend>
+                  <label class="jradio">
+                     <input type="radio" name="dpVis" value="private"/>
+                     <span class="jradio-text"><b><i class="fas fa-lock" aria-hidden="true"></i><span data-i18n="profile.visPrivate">ส่วนตัว</span></b><small data-i18n="profile.visPrivateDesc">เห็นได้เฉพาะคุณคนเดียว</small></span>
+                  </label>
+                  <label class="jradio">
+                     <input type="radio" name="dpVis" value="public"/>
+                     <span class="jradio-text"><b><i class="fas fa-globe" aria-hidden="true"></i><span data-i18n="profile.visPublic">สาธารณะ</span></b><small data-i18n="profile.visPublicDesc">สมาชิก ChimChim ที่เข้าสู่ระบบแล้วเปิดดูไดอารี่และรูปอาหารของคุณได้จากหน้าโปรไฟล์ของคุณ (แก้หรือลบได้เฉพาะคุณ)</small></span>
+                  </label>
+               </fieldset>
+               <p class="jnote" id="dpNote" hidden></p>
+               <p class="jerr jerr-form" id="dpErr" role="alert" hidden></p>
+            </div>
+            <div class="jsheet-foot">
+               <button type="button" class="jbtn jbtn-quiet" data-close data-i18n="diary.cancel">ยกเลิก</button>
+               <button type="submit" class="jbtn jbtn-primary" id="dpSave" data-i18n="diary.save">บันทึก</button>
+            </div>
+         </form>
+      </dialog>
+
       <div id="appToast"></div>
 
       <script src="js/chimchim-i18n.js"></script>
@@ -251,6 +320,8 @@
       <script src="js/chimchim-supabase-config.js" defer></script>
       <script src="js/chimchim-supabase-client.js" defer></script>
       <script src="js/chimchim-community.js" defer></script>
+      <script src="js/chimchim-diary-store.js" defer></script>
+      <script src="js/chimchim-diary-calendar.js" defer></script>
       <script src="js/chimchim-profile.js" defer></script>
          <script>
          if ("serviceWorker" in navigator) {

@@ -20,8 +20,9 @@
       <link rel="stylesheet" href="css/all.min.css"/>
       <link rel="stylesheet" href="css/style.css" />
       <link rel="stylesheet" href="css/chimchim-refresh.css" />
+      <link rel="stylesheet" href="css/chimchim-journal.css" />
    </head>
-   <body class="appshell">
+   <body class="appshell journal">
       <div class="obtopnav" style="max-width:520px;margin:0 auto;padding:20px 20px 0;">
          <button class="obback" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
          <span class="obstepnum" data-i18n="nav.profile">โปรไฟล์</span>
@@ -71,6 +72,17 @@
          <button class="btn-red profbtn" id="ppFollowBtn"><i class="fas fa-user-plus"></i><span data-i18n="common.follow">Follow</span></button>
 
          <!-- แท็บ โพสต์ / รีวิว — แสดงเฉพาะโปรไฟล์ร้านค้า (โปรไฟล์นักชิมยังเป็นการ์ดโพสต์ล่าสุดแบบเดิม) -->
+         <!-- ไดอารี่อาหารของผู้ใช้ (แทนกริดโพสต์) — แสดงได้เฉพาะเมื่อเจ้าของตั้งเป็นสาธารณะ ฐานข้อมูลตรวจสิทธิ์เอง -->
+         <section class="jcard" id="ppDiary" aria-labelledby="ppDiaryTitle" hidden>
+            <div class="jcard-head">
+               <h2 id="ppDiaryTitle" data-i18n="publicprofile.diaryTitle">ไดอารี่อาหาร</h2>
+               <a href="#" class="jlink" id="ppDiaryAll" hidden><span data-i18n="publicprofile.diaryAll">ดูไดอารี่ทั้งหมด</span><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+            </div>
+            <ul class="jrecent" id="ppDiaryList" hidden></ul>
+            <p class="jmuted" id="ppDiaryMsg" role="status"></p>
+            <button type="button" class="jbtn jbtn-quiet" id="ppDiaryLogin" hidden data-i18n="auth.login">เข้าสู่ระบบ</button>
+         </section>
+
          <div class="proftabs ppshoptabs" id="ppShopTabs" role="tablist" data-i18n-aria="publicprofile.shopTabs" aria-label="โพสต์และรีวิวของร้าน" hidden>
             <button type="button" class="proftab active" role="tab" id="ppTabPosts" data-pptab="posts" aria-controls="ppPostsCard" aria-selected="true" data-i18n-title="publicprofile.tabPosts" title="โพสต์"><i class="fas fa-table-cells"></i></button>
             <button type="button" class="proftab" role="tab" id="ppTabReviews" data-pptab="reviews" aria-controls="ppReviewsPane" aria-selected="false" tabindex="-1" data-i18n-title="publicprofile.tabReviews" title="รีวิว"><i class="fas fa-pen"></i></button>
@@ -136,6 +148,7 @@
       <script src="js/chimchim-supabase-config.js" defer></script>
       <script src="js/chimchim-supabase-client.js" defer></script>
       <script src="js/chimchim-community.js" defer></script>
+      <script src="js/chimchim-diary-store.js" defer></script>
       <script src="js/chimchim-publicprofile.js" defer></script>
          <script>
          if ("serviceWorker" in navigator) {

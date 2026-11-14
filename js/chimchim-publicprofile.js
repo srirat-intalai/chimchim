@@ -8,194 +8,11 @@ var ppIsPage = ppUid && ppUid.indexOf("page-") === 0;
 var ppIsBuShop = ppUid && ppUid.indexOf("bu-") === 0;
 var ppSession = getSession();
 
-function ppRenderPosts(posts, posterName, posterColor) {
-	var grid = document.getElementById("ppPostGrid");
-	var emptyMsg = document.getElementById("ppEmpty");
-	if (posts.length === 0) {
-		emptyMsg.hidden = false;
-		return;
-	}
-	emptyMsg.hidden = true;
-	// id โพสต์ผูกกับลำดับเดิม (ไลก์/คอมเมนต์อ้าง id นี้) — ติด id ก่อน แล้วค่อยเรียงใหม่สุดขึ้นก่อน
-	posts = posts.map(function(p, idx) {
-		return Object.assign({}, p, { id: p.id || (ppUid + "-post" + idx), _order: idx });
-	}).sort(function(a, b) {
-		var ta = a.date ? new Date(a.date).getTime() : (typeof a.daysAgo === "number" ? -a.daysAgo : null);
-		var tb = b.date ? new Date(b.date).getTime() : (typeof b.daysAgo === "number" ? -b.daysAgo : null);
-		if (ta === null || tb === null || ta === tb) return a._order - b._order;
-		return tb - ta;
-	});
-	posts.forEach(function(p, idx) {
-		var images = (typeof getPostImages === "function") ? getPostImages(p) : (p.images && p.images.length ? p.images : [p.img]);
-		var el = document.createElement("div");
-		el.className = "ppost card-enter";
-		el.innerHTML =
-			postCoverHtml(images, p.caption) +
-			(images.length > 1 ? '<i class="fas fa-clone ppostmulti" title="' + t("common.photoCount").replace("{n}", images.length) + '"></i>' : "") +
-			(images.length ? '<div class="ppostcap">' + escapeHtml(p.caption || "") + "</div>" : "");
-		el.addEventListener("click", function() {
-			openPostView({ id: p.id, images: images, caption: p.caption, posterName: posterName, posterColor: posterColor, posterId: p.userId || null });
-		});
-		grid.appendChild(el);
-	});
-}
-
-/* --- ตัวเลขแบบ IG ใต้หัวโปรไฟล์ — โพสต์ · ผู้ติดตาม · (กำลังติดตาม สำหรับนักชิม / รีวิว สำหรับร้าน)
-   ผู้ติดตาม: นับจริงจาก Supabase (ตาราง follows) + รวมการกดติดตามของเราที่ยังค้างส่ง แล้วขยับทันทีเมื่อกดปุ่มติดตาม
-   opts: { posts, followId, followerOf (uuid ของคนนี้ ถ้าเป็นนักชิมจริง), shopId (ถ้าเป็นร้าน) } --- */
-function ppSetStats(opts) {
-	var postsEl = document.getElementById("ppStatPosts");
-	var followersEl = document.getElementById("ppStatFollowers");
-	var thirdEl = document.getElementById("ppStatThird");
-	var thirdLbl = document.getElementById("ppStatThirdLbl");
-	if (!postsEl) return;
-	postsEl.textContent = formatLikeCount(opts.posts || 0);
-
-	// ผู้ติดตาม
-	var followers = isUserFollowed(opts.followId) ? 1 : 0; // ยังไม่ได้ยอดจริง อย่างน้อยนับเราเอง
-	function showFollowers() { followersEl.textContent = formatLikeCount(Math.max(0, followers)); }
-	showFollowers();
-	if (typeof sbCountRows === "function") {
-		sbCountRows("follows", { target_type: "profile", target_id: String(opts.followId) }).then(function(n) {
-			if (n === null) return;
-			followers = typeof ยอดรวมที่ค้างส่ง === "function" ? ยอดรวมที่ค้างส่ง("follow:profile", opts.followId, n) : n;
-			showFollowers();
-		});
-	}
-	// กดติดตาม/เลิกติดตาม → ขยับเลขทันที (ปุ่มนี้ตั้ง handler ของมันเองไว้ก่อนแล้ว อันนี้รันต่อจากนั้น)
-	var lastFollowed = isUserFollowed(opts.followId);
-	var followBtn = document.getElementById("ppFollowBtn");
-	if (followBtn) {
-		followBtn.addEventListener("click", function() {
-			var now = isUserFollowed(opts.followId);
-			if (now === lastFollowed) return; // ไม่ได้ติดตามจริง (เช่น ยังไม่ล็อกอิน / ปุ่มไปหน้าตั้งค่า)
-			followers += now ? 1 : -1;
-			lastFollowed = now;
-			showFollowers();
-		});
-	}
-
-	// ช่องที่ 3: ร้าน = จำนวนรีวิว / นักชิม = กำลังติดตาม
-	if (opts.shopId) {
-		thirdLbl.setAttribute("data-i18n", "profile.statReviews");
-		thirdLbl.textContent = t("profile.statReviews");
-		var localReviews = getReviews(opts.shopId).length;
-		thirdEl.textContent = formatLikeCount(localReviews);
-		if (typeof sbCountRows === "function") {
-			sbCountRows("reviews", { shop_id: opts.shopId }).then(function(n) {
-				if (n !== null) thirdEl.textContent = formatLikeCount(Math.max(n, localReviews));
-			});
-		}
-	} else {
-		thirdEl.textContent = "0";
-		if (opts.followerOf && typeof sbCountRows === "function") {
-			sbCountRows("follows", { follower_id: opts.followerOf }).then(function(n) {
-				if (n !== null) thirdEl.textContent = formatLikeCount(n);
-			});
-		}
-	}
-}
-
-/* =====================================================================
-   โปรไฟล์ร้านค้า: แท็บ โพสต์ (ตารางเดิม) / รีวิว (รีวิวจริงของร้านนี้เท่านั้น ผูกด้วย shopId)
-   ใช้รีวิวในเครื่อง + ดึงของจริงจาก Supabase มารวม (กันซ้ำด้วย mergeRemoteReviewsIntoLocal ของเดิม)
-   สลับแท็บแค่ซ่อน/แสดง ไม่โหลดใหม่ ทุกการวาดผูกกับ shopId ของหน้านี้ จึงไม่มีทางได้ข้อมูลร้านอื่น
-   ===================================================================== */
 var ppReviewerAvatars = {}; // userId → url รูปโปรไฟล์ (ดึงจาก profiles ของ Supabase / ผู้ใช้ในเครื่อง)
-function ppShowShopTab(tab) {
-	var isReviews = tab === "reviews";
-	document.getElementById("ppPostsCard").hidden = isReviews;
-	document.getElementById("ppReviewsPane").hidden = !isReviews;
-	document.querySelectorAll("#ppShopTabs .proftab").forEach(function(b) {
-		var on = b.getAttribute("data-pptab") === tab;
-		b.classList.toggle("active", on);
-		b.setAttribute("aria-selected", on ? "true" : "false");
-		b.tabIndex = on ? 0 : -1;
-	});
-}
 function ppFormatDate(iso) {
 	var d = new Date(iso);
 	if (isNaN(d.getTime())) return "";
 	return d.toLocaleDateString(getLang() === "th" ? "th-TH" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
-function ppBuildReviewRow(r) {
-	var row = document.createElement("article");
-	row.className = "ppreview";
-	var avg = Math.round((r.taste + r.atmosphere + r.service) / 3 * 10) / 10;
-	var name = r.author || t("common.anonymousFoodie");
-	var local = r.userId ? getUsers().filter(function(u) { return u.id === r.userId; })[0] : null;
-	var avatarUrl = ppReviewerAvatars[r.userId] || (local && local.avatar) || null;
-	var images = Array.isArray(r.images) ? r.images.filter(Boolean) : [];
-	// ผู้รีวิวที่มีบัญชีจริง กดชื่อ/รูปไปหน้าโปรไฟล์ของเขาได้ (รีวิวแบบไม่ล็อกอินไม่มีหน้าโปรไฟล์)
-	var href = r.userId ? "public-profile.html?u=" + encodeURIComponent(r.userId) : null;
-	var avatarHtml = '<span class="ppreview-avt"' + (avatarUrl ? ' style="background-image:url(\'' + cssUrl(avatarUrl) + '\')"' : "") + ">" + (avatarUrl ? "" : escapeHtml(name.charAt(0).toUpperCase())) + "</span>";
-	row.innerHTML =
-		'<header class="ppreview-head">' +
-			(href ? '<a class="ppreview-who" href="' + href + '">' : '<span class="ppreview-who">') +
-				avatarHtml +
-				'<span class="ppreview-meta"><b>' + escapeHtml(name) + "</b><time datetime=\"" + escapeHtml(r.date || "") + "\">" + escapeHtml(ppFormatDate(r.date)) + "</time></span>" +
-			(href ? "</a>" : "</span>") +
-			'<span class="ppreview-score" title="' + escapeHtml(t("restaurant.avgScoreSuffix").replace(/^\//, "")) + '"><i class="fas fa-star"></i> ' + avg + "</span>" +
-		"</header>" +
-		'<div class="ppreview-sub">' +
-			"<span>" + escapeHtml(t("review.taste")) + " " + r.taste + "</span>" +
-			"<span>" + escapeHtml(t("review.atmosphere")) + " " + r.atmosphere + "</span>" +
-			"<span>" + escapeHtml(t("review.service")) + " " + r.service + "</span>" +
-		"</div>" +
-		(r.text ? '<p class="ppreview-txt">' + escapeHtml(r.text) + "</p>" : "") +
-		(images.length ? '<div class="rdreviewimgs">' + images.map(function(src, i) {
-			return '<button type="button" class="rdreviewimg" data-idx="' + i + '" aria-label="' + escapeHtml(t("photos.openN").replace("{i}", i + 1).replace("{n}", images.length)) + '"><img src="' + safeImgSrc(src) + '" alt="" loading="lazy"/></button>';
-		}).join("") + "</div>" : "");
-	row.querySelectorAll(".rdreviewimg").forEach(function(btn) {
-		btn.addEventListener("click", function() { openPhotoViewer(images, parseInt(btn.getAttribute("data-idx"), 10)); });
-	});
-	return row;
-}
-function ppRenderShopReviews(shopId, loading) {
-	var list = document.getElementById("ppReviewList");
-	var reviews = getReviews(shopId).slice().sort(function(a, b) {
-		return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
-	});
-	list.innerHTML = "";
-	reviews.forEach(function(r) { list.appendChild(ppBuildReviewRow(r)); });
-	document.getElementById("ppReviewsLoading").hidden = !(loading && !reviews.length);
-	document.getElementById("ppReviewsEmpty").hidden = !!(reviews.length || loading);
-	return reviews;
-}
-function ppSetupShopTabs(shopId) {
-	var bar = document.getElementById("ppShopTabs");
-	if (!bar) return;
-	bar.hidden = false;
-	document.getElementById("ppPostsTit").hidden = true; // ไอคอนแท็บบอกแล้วว่าเป็นโพสต์
-	var tabs = Array.prototype.slice.call(bar.querySelectorAll(".proftab"));
-	tabs.forEach(function(b, i) {
-		b.addEventListener("click", function() { ppShowShopTab(b.getAttribute("data-pptab")); });
-		b.addEventListener("keydown", function(e) {
-			if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-			e.preventDefault();
-			var next = tabs[(i + 1) % tabs.length];
-			next.focus();
-			ppShowShopTab(next.getAttribute("data-pptab"));
-		});
-	});
-	if (!shopId) { // เพจร้านที่ยังไม่ผูกกับร้านในระบบ — ยังไม่มีรีวิวที่ผูกได้
-		ppRenderShopReviews(null, false);
-		return;
-	}
-	var hasRemote = typeof sbClient !== "undefined" && !!sbClient;
-	ppRenderShopReviews(shopId, hasRemote);
-	if (!hasRemote) return;
-	Promise.resolve(sbClient.from("reviews").select("*").eq("shop_id", shopId).order("created_at", { ascending: false })).then(function(res) {
-		if (res.error || !res.data) return;
-		if (res.data.length) mergeRemoteReviewsIntoLocal(shopId, res.data.map(sbReviewRowToLocal));
-		var ids = res.data.map(function(row) { return row.user_id; }).filter(function(id, i, a) { return id && a.indexOf(id) === i; });
-		if (!ids.length) return;
-		return Promise.resolve(sbClient.from("profiles").select("id, avatar_url").in("id", ids)).then(function(p) {
-			(p && p.data || []).forEach(function(x) { if (x.avatar_url) ppReviewerAvatars[x.id] = x.avatar_url; });
-		});
-	}).catch(function() {}).then(function() {
-		ppRenderShopReviews(shopId, false);
-	});
 }
 
 /* =====================================================================
@@ -353,7 +170,7 @@ function ppuReviewStars(avg) {
 	for (var i = 1; i <= 5; i++) out += '<i class="fa' + (i <= full ? "s" : "r") + ' fa-star"></i>';
 	return out;
 }
-function ppuRenderReviews(list) {
+function ppuRenderReviews(list, byReviewer) {
 	var box = document.getElementById("ppuRevList");
 	var sum = document.getElementById("ppuRevSummary");
 	box.innerHTML = "";
@@ -384,21 +201,34 @@ function ppuRenderReviews(list) {
 	});
 	sum.hidden = false;
 	list.slice().sort(function(a, b) { return new Date(b.date || 0) - new Date(a.date || 0); }).forEach(function(r) {
-		var shop = typeof หาร้านจากId === "function" ? หาร้านจากId(Number(r.shopId)) : null;
+		var shop = !byReviewer && typeof หาร้านจากId === "function" ? หาร้านจากId(Number(r.shopId)) : null;
 		var avg = (Number(r.taste) + Number(r.atmosphere) + Number(r.service)) / 3;
 		var card = document.createElement("article");
 		card.className = "ppu-review";
 		card.innerHTML =
 			'<header><span class="ppu-review-score"><i class="fas fa-star" aria-hidden="true"></i> <b></b></span><time></time></header>' +
-			(shop ? '<a class="ppu-review-shop"></a>' : '<span class="ppu-review-shop"></span>') +
+			(byReviewer ? (r.userId ? '<a class="ppu-review-who">' : '<span class="ppu-review-who">') + '<span class="ppu-review-avt" aria-hidden="true"></span><b class="ppu-review-name"></b>' + (r.userId ? "</a>" : "</span>")
+				: shop ? '<a class="ppu-review-shop"></a>' : '<span class="ppu-review-shop"></span>') +
 			(r.text ? '<p class="ppu-review-text"></p>' : "") +
 			(r.images && r.images.length ? '<div class="ppu-review-imgs"></div>' : "");
 		card.querySelector("b").textContent = fmt(avg);
 		card.querySelector("time").textContent = ppFormatDate(r.date);
 		if (r.date) card.querySelector("time").setAttribute("datetime", r.date);
-		var shopEl = card.querySelector(".ppu-review-shop");
-		shopEl.textContent = shop ? shop.ร้าน : t("publicprofile.unknownShop");
-		if (shop) shopEl.href = "restaurant.html?id=" + encodeURIComponent(shop.id);
+		if (byReviewer) {
+			// รีวิวของร้าน: บอกว่าใครรีวิว (มีบัญชีจริงกดไปโปรไฟล์ได้ / รีวิวแบบไม่ล็อกอินเป็นชื่อเฉย ๆ)
+			var who = card.querySelector(".ppu-review-who");
+			var name = r.author || t("common.anonymousFoodie");
+			var avt = who.querySelector(".ppu-review-avt");
+			var avatarUrl = r.userId && ppReviewerAvatars[r.userId];
+			if (avatarUrl) avt.style.backgroundImage = "url('" + cssUrl(avatarUrl) + "')";
+			else avt.textContent = name.trim().charAt(0).toUpperCase();
+			who.querySelector(".ppu-review-name").textContent = name;
+			if (r.userId) who.href = "public-profile.html?u=" + encodeURIComponent(r.userId);
+		} else {
+			var shopEl = card.querySelector(".ppu-review-shop");
+			shopEl.textContent = shop ? shop.ร้าน : t("publicprofile.unknownShop");
+			if (shop) shopEl.href = "restaurant.html?id=" + encodeURIComponent(shop.id);
+		}
 		if (r.text) card.querySelector(".ppu-review-text").textContent = r.text;
 		if (r.images && r.images.length) {
 			var imgs = card.querySelector(".ppu-review-imgs");
@@ -413,24 +243,6 @@ function ppuRenderReviews(list) {
 			});
 		}
 		box.appendChild(card);
-	});
-}
-function ppuLoadReviews(user) {
-	var local = typeof getReviewsByUser === "function" ? getReviewsByUser(user.id) : [];
-	var hasRemote = typeof sbClient !== "undefined" && sbClient && /^[0-9a-f-]{36}$/i.test(user.id);
-	if (!hasRemote) { ppuRenderReviews(local); return; }
-	document.getElementById("ppuRevLoading").hidden = false;
-	Promise.resolve(sbClient.from("reviews").select("*").eq("user_id", user.id).order("created_at", { ascending: false })).then(function(res) {
-		document.getElementById("ppuRevLoading").hidden = true;
-		if (ppUid !== user.id) return;
-		if (res.error) { ppuRenderReviews(local); return; }
-		var remote = (res.data || []).map(function(row) { return Object.assign(sbReviewRowToLocal(row), { shopId: row.shop_id }); });
-		var seen = {};
-		remote.forEach(function(r) { if (r.remoteId) seen[r.remoteId] = true; });
-		ppuRenderReviews(remote.concat(local.filter(function(r) { return !r.remoteId || !seen[r.remoteId]; })));
-	}).catch(function() {
-		document.getElementById("ppuRevLoading").hidden = true;
-		ppuRenderReviews(local);
 	});
 }
 
@@ -691,45 +503,213 @@ function ppuSetupFollowSheet(user) {
 	document.addEventListener("keydown", function(e) { if (e.key === "Escape" && !sheet.hidden) close(); });
 }
 
+/* =====================================================================
+   โปรไฟล์ร้านแบบโชว์เคส (อิงหน้าโปรไฟล์ Fastwork) — ใช้การ์ดเดียวกับโปรไฟล์นักชิม (#ppUser) เปลี่ยนเนื้อหาเป็นของร้าน
+   ปกจากรูปโพสต์ร้าน · สถิติ โพสต์/รีวิว/คะแนน/ราคา · แท็บ โพสต์ (masonry) / เมนู / รีวิว / เกี่ยวกับ
+   ข้อมูลจริงทั้งหมด: เพจร้าน (โพสต์/bio) + รายการเมนูของร้าน + รีวิวจริงของร้านนี้ (ผูกด้วย shopId)
+   ===================================================================== */
+function ppuSetText(el, key) {
+	el.removeAttribute("data-i18n");
+	el.textContent = t(key);
+}
+// การ์ดโพสต์ร้านแบบกริดโปรไฟล์ TikTok: รูปแนวตั้ง 3:4 เต็มช่อง ไม่มีข้อความใต้รูป
+// มุมล่างซ้าย = ยอดถูกใจจริงของโพสต์ (ดึงจาก Supabase ทีละชุด) / มุมขวาบน = มีหลายรูป / โพสต์ข้อความล้วนแสดงข้อความในช่อง
+function ppuPostCard(p, poster) {
+	var images = typeof getPostImages === "function" ? getPostImages(p) : (p.images && p.images.length ? p.images : [p.img]);
+	images = (images || []).filter(Boolean);
+	var li = document.createElement("li");
+	li.innerHTML =
+		'<button type="button" class="ppu-post' + (images.length ? "" : " is-text") + '">' +
+			(images.length ? '<img alt="" loading="lazy" decoding="async"/>' : '<span class="ppu-post-text"></span>') +
+			(images.length > 1 ? '<span class="ppu-post-multi" aria-hidden="true"><i class="fas fa-clone"></i></span>' : "") +
+			'<span class="ppu-post-likes" aria-hidden="true"><i class="far fa-heart"></i><b></b></span>' +
+		"</button>";
+	var btn = li.querySelector("button");
+	if (images.length) li.querySelector("img").src = safeImgSrc(images[0]);
+	else li.querySelector(".ppu-post-text").textContent = p.caption || "";
+	var likesEl = li.querySelector(".ppu-post-likes b");
+	likesEl.textContent = formatLikeCount(getPostLikeCount(p.id));
+	if (typeof queuePostLikeCountFetch === "function") queuePostLikeCountFetch(p.id, likesEl);
+	btn.setAttribute("aria-label", (p.caption || poster.name) + (images.length > 1 ? " · " + t("common.photoCount").replace("{n}", images.length) : ""));
+	btn.addEventListener("click", function() {
+		openPostView({ id: p.id, images: images, caption: p.caption, posterName: poster.name, posterColor: poster.color, posterId: p.userId || null });
+	});
+	return li;
+}
+function ppuLoadShopReviews(shopId) {
+	if (!shopId) { ppuRenderReviews([], true); return; }
+	var local = getReviews(shopId).map(function(r) { return Object.assign({ shopId: shopId }, r); });
+	ppuRenderReviews(local, true);
+	if (typeof sbClient === "undefined" || !sbClient) return;
+	document.getElementById("ppuRevLoading").hidden = false;
+	Promise.resolve(sbClient.from("reviews").select("*").eq("shop_id", shopId).order("created_at", { ascending: false })).then(function(res) {
+		if (res.error || !res.data) return null;
+		if (res.data.length) mergeRemoteReviewsIntoLocal(shopId, res.data.map(sbReviewRowToLocal));
+		var ids = res.data.map(function(row) { return row.user_id; }).filter(function(id, i, a) { return id && a.indexOf(id) === i; });
+		if (!ids.length) return null;
+		return Promise.resolve(sbClient.from("profiles").select("id, avatar_url").in("id", ids)).then(function(p) {
+			(p && p.data || []).forEach(function(x) { if (x.avatar_url) ppReviewerAvatars[x.id] = x.avatar_url; });
+		});
+	}).catch(function() {}).then(function() {
+		document.getElementById("ppuRevLoading").hidden = true;
+		ppuRenderReviews(getReviews(shopId).map(function(r) { return Object.assign({ shopId: shopId }, r); }), true);
+	});
+}
+function ppRenderShopShowcase(o) {
+	document.title = o.name + " - ChimChim";
+	document.getElementById("ppContent").hidden = true;
+	document.getElementById("ppUser").hidden = false;
+	document.getElementById("ppUser").classList.add("is-shop");
+	var menu = o.shopId ? หาร้านจากId(Number(o.shopId)) : null;
+	var isOwner = !!(o.ownerId && ppSession && ppSession.id === o.ownerId);
+
+	// หัวโปรไฟล์
+	var avatar = document.getElementById("ppuAvatar");
+	if (o.avatar) avatar.style.backgroundImage = "url('" + cssUrl(o.avatar) + "')";
+	else avatar.textContent = o.name.trim().charAt(0).toUpperCase();
+	document.getElementById("ppuName").textContent = o.name;
+	document.getElementById("ppuRole").innerHTML = '<i class="fas fa-store" aria-hidden="true"></i><span></span>';
+	document.getElementById("ppuRole").querySelector("span").textContent = t(o.levelKey);
+	var handle = document.getElementById("ppuHandle");
+	handle.innerHTML = catEmoji(o.cat) + " " + escapeHtml(catLabel(o.cat)); // catEmoji คืนไอคอน HTML ที่ระบบสร้างเอง
+	handle.hidden = false;
+	document.getElementById("ppuFollowingBtn").hidden = true; // ร้านไม่ได้ติดตามใคร
+	var bio = (o.bio || "").trim();
+	var bioEl = document.getElementById("ppuBio");
+	bioEl.textContent = bio;
+	bioEl.hidden = !bio;
+	if (menu && menu.มหาลัย) ppuSetLocation(menu.มหาลัย + (menu.ระยะทาง ? " · " + distanceText(menu.ระยะทาง) : ""));
+	var chipBox = document.getElementById("ppuChips");
+	(menu && menu.แท็ก || []).slice(0, 3).forEach(function(tag) {
+		var chip = document.createElement("span");
+		chip.className = "ppu-chip";
+		chip.textContent = tag;
+		chipBox.appendChild(chip);
+	});
+	chipBox.hidden = !chipBox.children.length;
+
+	// ปกจากรูปโพสต์ (3 รูปแรก)
+	var coverImgs = [];
+	o.posts.forEach(function(p) {
+		var imgs = typeof getPostImages === "function" ? getPostImages(p) : (p.images || [p.img]);
+		(imgs || []).forEach(function(src) { if (src && coverImgs.length < 3) coverImgs.push({ img: src }); });
+	});
+	ppuRenderCover(coverImgs);
+
+	// สถิติ: โพสต์ · รีวิว · คะแนน · ราคา
+	var stats = document.querySelector("#ppUser .ppu-stats");
+	stats.innerHTML =
+		"<li><b>" + formatLikeCount(o.posts.length) + "</b><span></span></li>" +
+		'<li><b id="ppuStatReviews">–</b><span></span></li>' +
+		'<li><b id="ppuStatRating">–</b><span></span></li>' +
+		"<li><b>" + (menu ? "฿" + menu.ราคาต่ำ + "–" + menu.ราคาสูง : "–") + "</b><span></span></li>";
+	var labels = ["publicprofile.statPosts", "publicprofile.statReviews", "publicprofile.statRatingShort", "publicprofile.statPrice"];
+	stats.querySelectorAll("span").forEach(function(sp, i) { sp.textContent = t(labels[i]); });
+
+	// แท็บ: โพสต์ / เมนู / รีวิว / เกี่ยวกับ
+	ppuSetText(document.getElementById("ppuTabDiary"), "publicprofile.tabPosts");
+	ppuSetText(document.getElementById("ppuTabShops"), "publicprofile.tabMenu");
+
+	// แท็บโพสต์ — masonry ใหม่สุดก่อน (id โพสต์ผูกกับลำดับเดิม ไลก์/คอมเมนต์อ้าง id นี้)
+	document.getElementById("ppDiaryLoading").hidden = true;
+	var posts = o.posts.map(function(p, idx) {
+		return Object.assign({}, p, { id: p.id || (ppUid + "-post" + idx), _order: idx });
+	}).sort(function(a, b) {
+		var ta = a.date ? new Date(a.date).getTime() : (typeof a.daysAgo === "number" ? -a.daysAgo : null);
+		var tb = b.date ? new Date(b.date).getTime() : (typeof b.daysAgo === "number" ? -b.daysAgo : null);
+		if (ta === null || tb === null || ta === tb) return a._order - b._order;
+		return tb - ta;
+	});
+	var grid = document.getElementById("ppDiaryList");
+	posts.forEach(function(p) { grid.appendChild(ppuPostCard(p, { name: o.name, color: o.posterColor })); });
+	grid.hidden = !posts.length;
+	if (!posts.length) {
+		document.getElementById("ppDiaryState").hidden = false;
+		document.getElementById("ppDiaryMsg").textContent = t("publicprofile.noPosts");
+	}
+
+	// แท็บเมนู — เมนูจริงของร้านจากระบบ (แบบการ์ดบริการของ Fastwork) กดไปหน้ารายละเอียดร้าน
+	var menuList = document.getElementById("ppShopsList");
+	if (menu) {
+		var li = document.createElement("li");
+		li.innerHTML =
+			'<a class="ppu-menu">' +
+				'<img class="ppu-menu-img" alt="" loading="lazy" decoding="async"/>' +
+				'<span class="ppu-menu-text"><b></b><span class="ppu-menu-price"></span><small></small></span>' +
+				'<i class="fas fa-chevron-right" aria-hidden="true"></i>' +
+			"</a>";
+		li.querySelector("a").href = "restaurant.html?id=" + encodeURIComponent(menu.id);
+		li.querySelector("img").src = safeImgSrc(menu.รูป);
+		li.querySelector("b").textContent = menu.เมนู;
+		li.querySelector(".ppu-menu-price").textContent = "฿" + menu.ราคาต่ำ + "–" + menu.ราคาสูง;
+		li.querySelector("small").textContent = [catLabel(menu.หมวด), (menu.รส || []).join(" · ")].filter(Boolean).join(" · ");
+		menuList.appendChild(li);
+		menuList.hidden = false;
+		document.getElementById("ppShopsState").hidden = true;
+	} else {
+		document.getElementById("ppShopsState").hidden = false;
+		document.getElementById("ppShopsMsg").textContent = t("publicprofile.menuEmpty");
+	}
+
+	// แท็บเกี่ยวกับ — bio + ข้อมูลร้านที่มีจริง + ปุ่มแผนที่ (ไม่มี Food DNA สำหรับร้าน)
+	var about = document.getElementById("ppuAboutBio");
+	about.textContent = bio || t("publicprofile.noBio");
+	about.classList.toggle("is-empty", !bio);
+	document.getElementById("ppDna").hidden = true;
+	document.getElementById("ppDnaNone").hidden = true;
+	if (menu) {
+		var facts = [
+			["publicprofile.factCuisine", menu.ชาติอาหาร],
+			["publicprofile.factTaste", (menu.รส || []).join(", ")],
+			["publicprofile.factMeals", (menu.มื้อที่เหมาะ || []).join(", ")],
+			["publicprofile.statPrice", "฿" + menu.ราคาต่ำ + "–" + menu.ราคาสูง]
+		].filter(function(f) { return f[1]; });
+		var dl = document.createElement("dl");
+		dl.className = "ppu-facts";
+		facts.forEach(function(f) {
+			var row = document.createElement("div");
+			row.innerHTML = "<dt></dt><dd></dd>";
+			row.querySelector("dt").textContent = t(f[0]);
+			row.querySelector("dd").textContent = f[1];
+			dl.appendChild(row);
+		});
+		document.querySelector("#ppuPaneAbout .ppu-about").appendChild(dl);
+	}
+	var map = document.createElement("a");
+	map.className = "jbtn jbtn-quiet ppu-map";
+	map.target = "_blank";
+	map.rel = "noopener";
+	map.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(o.name + (menu && menu.มหาลัย ? " ใกล้ " + menu.มหาลัย : ""));
+	map.innerHTML = '<i class="fas fa-location-dot" aria-hidden="true"></i><span></span>';
+	map.querySelector("span").textContent = t("publicprofile.mapBtn");
+	document.querySelector("#ppuPaneAbout .ppu-about").appendChild(map);
+
+	// ปุ่ม: เจ้าของเพจเห็นปุ่มตั้งค่าแทนติดตาม
+	document.getElementById("ppuShare").addEventListener("click", function() {
+		shareLink(location.origin + location.pathname + "?u=" + encodeURIComponent(ppUid), o.name + " - ChimChim");
+	});
+	ppuSetupFollow({ id: o.followId }, isOwner);
+	if (isOwner) {
+		var settings = document.createElement("a");
+		settings.className = "jbtn jbtn-quiet";
+		settings.href = "settings.html";
+		settings.innerHTML = '<i class="fas fa-gear" aria-hidden="true"></i><span></span>';
+		settings.querySelector("span").textContent = t("settings.title");
+		document.getElementById("ppuShare").insertAdjacentElement("beforebegin", settings);
+	}
+	ppuSetupFollowSheet({ id: o.followId });
+	ppuSetupTabs();
+	ppuSetText(document.querySelector("#ppuRevEmpty p"), "publicprofile.noReviews");
+	ppuLoadShopReviews(o.shopId);
+}
+
 if (ppIsBuShop) {
 	var buId = ppUid.slice("bu-".length);
 	var buShop = หาเพจร้านBUจากId(buId);
 	if (!buShop) {
 		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">' + t("common.profileNotFound") + '</p>';
 	} else {
-		document.title = buShop.name + " - ChimChim";
-		var ppAvatarBu = document.getElementById("ppAvatar");
-		ppAvatarBu.textContent = "";
-		ppAvatarBu.style.background = "var(--cream2) center/cover no-repeat url('" + cssUrl(buShop.avatar) + "')";
-		document.getElementById("ppName").textContent = buShop.name;
-		document.getElementById("ppSub").innerHTML = catEmoji(buShop.cat) + " " + escapeHtml(catLabel(buShop.cat));
-		document.getElementById("ppLevel").innerHTML = '<i class="fas fa-store"></i> ' + escapeHtml(t("publicprofile.buShopLevel"));
-		document.getElementById("ppBio").textContent = buShop.bio || "";
-
-		var followBtnBu = document.getElementById("ppFollowBtn");
-		function refreshFollowBu() {
-			var followed = isUserFollowed(ppUid);
-			followBtnBu.innerHTML = followed ? '<i class="fas fa-check"></i><span>' + t("common.following") + '</span>' : '<i class="fas fa-user-plus"></i><span>' + t("common.follow") + '</span>';
-		}
-		refreshFollowBu();
-		followBtnBu.addEventListener("click", function() {
-			toggleFollowUser(ppUid);
-			refreshFollowBu();
-		});
-
-		var mapBtn = document.createElement("a");
-		var mapQuery = buShop.name + " ใกล้ มหาวิทยาลัยกรุงเทพ";
-		mapBtn.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(mapQuery);
-		mapBtn.target = "_blank";
-		mapBtn.rel = "noopener";
-		mapBtn.className = "rdghost";
-		mapBtn.style.cssText = "width:100%;margin-top:8px;";
-		mapBtn.innerHTML = '<i class="fas fa-location-dot me-1"></i><span>' + t("publicprofile.mapBtn") + '</span>';
-		followBtnBu.insertAdjacentElement("afterend", mapBtn);
-
-		ppRenderPosts(buShop.posts, buShop.name, "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))");
-		ppSetStats({ posts: buShop.posts.length, followId: ppUid, shopId: buShop.menuId });
-		ppSetupShopTabs(buShop.menuId);
+		ppRenderShopShowcase({ followId: ppUid, name: buShop.name, avatar: buShop.avatar, cat: buShop.cat, bio: buShop.bio, posts: buShop.posts, shopId: buShop.menuId, levelKey: "publicprofile.buShopLevel", posterColor: "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))" });
 	}
 } else if (ppIsPage) {
 	var pageId = ppUid.slice("page-".length);
@@ -737,36 +717,7 @@ if (ppIsBuShop) {
 	if (!page) {
 		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">' + t("common.profileNotFound") + '</p>';
 	} else {
-		document.title = page.name + " - ChimChim";
-		var ppAvatarEl = document.getElementById("ppAvatar");
-		ppAvatarEl.textContent = "";
-		ppAvatarEl.style.background = "var(--cream2) center/cover no-repeat url('" + cssUrl(page.avatar) + "')";
-		document.getElementById("ppName").textContent = page.name;
-		document.getElementById("ppSub").innerHTML = catEmoji(page.cat) + " " + escapeHtml(catLabel(page.cat));
-		document.getElementById("ppLevel").innerHTML = '<i class="fas fa-store"></i> ' + escapeHtml(t("publicprofile.pageLevel"));
-		document.getElementById("ppBio").textContent = page.bio || "";
-
-		var followBtnPage = document.getElementById("ppFollowBtn");
-		if (ppSession && ppSession.id === page.ownerId) {
-			followBtnPage.innerHTML = '<i class="fas fa-gear"></i><span>' + t("settings.title") + "</span>";
-			followBtnPage.onclick = function() { window.location.href = "settings.html"; };
-		} else {
-			(function() {
-				function refreshFollowPage() {
-					var followed = isUserFollowed(page.id);
-					followBtnPage.innerHTML = followed ? '<i class="fas fa-check"></i><span>' + t("common.following") + '</span>' : '<i class="fas fa-user-plus"></i><span>' + t("common.follow") + '</span>';
-				}
-				refreshFollowPage();
-				followBtnPage.addEventListener("click", function() {
-					toggleFollowUser(page.id);
-					refreshFollowPage();
-				});
-			})();
-		}
-
-		ppRenderPosts(getPostsByPage(page.id), page.name, "var(--cream2)");
-		ppSetStats({ posts: getPostsByPage(page.id).length, followId: page.id, shopId: page.numId || null });
-		ppSetupShopTabs(page.numId || null);
+		ppRenderShopShowcase({ followId: page.id, name: page.name, avatar: page.avatar, cat: page.cat, bio: page.bio, posts: getPostsByPage(page.id), shopId: page.numId || null, ownerId: page.ownerId, levelKey: "publicprofile.pageLevel", posterColor: "var(--cream2)" });
 	}
 } else {
 	var users = getUsers();
@@ -800,10 +751,12 @@ if (ppIsBuShop) {
 		});
 		ppuSetupFollow(user, isMe);
 		ppuSetupFollowSheet(user);
+		// โปรไฟล์นักชิมไม่มีส่วนรีวิว (แท็บ + ช่องสถิติ) — รีวิวยังอยู่ที่หน้าร้านแต่ละร้าน
+		["ppuTabReviews", "ppuPaneReviews"].forEach(function(id) { var el = document.getElementById(id); if (el) el.remove(); });
+		["ppuStatReviews", "ppuStatRating"].forEach(function(id) { var el = document.getElementById(id); if (el) el.parentNode.remove(); });
 		ppuSetupTabs();
 		ppLoadFoodDna(user.id, user.foodDNA || null);
 		ppRenderDiary(user);
-		ppuLoadReviews(user);
 		ppuLoadLocation(user);
 	}
 	if (user) {

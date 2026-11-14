@@ -4648,3 +4648,107 @@ h1.rdtitle {
 .eggstage[data-state="secondTap"].is-shaking .eggbody {
   animation-duration: 0.35s;
 }
+
+/* =====================================================================
+   ฟอร์มร้านของฉัน — ช่องบังคับ (*), แผนที่ปักหมุดร้าน, สถานะการตรวจของทีมงาน
+   ===================================================================== */
+.flbl.req::after {
+  content: " *";
+  color: #b8283e;
+}
+[data-theme="dark"] .flbl.req::after { color: #ff8a8a; }
+.shoploc {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 12px;
+  border: 2px solid var(--rf-line);
+  border-radius: 16px;
+}
+.shoploc.is-invalid { border-color: #d93025; }
+.shoploc-here {
+  width: 100%;
+  min-height: 44px;
+  gap: 8px;
+}
+.shoploc-or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.78rem;
+  color: var(--rf-ink-2);
+}
+.shoploc-or::before,
+.shoploc-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rf-line);
+}
+.shoploc-link {
+  display: flex;
+  gap: 8px;
+}
+.shoploc-link .fctrl {
+  flex: 1;
+  min-width: 0;
+  margin: 0 !important;
+}
+.shoploc-link .rdghost {
+  flex: none;
+  min-height: 44px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+.shoploc-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.shoploc-status {
+  margin: 8px 2px 0;
+  font-size: 0.82rem;
+  color: var(--rf-ink);
+  font-variant-numeric: tabular-nums;
+}
+.shoploc-status.is-error { color: #b8283e; }
+[data-theme="dark"] .shoploc-status.is-error { color: #ff8a8a; }
+.shoploc-status a { color: var(--rf-brand); font-weight: 600; }
+.shopmap-hint {
+  margin: 4px 0 4px !important;
+}
+#shopImageUploadBox.is-invalid { outline: 2px solid #d93025; outline-offset: 2px; }
+.shopstatus {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  background: var(--rf-fill);
+  color: var(--rf-ink);
+}
+.shopstatus[hidden] { display: none; }
+.shopstatus > i { margin-top: 3px; font-size: 1.05rem; }
+.shopstatus b { display: block; font-size: 0.9rem; }
+.shopstatus.is-pending { background: #fff5e0; color: #6b4a00; }
+.shopstatus.is-approved { background: #e6f6ea; color: #1d5e2c; }
+.shopstatus.is-rejected { background: #fdeaec; color: #8a1f2c; }
+[data-theme="dark"] .shopstatus.is-pending { background: #3a2f12; color: #ffd98a; }
+[data-theme="dark"] .shopstatus.is-approved { background: #163222; color: #9fe0b0; }
+[data-theme="dark"] .shopstatus.is-rejected { background: #3a1820; color: #ffb3bd; }
+
+/* ---- โลโก้แถบบน: ใช้ไอคอนแอปตัวจริง (img/logo-mark.png มีมุมมนในตัว พื้นหลังใส) ไม่ต้องมีกรอบสีรอง ---- */
+.apptop-logo .aico {
+  background: none;
+  border-radius: 10px;
+}
+.apptop-logo .aico img {
+  object-fit: contain;
+  object-position: center;
+}

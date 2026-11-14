@@ -10,6 +10,7 @@
       <meta name="apple-mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-status-bar-style" content="default">
       <meta name="apple-mobile-web-app-title" content="ChimChim">
+      <link rel="icon" type="image/png" href="img/favicon.png">
       <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
       <meta name="description" content="ChimChim - โปรไฟล์ของฉัน">
       <title>โปรไฟล์ - ChimChim</title>
@@ -25,7 +26,7 @@
    <body class="appshell journal">
       <header class="apptop">
          <a href="home.html" class="apptop-logo">
-            <div class="aico"><img src="img/Dino/8.png" alt="CHIMCHIM"/></div>
+            <div class="aico"><img src="img/logo-mark.png" alt="" width="36" height="36"/></div>
             <div class="anm">CHIM<span>CHIM</span></div>
          </a>
          <div class="apptop-actions">
@@ -138,9 +139,16 @@
                <dl class="jstats" id="profStats"></dl>
                <p class="jmuted" id="profStatsEmpty" hidden data-i18n="profile.statsEmpty">สถิติจะขึ้นเมื่อคุณเริ่มบันทึกมื้ออาหารในไดอารี่</p>
             </section>
-            <section class="jcard" aria-labelledby="profFavTitle">
-               <h2 class="jcard-title" id="profFavTitle" data-i18n="profile.favTitle">ร้านอาหารโปรด</h2>
-               <ol class="jfav" id="profFavList"></ol>
+            <!-- ร้านอาหารโปรด — พับไว้เป็นค่าเริ่มต้น (กดหัวข้อเพื่อกาง) บันทึกไว้เยอะหน้าก็ไม่รก -->
+            <section class="jcard jfavcard" aria-labelledby="profFavTitle">
+               <details class="jfavbox" id="profFavBox">
+                  <summary>
+                     <h2 class="jcard-title" id="profFavTitle" data-i18n="profile.favTitle">ร้านอาหารโปรด</h2>
+                     <span class="jfav-count" id="profFavCount" hidden></span>
+                     <i class="fas fa-chevron-down jfav-chev" aria-hidden="true"></i>
+                  </summary>
+                  <ol class="jfav" id="profFavList"></ol>
+               </details>
                <p class="jmuted" id="profFavEmpty" hidden data-i18n="profile.favEmpty">ร้านที่คุณกลับไปกินซ้ำ (บันทึกในไดอารี่ 2 ครั้งขึ้นไป) หรือกดบันทึกร้านไว้ จะขึ้นที่นี่</p>
             </section>
          </div>

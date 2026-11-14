@@ -10,6 +10,7 @@
       <meta name="apple-mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-status-bar-style" content="default">
       <meta name="apple-mobile-web-app-title" content="ChimChim">
+      <link rel="icon" type="image/png" href="img/favicon.png">
       <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
       <meta name="description" content="ChimChim - โปรไฟล์นักชิมในชุมชน">
       <title>โปรไฟล์ - ChimChim</title>
@@ -41,49 +42,8 @@
          <div class="skeleton" style="height:38px;width:100%;border-radius:50px;margin:14px 0;"></div>
       </div>
 
-      <div class="profwrap" id="ppContent">
-         <div class="profhead">
-            <div class="profavatar" id="ppAvatar"></div>
-            <div>
-               <div class="profname" id="ppName"></div>
-               <div class="profemail" id="ppSub"></div>
-               <span class="profrole" id="ppLevel"></span>
-            </div>
-         </div>
-
-         <!-- ตัวเลขแบบ IG: โพสต์ · ผู้ติดตาม · กำลังติดตาม (นักชิม) หรือ รีวิว (ร้าน) -->
-         <div class="igstats ppstats" id="ppStats">
-            <div class="igstat"><b id="ppStatPosts">0</b><span data-i18n="profile.statPosts">โพสต์</span></div>
-            <div class="igstat"><b id="ppStatFollowers">0</b><span data-i18n="profile.statFollowers">ผู้ติดตาม</span></div>
-            <div class="igstat"><b id="ppStatThird">0</b><span id="ppStatThirdLbl" data-i18n="profile.statFollowing">กำลังติดตาม</span></div>
-         </div>
-
-         <p class="sdesc mb-3" id="ppBio" style="font-size:.85rem;"></p>
-
-         <button class="btn-red profbtn" id="ppFollowBtn"><i class="fas fa-user-plus"></i><span data-i18n="common.follow">Follow</span></button>
-
-         <!-- แท็บ โพสต์ / รีวิว — แสดงเฉพาะโปรไฟล์ร้านค้า -->
-         <div class="proftabs ppshoptabs" id="ppShopTabs" role="tablist" data-i18n-aria="publicprofile.shopTabs" aria-label="โพสต์และรีวิวของร้าน" hidden>
-            <button type="button" class="proftab active" role="tab" id="ppTabPosts" data-pptab="posts" aria-controls="ppPostsCard" aria-selected="true" data-i18n-title="publicprofile.tabPosts" title="โพสต์"><i class="fas fa-table-cells"></i></button>
-            <button type="button" class="proftab" role="tab" id="ppTabReviews" data-pptab="reviews" aria-controls="ppReviewsPane" aria-selected="false" tabindex="-1" data-i18n-title="publicprofile.tabReviews" title="รีวิว"><i class="fas fa-pen"></i></button>
-         </div>
-
-         <div class="profcard" id="ppPostsCard" role="tabpanel" aria-labelledby="ppTabPosts">
-            <div class="profcardtit" id="ppPostsTit"><i class="fas fa-image me-1"></i><span data-i18n="publicprofile.recentPosts">โพสต์ล่าสุด</span></div>
-            <div class="ppgrid" id="ppPostGrid"></div>
-            <p id="ppEmpty" class="text-center" style="color:#bbb;font-size:.82rem;padding:20px 0;" hidden data-i18n="publicprofile.noPosts">ยังไม่มีโพสต์</p>
-         </div>
-
-         <div class="ppreviewspane" id="ppReviewsPane" role="tabpanel" aria-labelledby="ppTabReviews" hidden>
-            <div id="ppReviewList"></div>
-            <p class="ppreviewsloading" id="ppReviewsLoading" hidden><i class="fas fa-spinner fa-spin"></i></p>
-            <div class="ppreviewsempty" id="ppReviewsEmpty" hidden>
-               <i class="fas fa-pen" aria-hidden="true"></i>
-               <p data-i18n="publicprofile.noReviews">ร้านนี้ยังไม่มีรีวิว</p>
-            </div>
-         </div>
-      </div>
-
+      <!-- ใช้แสดงข้อความ "ไม่พบโปรไฟล์" — โปรไฟล์ทั้งนักชิมและร้านแสดงในการ์ดโชว์เคส #ppUser ด้านล่าง -->
+      <div class="profwrap" id="ppContent"></div>
 
       <!-- โปรไฟล์นักชิม: หัวโปรไฟล์ · ตัวเลขจริง · แท็บ ไดอารี่ / ร้านโปรด / เกี่ยวกับ
            ทุกอย่างมาจากข้อมูลจริง ไดอารี่ส่วนตัวฐานข้อมูลไม่ส่งมาเลย (RLS) หน้านี้แค่บอกตรง ๆ ว่าดูไม่ได้ -->

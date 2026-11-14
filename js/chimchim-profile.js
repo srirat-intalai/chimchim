@@ -253,7 +253,8 @@ function renderProfileDiary() {
 		stats.hidden = !st.total;
 		document.getElementById("profStatsEmpty").hidden = st.total > 0;
 
-		// ร้านโปรด = ร้านที่กลับไปกินซ้ำตามไดอารี่ (2 ครั้งขึ้นไป) ตามด้วยร้านที่กด "บันทึกร้าน" ไว้ — ไม่ซ้ำร้านเดิม สูงสุด 5 ร้าน
+		// ร้านโปรด = ร้านที่กลับไปกินซ้ำตามไดอารี่ (2 ครั้งขึ้นไป) ตามด้วยร้านที่กด "บันทึกร้าน" ไว้ — ไม่ซ้ำร้านเดิม
+		// แสดงทุกร้านในกล่องพับได้ (หัวข้อบอกจำนวน) แทนการตัดเหลือ 5 ร้าน — บันทึกไว้เยอะหน้าก็ไม่รก
 		var favs = st.favShops.map(function(s) { return { name: s.name, shopId: s.shopId, note: t("profile.favTimes").replace("{n}", s.count) }; });
 		var seenIds = {};
 		favs.forEach(function(f) { if (f.shopId) seenIds[f.shopId] = true; });
@@ -263,7 +264,6 @@ function renderProfileDiary() {
 			seenIds[id] = true;
 			favs.push({ name: r.ร้าน, shopId: id, note: t("profile.favSaved") });
 		});
-		favs = favs.slice(0, 5);
 		var fav = document.getElementById("profFavList");
 		fav.innerHTML = "";
 		favs.forEach(function(s) {
@@ -279,9 +279,29 @@ function renderProfileDiary() {
 		});
 		fav.hidden = !favs.length;
 		fav.classList.toggle("is-single", favs.length === 1); // ร้านเดียวไม่ต้องมีเลขลำดับ (ไม่ใช่ตารางอันดับ)
+		var favCount = document.getElementById("profFavCount");
+		favCount.textContent = favs.length;
+		favCount.hidden = !favs.length;
+		// ยังไม่มีร้านโปรด: ไม่มีอะไรให้กาง — โชว์คำอธิบายใต้หัวข้อแทน
+		var favBox = document.getElementById("profFavBox");
+		favBox.classList.toggle("is-empty", !favs.length);
 		document.getElementById("profFavEmpty").hidden = favs.length > 0;
 	}
 }
+// จำว่าผู้ใช้กาง/พับกล่องร้านอาหารโปรดไว้ (เฉพาะเครื่องนี้ — ความสะดวกส่วนตัว ไม่ใช่ข้อมูลสำคัญ)
+(function setupFavBox() {
+	var box = document.getElementById("profFavBox");
+	if (!box) return;
+	var KEY = "chimchim_fav_open";
+	try { box.open = localStorage.getItem(KEY) === "1"; } catch (e) {}
+	box.addEventListener("toggle", function() {
+		try { localStorage.setItem(KEY, box.open ? "1" : "0"); } catch (e) {}
+	});
+	// ยังไม่มีร้านโปรด — กดหัวข้อไม่ต้องกาง
+	box.querySelector("summary").addEventListener("click", function(e) {
+		if (box.classList.contains("is-empty")) e.preventDefault();
+	});
+})();
 /* =====================================================================
    โปรไฟล์ร้าน — ข้อมูลจากแถวร้านที่ตรวจสิทธิ์แล้ว (เจ้าของจริงเท่านั้น), โพสต์ของร้าน, รีวิวจากลูกค้า
    ซ่อนส่วนของโปรไฟล์ส่วนตัวทั้งหมด (อีเมล เลเวล Food DNA ถูกใจ บันทึกไว้ รีวิวของฉัน กำลังติดตาม)

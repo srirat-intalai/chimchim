@@ -10,6 +10,7 @@
       <meta name="apple-mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-status-bar-style" content="default">
       <meta name="apple-mobile-web-app-title" content="ChimChim">
+      <link rel="icon" type="image/png" href="img/favicon.png">
       <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
       <meta name="description" content="CHIMCHIM - App settings: appearance and language">
       <title>Settings - CHIMCHIM</title>
@@ -102,14 +103,19 @@
 
          <div class="profcard" id="shopFormCard" hidden>
             <div class="profcardtit"><i class="fas fa-shop me-1"></i><span id="shopFormTitle" data-i18n="shop.postMyShop">Post My Shop</span></div>
-            <p class="rowsub" style="margin-top:0;margin-bottom:12px;" data-i18n="shop.formHint">Fill in your shop's details and it'll show up in the Discovery Feed right away.</p>
+            <p class="rowsub" style="margin-top:0;margin-bottom:12px;" data-i18n="shop.formHint">กรอกให้ครบทุกช่องที่มี * — ทีมงาน ChimChim จะตรวจว่าร้านมีอยู่จริงก่อน ร้านถึงจะเปิดให้คนอื่นเห็น</p>
+            <!-- สถานะตรวจร้าน (ร้านที่สร้างแล้ว) — รอตรวจ / ผ่านแล้ว / ไม่ผ่าน + เหตุผลจากทีม -->
+            <div class="shopstatus" id="shopStatus" role="status" hidden>
+               <i class="fas" aria-hidden="true" id="shopStatusIcon"></i>
+               <div><b id="shopStatusTitle"></b><span id="shopStatusText"></span></div>
+            </div>
             <form id="shopForm" class="apform" novalidate>
                <div class="aperr" id="shopErr"></div>
-               <label class="flbl" for="shopName" data-i18n="shop.shopName">Shop name</label>
+               <label class="flbl req" for="shopName" data-i18n="shop.shopName">Shop name</label>
                <input class="fctrl" type="text" id="shopName" placeholder="เช่น ร้านป้าหน่อย ข้าวมันไก่" data-i18n-ph="shop.shopNamePlaceholder" required/>
-               <label class="flbl" for="shopDish" data-i18n="shop.featuredDish">Featured dish</label>
+               <label class="flbl req" for="shopDish" data-i18n="shop.featuredDish">Featured dish</label>
                <input class="fctrl" type="text" id="shopDish" placeholder="เช่น ข้าวมันไก่ทอด" data-i18n-ph="shop.dishPlaceholder" required/>
-               <label class="flbl" for="shopCat" data-i18n="shop.category">Food category</label>
+               <label class="flbl req" for="shopCat" data-i18n="shop.category">Food category</label>
                <select class="fctrl" id="shopCat" required>
                   <optgroup label="🍽️ ทั่วไป" data-group-key="optgroup.everyday">
                      <option value="อาหารตามสั่ง">🍳 อาหารตามสั่ง</option>
@@ -156,26 +162,35 @@
                      <option value="วีแกน">🌱 วีแกน</option>
                   </optgroup>
                </select>
-               <label class="flbl" data-i18n="shop.featuredImage">Featured photo</label>
+               <label class="flbl req" data-i18n="shop.featuredImage">Featured photo</label>
                <div class="imguploadbox" id="shopImageUploadBox">
                   <img class="imguploadpreview" id="shopImagePreviewImg" src="" alt="" hidden/>
                   <label class="imguploadlbl" for="shopImageFile"><i class="fas fa-camera"></i><span data-i18n="shop.uploadPhoto">Upload a photo</span></label>
                </div>
                <input type="file" id="shopImageFile" accept="image/*" hidden/>
                <input type="hidden" id="shopImage" required/>
-               <label class="flbl" for="shopPriceLow" data-i18n="shop.priceLow">Price low (฿)</label>
+               <label class="flbl req" for="shopPriceLow" data-i18n="shop.priceLow">Price low (฿)</label>
                <div class="numfield"><input class="fctrl" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="6" id="shopPriceLow" aria-describedby="shopPriceLowErr" required/><p class="numerr" id="shopPriceLowErr" aria-live="polite"></p></div>
-               <label class="flbl" for="shopPriceHigh" data-i18n="shop.priceHigh">Price high (฿)</label>
+               <label class="flbl req" for="shopPriceHigh" data-i18n="shop.priceHigh">Price high (฿)</label>
                <div class="numfield"><input class="fctrl" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="6" id="shopPriceHigh" aria-describedby="shopPriceHighErr" required/><p class="numerr" id="shopPriceHighErr" aria-live="polite"></p></div>
-               <label class="flbl" for="shopDistance" data-i18n="shop.distance">Distance (m)</label>
-               <div class="numfield"><input class="fctrl" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="6" id="shopDistance" aria-describedby="shopDistanceErr" required/><p class="numerr" id="shopDistanceErr" aria-live="polite"></p></div>
-               <button type="button" class="rdghost" id="shopUseLocationBtn" style="width:100%;margin:18px 0 2px;"><i class="fas fa-location-crosshairs me-1"></i><span data-i18n="shop.useMyLocationForDistance">Use my current location for accurate distance</span></button>
-               <p class="rowsub" id="shopLocationHint" style="margin-top:0;" hidden></p>
-               <label class="flbl" for="shopUni" data-i18n="shop.nearUni">Near which university</label>
+               <label class="flbl req" for="shopUni" data-i18n="shop.nearUni">Near which university</label>
                <select class="fctrl" id="shopUni" required></select>
+               <!-- ตำแหน่งร้านจริง (บังคับ) — ใช้ตำแหน่งปัจจุบันตอนอยู่ที่ร้าน หรือวางลิงก์ Google Maps ของร้าน -->
+               <span class="flbl req" id="shopLocLbl" data-i18n="shop.mapLabel">ตำแหน่งร้าน</span>
+               <div class="shoploc" id="shopLoc" role="group" aria-labelledby="shopLocLbl" aria-describedby="shopLocationHint">
+                  <button type="button" class="rdghost shoploc-here" id="shopUseLocationBtn"><i class="fas fa-location-crosshairs" aria-hidden="true"></i><span data-i18n="shop.useHere">ใช้ตำแหน่งปัจจุบัน</span></button>
+                  <span class="shoploc-or" data-i18n="roulette.or">หรือ</span>
+                  <div class="shoploc-link">
+                     <label class="shoploc-sr" for="shopMapsLink" data-i18n="shop.mapsLinkLabel">ลิงก์ Google Maps ของร้าน</label>
+                     <input class="fctrl" type="url" id="shopMapsLink" inputmode="url" autocomplete="off" spellcheck="false" data-i18n-ph="shop.mapsLinkPh" placeholder="วางลิงก์ Google Maps ของร้าน"/>
+                     <button type="button" class="rdghost" id="shopMapsLinkBtn" data-i18n="shop.mapsLinkUse">ใช้ลิงก์นี้</button>
+                  </div>
+               </div>
+               <p class="shoploc-status" id="shopMapCoords" role="status" aria-live="polite"></p>
+               <p class="rowsub shopmap-hint" id="shopLocationHint" data-i18n="shop.mapHint">เปิด Google Maps → ค้นหาร้าน → แชร์ → คัดลอกลิงก์ แล้ววางที่นี่ (ทีมงานจะใช้ตำแหน่งนี้ตรวจร้าน)</p>
                <label class="flbl" for="shopDesc" data-i18n="shop.shortDesc">Short pitch</label>
                <textarea class="fctrl" id="shopDesc" rows="2" placeholder="บอกจุดเด่นร้านคุณสั้น ๆ" data-i18n-ph="shop.bioPlaceholder"></textarea>
-               <label class="flbl" for="shopHours" data-i18n="shop.hours">Opening hours</label>
+               <label class="flbl req" for="shopHours" data-i18n="shop.hours">Opening hours</label>
                <input class="fctrl" type="text" id="shopHours" placeholder="เช่น 10:00 – 20:00 น." data-i18n-ph="shop.hoursPlaceholder"/>
                <label class="flbl" for="shopPromo" data-i18n="shop.promo">Special promotion (optional)</label>
                <input class="fctrl" type="text" id="shopPromo" placeholder="เช่น ลด 10% เมื่อสั่งผ่านแอป" data-i18n-ph="shop.promoPlaceholder"/>

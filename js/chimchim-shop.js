@@ -34,31 +34,117 @@
 	/* --- อัปโหลดรูปเมนูเด่นเอง --- */
 	wireImageUpload("shopImageFile", "shopImage", "shopImagePreviewImg", "shopImageUploadBox", myShop ? myShop.img : null);
 
-	/* --- ใช้ตำแหน่งจริงของเจ้าของร้านตอนโพสต์ (ไม่บังคับ) — ถ้ากด จะได้ระยะทางที่คำนวณสด ๆ จากตำแหน่งจริง
-	   ของผู้ชมแต่ละคนแทนตัวเลขกะประมาณที่กรอกเอง (ดู shopToร้าน() ใน chimchim-core.js) --- */
+	/* --- ตำแหน่งร้านจริง (บังคับ) — 2 ทาง: กด "ใช้ตำแหน่งปัจจุบัน" ตอนอยู่ที่ร้าน หรือวางลิงก์ Google Maps ของร้าน
+	   ลิงก์เต็มดึงพิกัดในเครื่องได้เลย / ลิงก์ย่อ (maps.app.goo.gl) ให้ server.js เปิดปลายทางให้ (เบราว์เซอร์อ่านเองไม่ได้)
+	   ทีมงานใช้ตำแหน่งนี้ตรวจว่าร้านมีอยู่จริง และผู้ชมเห็นระยะทางคำนวณสดจากตำแหน่งจริง (shopToร้าน() ใน core)
+	   ไม่มีช่องกรอกระยะทางแล้ว — ระยะจากมหาลัย (ใช้เรียงร้านตอนผู้ชมไม่เปิดตำแหน่ง) คำนวณจากตำแหน่งนี้ให้เอง --- */
 	var shopLat = myShop && typeof myShop.lat === "number" ? myShop.lat : null;
 	var shopLng = myShop && typeof myShop.lng === "number" ? myShop.lng : null;
-	var useLocationBtn = document.getElementById("shopUseLocationBtn");
-	var locationHint = document.getElementById("shopLocationHint");
-	if (shopLat !== null) {
-		locationHint.hidden = false;
-		locationHint.textContent = t("shop.locationSavedHint");
+	var locBox = document.getElementById("shopLoc");
+	var coordsEl = document.getElementById("shopMapCoords");
+	var linkInput = document.getElementById("shopMapsLink");
+	var linkBtn = document.getElementById("shopMapsLinkBtn");
+	// ระยะจากตำแหน่งร้านถึงมหาลัยที่เลือก (เมตร ปัดหลักสิบ ไม่เกินเพดานในฐานข้อมูล) — ยังไม่มีตำแหน่ง = 0
+	function pinDistanceFromUni() {
+		var c = typeof มหาวิทยาลัยพิกัด !== "undefined" && มหาวิทยาลัยพิกัด[uniSelect.value];
+		if (shopLat === null || !c) return 0;
+		return Math.min(CHIMCHIM_SHOP_NUMBER_RULES.distance.max, Math.max(0, Math.round(ระยะทางฮาเวอร์ไซน์(shopLat, shopLng, c.lat, c.lng) / 10) * 10));
 	}
-	if (useLocationBtn) {
-		useLocationBtn.addEventListener("click", function() {
-			useLocationBtn.disabled = true;
-			ขอตำแหน่งผู้ใช้().then(function(loc) {
-				shopLat = loc.lat;
-				shopLng = loc.lng;
-				useLocationBtn.disabled = false;
-				locationHint.hidden = false;
-				locationHint.textContent = t("shop.locationSavedHint");
-			}).catch(function() {
-				useLocationBtn.disabled = false;
-				locationHint.hidden = false;
-				locationHint.textContent = t("shop.locationFailedHint");
+	function showLocStatus(text, isError) {
+		coordsEl.innerHTML = "";
+		coordsEl.classList.toggle("is-error", !!isError);
+		var span = document.createElement("span");
+		span.textContent = text;
+		coordsEl.appendChild(span);
+		if (!isError && shopLat !== null) {
+			var a = document.createElement("a");
+			a.href = "https://www.google.com/maps/search/?api=1&query=" + shopLat + "," + shopLng;
+			a.target = "_blank";
+			a.rel = "noopener";
+			a.textContent = t("shop.viewOnMaps");
+			coordsEl.appendChild(document.createTextNode(" · "));
+			coordsEl.appendChild(a);
+		}
+	}
+	function setShopLocation(lat, lng) {
+		shopLat = Math.round(lat * 1e6) / 1e6;
+		shopLng = Math.round(lng * 1e6) / 1e6;
+		locBox.classList.remove("is-invalid");
+		showLocStatus(t("shop.pinSet").replace("{lat}", shopLat.toFixed(5)).replace("{lng}", shopLng.toFixed(5)), false);
+	}
+	// ดึงพิกัดจากลิงก์ Google Maps / ข้อความพิกัด — คืน { lat, lng } หรือ null
+	// !3d…!4d = พิกัดของหมุดร้านจริง (แม่นกว่า) / @lat,lng = จุดกึ่งกลางแผนที่ / ?q= ?query= ?ll= / "lat, lng" ตรง ๆ
+	function parseMapsCoords(text) {
+		var str = String(text || "");
+		try { str = decodeURIComponent(str); } catch (e) {}
+		var pats = [/!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/, /@(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/, /[?&](?:q|query|ll|center|destination|daddr)=(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/, /^\s*(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*$/];
+		for (var i = 0; i < pats.length; i++) {
+			var m = pats[i].exec(str);
+			if (m) {
+				var lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+				if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) return { lat: lat, lng: lng };
+			}
+		}
+		return null;
+	}
+	function isShortMapsLink(text) {
+		return /^https:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps)\//i.test(String(text || "").trim());
+	}
+	function useMapsLink() {
+		var raw = linkInput.value.trim();
+		if (!raw) { linkInput.focus(); showLocStatus(t("shop.mapsLinkEmpty"), true); return; }
+		var direct = parseMapsCoords(raw);
+		if (direct) { setShopLocation(direct.lat, direct.lng); return; }
+		if (!isShortMapsLink(raw) || typeof CHIMCHIM_AI_SERVER === "undefined") { showLocStatus(t("shop.mapsLinkNoCoords"), true); return; }
+		linkBtn.disabled = true;
+		showLocStatus(t("shop.mapsLinkResolving"), false);
+		fetch(CHIMCHIM_AI_SERVER + "/api/resolve-maps-link", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: raw }) })
+			.then(function(res) { return res.ok ? res.json() : null; })
+			.catch(function() { return null; })
+			.then(function(data) {
+				linkBtn.disabled = false;
+				var found = data && data.url ? parseMapsCoords(data.url) : null;
+				if (found) setShopLocation(found.lat, found.lng);
+				else showLocStatus(t(data ? "shop.mapsLinkNoCoords" : "shop.mapsLinkServerDown"), true);
 			});
+	}
+	linkBtn.addEventListener("click", useMapsLink);
+	linkInput.addEventListener("keydown", function(e) {
+		if (e.key === "Enter") { e.preventDefault(); useMapsLink(); }
+	});
+	var useLocationBtn = document.getElementById("shopUseLocationBtn");
+	useLocationBtn.addEventListener("click", function() {
+		useLocationBtn.disabled = true;
+		ขอตำแหน่งผู้ใช้().then(function(loc) {
+			useLocationBtn.disabled = false;
+			setShopLocation(loc.lat, loc.lng);
+		}).catch(function() {
+			useLocationBtn.disabled = false;
+			showLocStatus(t("shop.locationFailedHint"), true);
 		});
+	});
+	function initShopLocation() {
+		if (shopLat !== null) setShopLocation(shopLat, shopLng);
+		else showLocStatus(t("shop.pinNotSet"), false);
+	}
+
+	/* --- สถานะตรวจร้าน (ร้านที่สร้างแล้ว) — ถามสถานะล่าสุดจากฐานข้อมูล บัญชีทดลองในเครื่องบอกตรง ๆ ว่าไม่ได้ส่งตรวจ --- */
+	var REVIEW_ICON = { pending: "fa-hourglass-half", approved: "fa-circle-check", rejected: "fa-circle-exclamation" };
+	function showShopStatus(status, note) {
+		var box = document.getElementById("shopStatus");
+		box.hidden = false;
+		box.className = "shopstatus is-" + status;
+		document.getElementById("shopStatusIcon").className = "fas " + (REVIEW_ICON[status] || "fa-circle-info");
+		document.getElementById("shopStatusTitle").textContent = t("shop.statusTitle_" + status);
+		document.getElementById("shopStatusText").textContent = t("shop.review_" + status) + (status === "rejected" && note ? " — " + note : "");
+	}
+	function refreshShopStatus(shop) {
+		if (!shop) { document.getElementById("shopStatus").hidden = true; return; }
+		if (!(typeof ต้องบันทึกขึ้นเซิร์ฟเวอร์ === "function" && ต้องบันทึกขึ้นเซิร์ฟเวอร์())) { showShopStatus("local"); return; }
+		showShopStatus(shop.reviewStatus || "pending", shop.reviewNote);
+		Promise.resolve(sbClient.from("shops").select("review_status, review_note").eq("id", shop.numId).single()).then(function(res) {
+			if (!res.error && res.data) showShopStatus(res.data.review_status || "pending", res.data.review_note);
+		}).catch(function() {});
 	}
 
 	/* --- หมวดอาหารแบบพิมพ์ค้นหาได้ (ไทย/อังกฤษ) ---
@@ -260,7 +346,7 @@
 	   ตัวอักษรไทย/อังกฤษ/สัญลักษณ์ถูกกันไม่ให้เข้าช่อง + ขอบแดงและข้อความเตือนใต้ช่อง แก้จนถูกแล้วเตือนหายเอง
 	   วางข้อความที่มีตัวอักษรปน = ปฏิเสธทั้งก้อน (ไม่ตัดเหลือแต่ตัวเลขเอง เดาผิดได้ เช่น "1,500" ≠ 1500 หรือ 15)
 	   ลบจนว่างได้ระหว่างพิมพ์ (ไม่เติม 0 ให้เอง) — ช่องว่าง/ช่วงค่า/ราคาต่ำ>สูง ตรวจตอนออกจากช่องและตอนบันทึก --- */
-	var NUM_FIELDS = { shopPriceLow: "priceLow", shopPriceHigh: "priceHigh", shopDistance: "distance" };
+	var NUM_FIELDS = { shopPriceLow: "priceLow", shopPriceHigh: "priceHigh" };
 	function numError(input, text) {
 		var errEl = document.getElementById(input.id + "Err");
 		input.classList.toggle("is-invalid", !!text);
@@ -320,7 +406,6 @@
 				numError(input, r.ok ? "" : numMessage(r));
 				if (!r.ok) return;
 			}
-			if (id === "shopDistance") return;
 			// ราคาต่ำ > ราคาสูง (เมื่อกรอกถูกทั้งสองช่อง) → เตือนที่ช่องราคาต่ำ / แก้แล้วเตือนนี้หาย
 			var low = document.getElementById("shopPriceLow"), high = document.getElementById("shopPriceHigh");
 			var lo = checkShopNumber("priceLow", low.value), hi = checkShopNumber("priceHigh", high.value);
@@ -333,12 +418,18 @@
 		var raw = {
 			priceLow: document.getElementById("shopPriceLow").value,
 			priceHigh: document.getElementById("shopPriceHigh").value,
-			distance: document.getElementById("shopDistance").value
+			distance: String(pinDistanceFromUni())
 		};
 		var r = validateShopNumbers(raw);
 		if (r.ok) return r.values;
 		var badId = Object.keys(NUM_FIELDS).filter(function(id) { return NUM_FIELDS[id] === r.field; })[0];
-		var bad = document.getElementById(badId);
+		var bad = badId && document.getElementById(badId);
+		if (!bad) { // ระยะทางคำนวณจากหมุด ไม่มีช่องให้เตือน — บอกที่กล่องข้อความแทน
+			var errBox = document.getElementById("shopErr");
+			errBox.textContent = numMessage(r);
+			errBox.classList.add("show");
+			return null;
+		}
 		numError(bad, numMessage(r));
 		bad.focus();
 		return null;
@@ -417,7 +508,6 @@
 		catSelect.value = myShop.cat;
 		document.getElementById("shopPriceLow").value = myShop.priceLow;
 		document.getElementById("shopPriceHigh").value = myShop.priceHigh;
-		document.getElementById("shopDistance").value = myShop.distance;
 		document.getElementById("shopUni").value = myShop.uni;
 		document.getElementById("shopDesc").value = myShop.desc || "";
 		document.getElementById("shopHours").value = myShop.hours || "";
@@ -425,6 +515,8 @@
 		document.getElementById("shopSubmitBtn").innerHTML = '<i class="fas fa-floppy-disk"></i><span>' + t("shop.saveChanges") + "</span>";
 	}
 	wireCategorySearch(document.getElementById("shopCat"));
+	initShopLocation();
+	refreshShopStatus(myShop);
 
 	if (newShopMode) {
 		var newTitleEl = document.getElementById("shopFormTitle");
@@ -452,9 +544,26 @@
 		var hours = document.getElementById("shopHours").value.trim();
 		var promo = document.getElementById("shopPromo").value.trim();
 
-		if (!name || !dish || !img) {
-			errBox.textContent = t("shop.fillRequired");
+		// ต้องกรอกครบทุกช่องที่มี * (ฐานข้อมูลบังคับซ้ำอีกชั้น SQL Phase 25) — บอกช่องแรกที่ยังขาดแล้วพาไปที่ช่องนั้น
+		var missing = [
+			[!name, "shopName", "shop.shopName"],
+			[!dish, "shopDish", "shop.featuredDish"],
+			[!cat, "shopCatSearch", "shop.category"],
+			[!img, "shopImageUploadBox", "shop.featuredImage"],
+			[!uni, "shopUni", "shop.nearUni"],
+			[shopLat === null || shopLng === null, "shopLoc", "shop.mapLabel"],
+			[!hours, "shopHours", "shop.hours"]
+		].filter(function(f) { return f[0]; });
+		document.querySelectorAll("#shopForm .is-invalid").forEach(function(el) { el.classList.remove("is-invalid"); });
+		if (missing.length) {
+			errBox.textContent = t("shop.missingField").replace("{field}", missing.map(function(f) { return t(f[2]); }).join(", "));
 			errBox.classList.add("show");
+			missing.forEach(function(f) { var el = document.getElementById(f[1]); if (el) el.classList.add("is-invalid"); });
+			var first = document.getElementById(missing[0][1]);
+			if (first) {
+				first.scrollIntoView({ behavior: "smooth", block: "center" });
+				if (first.focus && /^(INPUT|TEXTAREA|SELECT)$/.test(first.tagName)) first.focus({ preventScroll: true });
+			}
 			return;
 		}
 		// ตรวจตัวเลขซ้ำก่อนบันทึกเสมอ (ไม่เชื่อว่าช่องกันไว้แล้ว) — ผิดช่องไหนเตือนแดงที่ช่องนั้น
@@ -488,14 +597,14 @@
 	});
 
 	/* --- ผลบันทึกร้าน → ข้อความที่ตรงกับสาเหตุจริง (+ เตือนแดงที่ช่องที่ต้องแก้ ถ้ารู้ว่าช่องไหน) --- */
-	var SHOP_FIELD_INPUT = { name: "shopName", dish: "shopDish", cat: "shopCatSearch", img: "shopImageUploadBox", priceLow: "shopPriceLow", priceHigh: "shopPriceHigh", distance: "shopDistance" };
+	var SHOP_FIELD_INPUT = { name: "shopName", dish: "shopDish", cat: "shopCatSearch", img: "shopImageUploadBox", priceLow: "shopPriceLow", priceHigh: "shopPriceHigh", distance: "shopLoc" };
 	function showShopSaveError(result) {
 		var errBox = document.getElementById("shopErr");
 		var key = "shop.saveFailed." + (result.error || "server");
 		errBox.textContent = t(key) === key ? t("shop.saveFailed.server") : t(key);
 		errBox.classList.add("show");
 		var el = result.field && document.getElementById(SHOP_FIELD_INPUT[result.field]);
-		if (el && /^shop(Price|Distance)/.test(el.id)) numError(el, t("shop.saveFailed.validation"));
+		if (el && /^shopPrice/.test(el.id)) numError(el, t("shop.saveFailed.validation"));
 		(el || errBox).scrollIntoView({ behavior: "smooth", block: "center" });
 	}
 	function setShopBusy(on, html) {
@@ -559,7 +668,8 @@
 			refreshViewLink(getMyShop());
 			refreshPersonaUI(getMyShop());
 			refreshDeleteBtn(getMyShop());
-			if (typeof showToast === "function") showToast(t("shop.postedToast").replace("{name}", data.name));
+			refreshShopStatus(getMyShop());
+			if (typeof showToast === "function") showToast(t("shop.savedForReviewToast").replace("{name}", data.name));
 		}
 		if (!serverFirst()) { applyLocal(null); return; }
 		setShopBusy(true);

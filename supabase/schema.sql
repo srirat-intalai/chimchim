@@ -847,3 +847,29 @@ returns json language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.chimchim_public_xp(uuid) from public;
 grant execute on function public.chimchim_public_xp(uuid) to anon, authenticated;
+
+-- =====================================================================
+-- Phase 25 — ร้านที่ผู้ใช้สร้างต้องข้อมูลครบ + ทีมตรวจก่อนถึงเปิดให้คนอื่นเห็น
+-- - เปิดให้คนอื่นเห็น (หน้าร้าน ค้นหา ฟีด คำแนะนำ ไข่สุ่ม) เฉพาะร้านที่ทีมอนุมัติแล้ว (review_status = 'approved')
+--   เจ้าของร้านยังเห็นร้านตัวเองเสมอ (ดูสถานะ/แก้ไขได้) / ร้านตั้งต้นของระบบอนุมัติแล้วตั้งแต่ Phase 19
+-- - ร้านที่ผู้ใช้สร้าง (vendor_id ไม่ว่าง) ต้องมี: เมนู + รูปเมนู, หมวด, ราคา, มหาลัย, เวลาเปิด และพิกัดจริงของร้าน (คำโปรยไม่บังคับ)
+--   ตั้ง NOT VALID — ร้านเก่าที่ข้อมูลยังไม่ครบไม่ถูกลบ/ไม่ทำให้สคริปต์ล้ม แต่จะบันทึกการแก้ไขได้ต่อเมื่อกรอกครบแล้ว
+-- - การเปลี่ยนข้อมูลหลัก (ชื่อ/เมนู/หมวด/รูป/พิกัด/มหาลัย) ยังส่งกลับไปรอตรวจใหม่ตาม trigger ของ Phase 19
+-- ทีมอนุมัติ/ไม่อนุมัติผ่าน scripts/admin-review-shops.js (service role) เท่านั้น รันซ้ำได้
+-- =====================================================================
+drop policy if exists "shops_select_all" on public.shops;
+drop policy if exists "shops_select_visible" on public.shops;
+create policy "shops_select_visible" on public.shops for select
+  using (review_status = 'approved' or auth.uid() = vendor_id);
+
+alter table public.shops drop constraint if exists shops_user_shop_complete;
+alter table public.shops add constraint shops_user_shop_complete check (
+  vendor_id is null or (
+    btrim(shop_name) <> '' and btrim(menu_name) <> '' and btrim(category) <> ''
+    and btrim(image_url) <> ''
+    and coalesce(btrim(university), '') <> ''
+    and coalesce(btrim(hours), '') <> ''
+    and lat is not null and lng is not null
+    and lat between -90 and 90 and lng between -180 and 180
+  )
+) not valid;

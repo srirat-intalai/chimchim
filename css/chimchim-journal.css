@@ -2005,3 +2005,232 @@ a.ppu-review-shop:hover { text-decoration: underline; text-underline-offset: 3px
 .ppu-cover img {
   min-height: 0;
 }
+
+/* ---- โปรไฟล์ร้านในการ์ดโชว์เคส (#ppUser.is-shop): รูปร้านมุมมน · โพสต์ masonry · การ์ดเมนูแบบ "บริการ" · ข้อมูลร้าน ---- */
+.ppu.is-shop .ppu-avatar {
+  border-radius: 24px;
+}
+.ppu.is-shop .ppu-actions .jbtn:not(.ppu-follow) {
+  min-height: 44px;
+}
+/* โพสต์ร้าน: กริดแบบโปรไฟล์ TikTok — 3 คอลัมน์ รูปแนวตั้ง 3:4 ช่องห่าง 2px ไม่มีข้อความใต้รูป */
+.ppu.is-shop .ppu-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  columns: auto;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.ppu.is-shop .ppu-grid[hidden] { display: none; }
+.ppu.is-shop .ppu-grid > li {
+  margin: 0;
+}
+.ppu-post {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  border: none;
+  background: var(--j-cream);
+  overflow: hidden;
+  cursor: pointer;
+  font: inherit;
+}
+.ppu-post img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+.ppu-post:hover img { transform: scale(1.04); }
+.ppu-post:focus-visible { outline: 3px solid var(--j-brand); outline-offset: -3px; }
+/* เงาไล่ด้านล่างให้ตัวเลขอ่านออกบนรูปสว่าง */
+.ppu-post::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 40%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.45), transparent);
+  pointer-events: none;
+}
+.ppu-post.is-text::after { display: none; }
+.ppu-post-text {
+  position: absolute;
+  inset: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding: 12px 10px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--j-ink);
+  text-align: left;
+}
+.ppu-post-likes {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.ppu-post.is-text .ppu-post-likes {
+  color: var(--j-ink-2);
+  text-shadow: none;
+}
+.ppu-post-multi {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  color: #fff;
+  font-size: 0.85rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.ppu-menu {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+a.ppu-menu:hover { background: var(--j-bg); }
+.ppu-menu-img {
+  flex: none;
+  width: 96px;
+  height: 80px;
+  border-radius: 14px;
+  object-fit: cover;
+  background: var(--j-cream);
+}
+.ppu-menu-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ppu-menu-text b {
+  font-size: 0.98rem;
+  color: var(--j-ink);
+}
+.ppu-menu-price {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--j-brand-deep);
+}
+.ppu-menu-text small {
+  font-size: 0.78rem;
+  color: var(--j-ink-2);
+}
+.ppu-menu > .fa-chevron-right {
+  color: var(--j-ink-2);
+  font-size: 0.75rem;
+}
+.ppu-review-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--j-ink);
+  text-decoration: none;
+}
+a.ppu-review-who:hover .ppu-review-name { text-decoration: underline; text-underline-offset: 3px; }
+.ppu-review-avt {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--j-cream) center / cover no-repeat;
+  color: var(--j-brand-deep);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.ppu-review-name {
+  font-size: 0.9rem;
+}
+.ppu-facts {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--j-line);
+}
+.ppu-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.86rem;
+}
+.ppu-facts dt { color: var(--j-ink-2); font-weight: 400; }
+.ppu-facts dd { margin: 0; color: var(--j-ink); font-weight: 600; text-align: right; }
+.ppu-map {
+  width: 100%;
+  margin-top: 14px;
+}
+/* จำนวนช่องสถิติไม่ตายตัว (นักชิม 2 ช่อง: บันทึก · ร้าน / ร้าน 4 ช่อง) — แบ่งเท่ากันตามจำนวนที่มีจริง */
+.ppu .ppu-stats {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+}
+
+/* ---- ร้านอาหารโปรด: กล่องพับได้ (หัวข้อ + จำนวน + ลูกศร) ---- */
+.jfavbox > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin: -6px 0;
+  cursor: pointer;
+  list-style: none;
+}
+.jfavbox > summary::-webkit-details-marker { display: none; }
+.jfavbox > summary .jcard-title {
+  margin: 0;
+}
+.jfav-count {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--j-brand-tint);
+  color: var(--j-brand-deep);
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.jfav-count[hidden] { display: none; }
+.jfav-chev {
+  margin-left: auto;
+  color: var(--j-ink-2);
+  font-size: 0.8rem;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.jfavbox[open] .jfav-chev { transform: rotate(180deg); }
+.jfavbox.is-empty > summary { cursor: default; }
+.jfavbox.is-empty .jfav-chev { display: none; }
+.jfavbox[open] > .jfav { margin-top: 12px; }
+.jfavbox > summary:focus-visible {
+  outline: 2px solid var(--j-brand);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+.jfavcard > .jmuted { margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  .jfav-chev { transition: none; }
+}

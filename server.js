@@ -335,6 +335,51 @@ app.post("/api/prompt-filters", aiRateLimit, async function(req, res) {
 	res.json({ filters: filters, left: spend.left });
 });
 
+/* =====================================================================
+   เปิดลิงก์ย่อของ Google Maps (POST /api/resolve-maps-link { url }) → คืน URL ปลายทางแบบเต็ม
+   ใช้ตอนเจ้าของร้านวางลิงก์ "แชร์" จากแอป Google Maps (maps.app.goo.gl / goo.gl/maps) ซึ่งเบราว์เซอร์อ่านปลายทางเองไม่ได้
+   ความปลอดภัย: รับเฉพาะลิงก์ย่อของ Google และตามต่อเฉพาะโดเมน Google เท่านั้น (กันใช้เซิร์ฟเวอร์ไปเปิดเว็บอื่น / SSRF)
+   ไม่อ่านเนื้อหาหน้าเว็บ อ่านแค่ header Location สูงสุด 5 ทอด หมดเวลา 5 วินาทีต่อทอด
+   ===================================================================== */
+const MAPS_SHORT_HOSTS = new Set(["maps.app.goo.gl", "goo.gl"]);
+const MAPS_FOLLOW_HOSTS = new Set(["maps.app.goo.gl", "goo.gl", "www.google.com", "google.com", "maps.google.com", "www.google.co.th", "google.co.th", "maps.google.co.th", "consent.google.com"]);
+function mapsUrlAllowed(u, hosts) {
+	try {
+		const url = new URL(u);
+		if (url.protocol !== "https:" || url.username || url.password || url.port) return null;
+		if (!hosts.has(url.hostname)) return null;
+		if (url.hostname === "goo.gl" && !url.pathname.startsWith("/maps")) return null;
+		return url;
+	} catch (e) {
+		return null;
+	}
+}
+app.post("/api/resolve-maps-link", aiRateLimit, async function(req, res) {
+	const start = mapsUrlAllowed(String((req.body && req.body.url) || "").trim().slice(0, 500), MAPS_SHORT_HOSTS);
+	if (!start) return res.status(400).json({ error: "not_maps_short_link" });
+	let current = start;
+	try {
+		for (let hop = 0; hop < 5; hop++) {
+			const r = await fetch(current.href, { method: "GET", redirect: "manual", signal: AbortSignal.timeout(5000) });
+			const loc = r.headers.get("location");
+			if (r.status < 300 || r.status >= 400 || !loc) break;
+			const next = mapsUrlAllowed(new URL(loc, current).href, MAPS_FOLLOW_HOSTS);
+			if (!next) return res.status(422).json({ error: "unexpected_redirect" });
+			current = next;
+			// หน้า consent ของ Google เก็บ URL ปลายทางจริงไว้ใน ?continue= — ใช้ตัวนั้นแทนการเปิดหน้า consent
+			if (current.hostname === "consent.google.com") {
+				const cont = mapsUrlAllowed(current.searchParams.get("continue") || "", MAPS_FOLLOW_HOSTS);
+				if (cont) current = cont;
+				break;
+			}
+		}
+	} catch (e) {
+		return res.status(502).json({ error: "resolve_failed" });
+	}
+	if (current.href === start.href) return res.status(422).json({ error: "no_redirect" });
+	res.json({ url: current.href });
+});
+
 // error handler ของ cors: origin ที่ไม่อยู่ใน allowlist จะโดนปฏิเสธเป็น JSON แทน HTML error page เดิม
 app.use(function(err, req, res, next) {
 	if (err && /origin ไม่ได้รับอนุญาต/.test(err.message || "")) {

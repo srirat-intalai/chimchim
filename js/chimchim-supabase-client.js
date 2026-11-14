@@ -117,7 +117,10 @@ function sbShopToRow(shop, vendorId) {
 		university: shop.uni,
 		description: shop.desc || "",
 		hours: shop.hours || "",
-		promo: shop.promo || ""
+		promo: shop.promo || "",
+		// พิกัดจริงบนแผนที่ส่งไปพร้อมข้อมูลร้านเลย — ร้านของผู้ใช้ต้องมีพิกัดตั้งแต่ตอนสร้าง (SQL Phase 25)
+		lat: typeof shop.lat === "number" ? shop.lat : null,
+		lng: typeof shop.lng === "number" ? shop.lng : null
 	};
 }
 // ร้านทั้งหมดที่ "ผู้ใช้ที่ล็อกอินอยู่จริง" เป็นเจ้าของ — ใช้ตรวจสิทธิ์ตอนสลับโปรไฟล์ (ไม่เชื่อรายการในเครื่อง)

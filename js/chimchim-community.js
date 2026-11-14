@@ -1140,3 +1140,113 @@ refreshAuthUI();
 	document.addEventListener("click", function(e) { if (!wrap.contains(e.target)) close(); });
 	document.addEventListener("keydown", function(e) { if (e.key === "Escape") close(); });
 })();
+
+/* =====================================================================
+   ฟองข้อความชวนกดไข่ในแถบล่าง — สุ่มประโยคน่ารัก ๆ เด้งขึ้นเหนือไข่เป็นระยะ (เฉพาะหน้าที่ไม่ใช่หน้าสุ่มร้าน)
+   ไม่รบกวนเกินไป: ครั้งแรกหลังเปิดหน้า ~5 วิ ค้างไว้ ~4 วิ แล้วเว้น 25–40 วิ ไม่เกิน 3 ครั้งต่อการเปิดหน้า
+   หยุดเมื่อสลับแท็บ / ไม่ซ้ำประโยคเดิมติดกัน / แตะฟองก็ไปหน้าสุ่มเหมือนแตะไข่
+   ===================================================================== */
+var CHIMCHIM_EGG_TEASES = {
+	th: [
+		"มาสุ่มกานน~",
+		"ร้านที่อยากกินเปิดร้านแล้วว",
+		"หิวยังง~ มาเขย่าไข่กัน",
+		"ไม่รู้จะกินอะไร? ให้ไข่ช่วยเลือก!",
+		"แตะไข่หน่อย มีร้านอร่อยซ่อนอยู่ข้างใน",
+		"วันนี้ลองร้านใหม่กันมั้ย~",
+		"ท้องร้องจ๊อก ๆ แล้วน้า",
+		"สุ่มสักทีไหม ไข่อยากฟักแล้ว 🐣",
+		"มื้อนี้ยกให้ดวงตัดสิน!",
+		"คิดนานเดี๋ยวหิวกว่าเดิมนะ~",
+		"ไข่ใบนี้รู้ใจคุณที่สุด",
+		"ลองสุ่มดู เผื่อเจอร้านโปรดใหม่",
+		"แตะ 3 ทีแล้วไข่จะฟักน้า",
+		"กินอะไรดี~ ถามไข่สิ",
+		"เบื่อร้านเดิม ๆ แล้วใช่มั้ยล่ะ",
+		"ไข่สั่นดุ๊กดิ๊กแล้ว! มีอะไรอยากบอก",
+		"มาเลย มาสุ่มด้วยกัน~",
+		"เมนูเด็ดรออยู่ในไข่นะ",
+		"หิวตอนนี้ สุ่มตอนนี้เลย!",
+		"ไม่ต้องคิดเยอะ ให้ไข่คิดแทน",
+		"วันนี้ดวงดี น่าจะได้ร้านอร่อย ✨",
+		"ไข่แอบกระซิบว่า... หิวแล้วว",
+		"ลองกินตามดวงสักมื้อสิ",
+		"สุ่มฟรีนะ แตะเลย~",
+		"ร้านใกล้ ๆ รอให้ไปค้นพบอยู่",
+		"งบน้อยก็สุ่มได้ เลือกงบเองเลย",
+		"เพื่อนไม่ยอมเลือก งั้นไข่เลือกให้!"
+	],
+	en: [
+		"Let's roll for food~",
+		"The place you're craving is open now",
+		"Hungry yet? Give the egg a shake",
+		"Can't decide? Let the egg pick!",
+		"Tap me — there's a tasty spot inside",
+		"Try somewhere new today?",
+		"Is that your tummy rumbling?",
+		"Roll once? I'm ready to hatch 🐣",
+		"Let luck choose this meal!",
+		"Thinking too long makes you hungrier~",
+		"This egg knows you best",
+		"Roll and maybe find a new favorite",
+		"Tap 3 times and I'll hatch",
+		"What to eat~? Ask the egg",
+		"Bored of the usual spots?",
+		"I'm wiggling! I have something for you",
+		"Come on, let's roll together~",
+		"A great dish is waiting inside",
+		"Hungry now? Roll now!",
+		"Don't overthink it — I'll think for you",
+		"Lucky day! A tasty spot awaits ✨",
+		"Psst... the egg says it's hungry",
+		"Eat by luck for one meal?",
+		"Rolling is free — tap me~",
+		"Nearby spots are waiting to be found",
+		"Small budget? You can set it before rolling",
+		"Friends won't choose? The egg will!"
+	]
+};
+(function setupEggTease() {
+	var egg = document.querySelector(".appnav .ancenter");
+	if (!egg || egg.getAttribute("aria-current") === "page") return;
+	var bubble = document.createElement("a");
+	bubble.className = "eggtease";
+	bubble.href = egg.getAttribute("href");
+	bubble.tabIndex = -1; // ปุ่มไข่มีชื่อ "สุ่มร้าน" ให้ screen reader อยู่แล้ว ฟองนี้เป็นของตกแต่ง
+	bubble.setAttribute("aria-hidden", "true");
+	document.body.appendChild(bubble);
+
+	var MAX_SHOWS = 3, shows = 0, last = -1, timer = null;
+	function lines() { return CHIMCHIM_EGG_TEASES[getLang() === "en" ? "en" : "th"]; }
+	// วางฟองเหนือไข่ แต่ไม่ให้ล้นขอบจอ (เว้น 12px) — หางชี้ยังตรงกลางไข่เสมอ
+	function place() {
+		var r = egg.getBoundingClientRect();
+		var center = r.left + r.width / 2;
+		var w = bubble.offsetWidth;
+		var left = Math.max(12, Math.min(window.innerWidth - w - 12, center - w / 2));
+		bubble.style.left = Math.round(left) + "px";
+		bubble.style.bottom = Math.round(window.innerHeight - r.top + 8) + "px";
+		bubble.style.setProperty("--tail", Math.round(center - left) + "px");
+	}
+	function show() {
+		var toast = document.getElementById("appToast");
+		if (document.hidden || (toast && toast.classList.contains("show"))) { schedule(8000); return; }
+		var list = lines(), i;
+		do { i = Math.floor(Math.random() * list.length); } while (list.length > 1 && i === last);
+		last = i;
+		bubble.textContent = list[i];
+		place();
+		bubble.classList.add("show");
+		shows++;
+		timer = setTimeout(function() {
+			bubble.classList.remove("show");
+			if (shows < MAX_SHOWS) schedule(25000 + Math.random() * 15000);
+		}, 4200);
+	}
+	function schedule(ms) { clearTimeout(timer); timer = setTimeout(show, ms); }
+	window.addEventListener("resize", function() { if (bubble.classList.contains("show")) place(); });
+	document.addEventListener("visibilitychange", function() {
+		if (document.hidden) { clearTimeout(timer); bubble.classList.remove("show"); if (shows < MAX_SHOWS) schedule(8000); }
+	});
+	schedule(5000);
+})();

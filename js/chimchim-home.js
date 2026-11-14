@@ -351,9 +351,16 @@ renderRecommendedRow();
         var people = [];
         // getUsers() เป็นแค่ cache ในเครื่องนี้ (คนที่เคยเห็นมาก่อนเท่านั้น) ไม่ใช่ทุกคนที่สมัครจริง
         // เลยค้นหาเพิ่มจาก Supabase จริงด้านล่างด้วย (ดู searchPeopleFromSupabase) ผลจะโผล่มาเพิ่มทีหลังแบบ progressive
+        // ค้นได้ทั้งชื่อ และ @ชื่อผู้ใช้ (SQL Phase 24) — แถวที่มีชื่อผู้ใช้แสดง @ชื่อผู้ใช้ใต้ชื่อ
+        var uq = typeof normalizeUsername === "function" ? normalizeUsername(q) : q;
+        function personSub(username) {
+            return username ? '<i class="fas fa-at"></i> ' + escapeHtml(username) : '<i class="fas fa-graduation-cap"></i> ' + t("common.member");
+        }
         getUsers().forEach(function(u) {
-            if (u.name && u.name.toLowerCase().indexOf(q) !== -1) {
-                people.push({ id: u.id, name: u.name, sub: '<i class="fas fa-graduation-cap"></i> ' + t("common.member"), color: "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))" });
+            var byName = u.name && u.name.toLowerCase().indexOf(q) !== -1;
+            var byHandle = uq && u.username && u.username.indexOf(uq) !== -1;
+            if (u.name && (byName || byHandle)) {
+                people.push({ id: u.id, name: u.name, sub: personSub(u.username), color: "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))" });
             }
         });
 
@@ -396,15 +403,23 @@ renderRecommendedRow();
         // ค้นหาคนจาก Supabase จริงด้วย (ครอบคลุมทุกคนที่สมัครจริง ไม่ใช่แค่คนที่เครื่องนี้เคยเห็นมาก่อน)
         // ผลมาทีหลัง (async) เลยต้องเช็คว่าช่องค้นหายังเป็นคำเดิมอยู่ไหมก่อนเอามาผสาน กันพิมพ์เปลี่ยนไปแล้วผลเก่าโผล่มาทับ
         if (typeof sbClient !== "undefined" && sbClient && q.length >= 2) {
-            sbClient.from("profiles").select("id, name").ilike("name", "%" + qRaw.trim() + "%").limit(6).then(function(res) {
-                if (res.error || !res.data || !res.data.length) return;
+            // ชื่อผู้ใช้ค้นแยกอีกคำขอ (หนี _ ที่เป็น wildcard ของ ilike) — ยังไม่รัน SQL Phase 24 ก็ได้แค่ผลจากชื่อ
+            var byHandleReq = /^[a-z0-9._]{2,20}$/.test(uq)
+                ? Promise.resolve(sbClient.from("profiles").select("id, name, username").ilike("username", "%" + uq.replace(/_/g, "\\_") + "%").limit(6)).then(function(r) { return r.error ? [] : (r.data || []); }, function() { return []; })
+                : Promise.resolve([]);
+            Promise.all([
+                Promise.resolve(sbClient.from("profiles").select("id, name").ilike("name", "%" + qRaw.trim() + "%").limit(6)).then(function(r) { return r.error ? [] : (r.data || []); }, function() { return []; }),
+                byHandleReq
+            ]).then(function(parts) {
+                var res = { data: parts[0].concat(parts[1]) };
+                if (!res.data.length) return;
                 if (input.value.trim().toLowerCase() !== q) return;
                 var existingIds = {};
                 people.forEach(function(p) { existingIds[p.id] = true; });
                 res.data.forEach(function(row) {
                     if (existingIds[row.id]) return;
                     existingIds[row.id] = true;
-                    people.push({ id: row.id, name: row.name, sub: '<i class="fas fa-graduation-cap"></i> ' + t("common.member"), color: "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))" });
+                    people.push({ id: row.id, name: row.name, sub: personSub(row.username), color: "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))" });
                 });
                 var groupEl = document.getElementById("spPeopleGroup");
                 if (groupEl) groupEl.innerHTML = buildGroup('search.people', buildPeopleHtml(people));

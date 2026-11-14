@@ -255,6 +255,7 @@ function ppRenderFoodDna(dna, isMe) {
 	}
 	box.hidden = !rows.length;
 	document.getElementById("ppDnaNone").hidden = !!rows.length;
+	ppuRenderChips(dna);
 	if (!rows.length) return;
 	document.getElementById("ppDnaRows").innerHTML = rows.join("");
 	var matchEl = document.getElementById("ppDnaMatch");
@@ -299,6 +300,137 @@ function ppuLoadLevel(userId) {
 		role.innerHTML = '<i class="fas fa-medal" aria-hidden="true"></i><span></span>';
 		role.querySelector("span").textContent = t("publicprofile.levelPill").replace("{n}", lv.level).replace("{name}", lv.name);
 		role.title = t("publicprofile.levelXp").replace("{xp}", lv.xp);
+	});
+}
+
+/* --- หัวโปรไฟล์แบบโชว์เคส: ปกจากรูปไดอารี่ล่าสุด · ชิปหมวดที่ชอบ (Food DNA) · มหาวิทยาลัย
+   ทุกอย่างมาจากข้อมูลจริงที่ผู้ชมมีสิทธิ์เห็น — ไม่มีรูปก็ใช้ปกสีพื้น ไม่มีข้อมูลก็ซ่อนส่วนนั้น --- */
+function ppuRenderCover(entries) {
+	var cover = document.getElementById("ppuCover");
+	var pics = (entries || []).filter(function(e) { return e.img; }).slice(0, 3);
+	cover.innerHTML = "";
+	cover.classList.toggle("has-photos", pics.length > 0);
+	cover.setAttribute("data-count", String(pics.length));
+	pics.forEach(function(e) {
+		var img = document.createElement("img");
+		img.alt = "";
+		img.loading = "lazy";
+		img.decoding = "async";
+		img.src = safeImgSrc(e.img);
+		cover.appendChild(img);
+	});
+}
+function ppuRenderChips(dna) {
+	var box = document.getElementById("ppuChips");
+	var cats = dna && Array.isArray(dna.ชอบหมวด) ? dna.ชอบหมวด.filter(Boolean).slice(0, 3) : [];
+	box.innerHTML = "";
+	cats.forEach(function(c) {
+		var chip = document.createElement("span");
+		chip.className = "ppu-chip";
+		chip.textContent = catLabel(c);
+		box.appendChild(chip);
+	});
+	box.hidden = !cats.length;
+}
+function ppuSetLocation(text) {
+	var el = document.getElementById("ppuLoc");
+	el.querySelector("span").textContent = text || "";
+	el.hidden = !text;
+}
+// มหาวิทยาลัย (SQL Phase 6) — แยก query เผื่อยังไม่รัน SQL จะได้ไม่ทำให้ส่วนอื่นพัง
+function ppuLoadLocation(user) {
+	ppuSetLocation(user.university || "");
+	if (typeof sbClient === "undefined" || !sbClient || !/^[0-9a-f-]{36}$/i.test(user.id)) return;
+	Promise.resolve(sbClient.from("profiles").select("university").eq("id", user.id).single()).then(function(res) {
+		if (!res.error && res.data && res.data.university && ppUid === user.id) ppuSetLocation(res.data.university);
+	}).catch(function() {});
+}
+
+/* --- แท็บรีวิว: รีวิวร้านที่คนนี้เขียนจริง (ตาราง reviews อ่านได้สาธารณะ + ที่มีในเครื่อง) พร้อมคะแนนเฉลี่ยแยกด้าน --- */
+function ppuReviewStars(avg) {
+	var full = Math.round(avg);
+	var out = "";
+	for (var i = 1; i <= 5; i++) out += '<i class="fa' + (i <= full ? "s" : "r") + ' fa-star"></i>';
+	return out;
+}
+function ppuRenderReviews(list) {
+	var box = document.getElementById("ppuRevList");
+	var sum = document.getElementById("ppuRevSummary");
+	box.innerHTML = "";
+	ppuText("ppuStatReviews", list.length);
+	if (!list.length) {
+		sum.hidden = true;
+		document.getElementById("ppuRevEmpty").hidden = false;
+		document.getElementById("ppuStatRating").textContent = "–";
+		return;
+	}
+	document.getElementById("ppuRevEmpty").hidden = true;
+	function avgOf(key) { return list.reduce(function(a, r) { return a + (Number(r[key]) || 0); }, 0) / list.length; }
+	var cats = [["taste", "review.taste"], ["atmosphere", "review.atmosphere"], ["service", "review.service"]];
+	var overall = (avgOf("taste") + avgOf("atmosphere") + avgOf("service")) / 3;
+	var fmt = function(n) { return (Math.round(n * 10) / 10).toFixed(1); };
+	document.getElementById("ppuStatRating").textContent = "★" + fmt(overall);
+	document.getElementById("ppuRevAvg").textContent = fmt(overall);
+	document.getElementById("ppuRevStars").innerHTML = ppuReviewStars(overall);
+	document.getElementById("ppuRevCount").textContent = t("publicprofile.reviewsCount").replace("{n}", list.length);
+	var dl = document.getElementById("ppuRevCats");
+	dl.innerHTML = "";
+	cats.forEach(function(c) {
+		var row = document.createElement("div");
+		row.innerHTML = "<dt></dt><dd></dd>";
+		row.querySelector("dt").textContent = t(c[1]);
+		row.querySelector("dd").textContent = fmt(avgOf(c[0]));
+		dl.appendChild(row);
+	});
+	sum.hidden = false;
+	list.slice().sort(function(a, b) { return new Date(b.date || 0) - new Date(a.date || 0); }).forEach(function(r) {
+		var shop = typeof หาร้านจากId === "function" ? หาร้านจากId(Number(r.shopId)) : null;
+		var avg = (Number(r.taste) + Number(r.atmosphere) + Number(r.service)) / 3;
+		var card = document.createElement("article");
+		card.className = "ppu-review";
+		card.innerHTML =
+			'<header><span class="ppu-review-score"><i class="fas fa-star" aria-hidden="true"></i> <b></b></span><time></time></header>' +
+			(shop ? '<a class="ppu-review-shop"></a>' : '<span class="ppu-review-shop"></span>') +
+			(r.text ? '<p class="ppu-review-text"></p>' : "") +
+			(r.images && r.images.length ? '<div class="ppu-review-imgs"></div>' : "");
+		card.querySelector("b").textContent = fmt(avg);
+		card.querySelector("time").textContent = ppFormatDate(r.date);
+		if (r.date) card.querySelector("time").setAttribute("datetime", r.date);
+		var shopEl = card.querySelector(".ppu-review-shop");
+		shopEl.textContent = shop ? shop.ร้าน : t("publicprofile.unknownShop");
+		if (shop) shopEl.href = "restaurant.html?id=" + encodeURIComponent(shop.id);
+		if (r.text) card.querySelector(".ppu-review-text").textContent = r.text;
+		if (r.images && r.images.length) {
+			var imgs = card.querySelector(".ppu-review-imgs");
+			r.images.slice(0, 4).forEach(function(src, i) {
+				var b = document.createElement("button");
+				b.type = "button";
+				b.setAttribute("aria-label", t("photos.openN").replace("{i}", i + 1).replace("{n}", r.images.length));
+				b.innerHTML = '<img alt="" loading="lazy" decoding="async"/>';
+				b.querySelector("img").src = safeImgSrc(src);
+				b.addEventListener("click", function() { openPhotoViewer(r.images, i); });
+				imgs.appendChild(b);
+			});
+		}
+		box.appendChild(card);
+	});
+}
+function ppuLoadReviews(user) {
+	var local = typeof getReviewsByUser === "function" ? getReviewsByUser(user.id) : [];
+	var hasRemote = typeof sbClient !== "undefined" && sbClient && /^[0-9a-f-]{36}$/i.test(user.id);
+	if (!hasRemote) { ppuRenderReviews(local); return; }
+	document.getElementById("ppuRevLoading").hidden = false;
+	Promise.resolve(sbClient.from("reviews").select("*").eq("user_id", user.id).order("created_at", { ascending: false })).then(function(res) {
+		document.getElementById("ppuRevLoading").hidden = true;
+		if (ppUid !== user.id) return;
+		if (res.error) { ppuRenderReviews(local); return; }
+		var remote = (res.data || []).map(function(row) { return Object.assign(sbReviewRowToLocal(row), { shopId: row.shop_id }); });
+		var seen = {};
+		remote.forEach(function(r) { if (r.remoteId) seen[r.remoteId] = true; });
+		ppuRenderReviews(remote.concat(local.filter(function(r) { return !r.remoteId || !seen[r.remoteId]; })));
+	}).catch(function() {
+		document.getElementById("ppuRevLoading").hidden = true;
+		ppuRenderReviews(local);
 	});
 }
 
@@ -360,6 +492,7 @@ function ppRenderDiary(user) {
 			return;
 		}
 		var entries = res.entries || [];
+		ppuRenderCover(entries);
 		ppuText("ppuStatDiary", entries.length);
 		ppuText("ppuStatShops", typeof diaryShopCount === "function" ? diaryShopCount(entries) : null);
 		ppRenderFavShops(entries, null);
@@ -670,6 +803,8 @@ if (ppIsBuShop) {
 		ppuSetupTabs();
 		ppLoadFoodDna(user.id, user.foodDNA || null);
 		ppRenderDiary(user);
+		ppuLoadReviews(user);
+		ppuLoadLocation(user);
 	}
 	if (user) {
 		renderRealUserProfile(user);

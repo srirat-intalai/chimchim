@@ -88,65 +88,95 @@
       <!-- โปรไฟล์นักชิม: หัวโปรไฟล์ · ตัวเลขจริง · แท็บ ไดอารี่ / ร้านโปรด / เกี่ยวกับ
            ทุกอย่างมาจากข้อมูลจริง ไดอารี่ส่วนตัวฐานข้อมูลไม่ส่งมาเลย (RLS) หน้านี้แค่บอกตรง ๆ ว่าดูไม่ได้ -->
       <main class="ppu" id="ppUser" hidden>
-         <section class="ppu-head" aria-labelledby="ppuName">
-            <div class="ppu-avatar" id="ppuAvatar" aria-hidden="true"></div>
-            <h2 class="ppu-name" id="ppuName"></h2>
-            <p class="ppu-handle" id="ppuHandle" hidden></p>
-            <p class="ppu-role" id="ppuRole"><i class="fas fa-utensils" aria-hidden="true"></i><span data-i18n="common.chimchimFoodie">นักชิม ChimChim</span></p>
-            <p class="ppu-bio" id="ppuBio" hidden></p>
-            <div class="ppu-actions">
-               <button type="button" class="jbtn jbtn-primary ppu-follow" id="ppuFollow" hidden></button>
-               <button type="button" class="jbtn jbtn-quiet ppu-share" id="ppuShare" data-i18n-aria="publicprofile.share" aria-label="แชร์โปรไฟล์"><i class="fas fa-arrow-up-from-bracket" aria-hidden="true"></i><span data-i18n="publicprofile.shareShort">แชร์</span></button>
-            </div>
-         </section>
-
-         <ul class="ppu-stats" aria-label="สถิติ" data-i18n-aria="publicprofile.statsLabel">
-            <li><b id="ppuStatDiary">–</b><span data-i18n="publicprofile.statDiary">บันทึก</span></li>
-            <li><button type="button" id="ppuFollowersBtn"><b id="ppuStatFollowers">–</b><span data-i18n="profile.statFollowers">ผู้ติดตาม</span></button></li>
-            <li><button type="button" id="ppuFollowingBtn"><b id="ppuStatFollowing">–</b><span data-i18n="profile.statFollowing">กำลังติดตาม</span></button></li>
-            <li><b id="ppuStatShops">–</b><span data-i18n="publicprofile.statShops">ร้าน</span></li>
-         </ul>
-
-         <div class="ppu-tabs" role="tablist" data-i18n-aria="publicprofile.tabsLabel" aria-label="เนื้อหาโปรไฟล์">
-            <button type="button" role="tab" class="ppu-tab active" id="ppuTabDiary" data-tab="diary" aria-controls="ppuPaneDiary" aria-selected="true" data-i18n="publicprofile.tabDiary">ไดอารี่</button>
-            <button type="button" role="tab" class="ppu-tab" id="ppuTabShops" data-tab="shops" aria-controls="ppuPaneShops" aria-selected="false" tabindex="-1" data-i18n="publicprofile.tabShops">ร้านโปรด</button>
-            <button type="button" role="tab" class="ppu-tab" id="ppuTabAbout" data-tab="about" aria-controls="ppuPaneAbout" aria-selected="false" tabindex="-1" data-i18n="publicprofile.tabAbout">เกี่ยวกับ</button>
-         </div>
-
-         <section class="ppu-pane" id="ppuPaneDiary" role="tabpanel" aria-labelledby="ppuTabDiary" tabindex="0">
-            <ul class="ppu-grid" id="ppDiaryList" hidden></ul>
-            <div class="ppu-empty" id="ppDiaryState" hidden>
-               <i class="fas fa-book-open" aria-hidden="true" id="ppDiaryIcon"></i>
-               <p id="ppDiaryMsg" role="status"></p>
-               <button type="button" class="jbtn jbtn-quiet" id="ppDiaryLogin" hidden data-i18n="auth.login">เข้าสู่ระบบ</button>
-            </div>
-            <p class="ppu-loading" id="ppDiaryLoading"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span data-i18n="common.loading">กำลังโหลด…</span></p>
-            <a href="#" class="jlink ppu-all" id="ppDiaryAll" hidden><span data-i18n="publicprofile.diaryAll">ดูไดอารี่ทั้งหมด</span><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
-         </section>
-
-         <section class="ppu-pane" id="ppuPaneShops" role="tabpanel" aria-labelledby="ppuTabShops" tabindex="0" hidden>
-            <p class="ppu-note" id="ppShopsNote" hidden data-i18n="publicprofile.shopsNote">จัดอันดับจากร้านที่บันทึกในไดอารี่บ่อยที่สุด</p>
-            <ol class="ppu-shops" id="ppShopsList" hidden></ol>
-            <div class="ppu-empty" id="ppShopsState" hidden>
-               <i class="fas fa-store" aria-hidden="true"></i>
-               <p id="ppShopsMsg" role="status"></p>
-            </div>
-         </section>
-
-         <section class="ppu-pane" id="ppuPaneAbout" role="tabpanel" aria-labelledby="ppuTabAbout" tabindex="0" hidden>
-            <div class="jcard ppu-about">
-               <h3 data-i18n="publicprofile.aboutBio">แนะนำตัว</h3>
-               <p id="ppuAboutBio"></p>
-               <p class="ppu-joined" id="ppuJoined" hidden></p>
-            </div>
-            <section class="ppdna" id="ppDna" hidden aria-labelledby="ppDnaTit">
-               <div class="ppdna-head">
-                  <h3 class="ppdna-tit" id="ppDnaTit"><i class="fas fa-dna" aria-hidden="true"></i><span data-i18n="publicprofile.foodDna">Food DNA</span></h3>
-                  <span class="ppdna-match" id="ppDnaMatch" hidden></span>
+         <!-- โปรไฟล์นักชิมแบบโชว์เคส (อิงหน้าโปรไฟล์ Fastwork): ปก · รูป · ชื่อ @ชื่อผู้ใช้ · ผู้ติดตาม · กล่องสถิติ · แท็บ
+              ข้อมูลจริงทั้งหมด — ไดอารี่ส่วนตัวฐานข้อมูลไม่ส่งแถวมาเลย (RLS) หน้านี้แค่บอกตรง ๆ ว่าดูไม่ได้ -->
+         <section class="ppu-card" aria-labelledby="ppuName">
+            <div class="ppu-cover" id="ppuCover" aria-hidden="true"></div>
+            <div class="ppu-top">
+               <div class="ppu-avatar" id="ppuAvatar" aria-hidden="true"></div>
+               <div class="ppu-actions">
+                  <button type="button" class="jbtn jbtn-primary ppu-follow" id="ppuFollow" hidden></button>
+                  <button type="button" class="jicon ppu-share" id="ppuShare" data-i18n-aria="publicprofile.share" aria-label="แชร์โปรไฟล์"><i class="fas fa-arrow-up-from-bracket" aria-hidden="true"></i></button>
                </div>
-               <div class="ppdna-rows" id="ppDnaRows"></div>
+            </div>
+            <div class="ppu-id">
+               <h2 class="ppu-name"><span id="ppuName"></span><span class="ppu-role" id="ppuRole"><i class="fas fa-utensils" aria-hidden="true"></i><span data-i18n="common.chimchimFoodie">นักชิม ChimChim</span></span></h2>
+               <p class="ppu-meta">
+                  <span class="ppu-handle" id="ppuHandle" hidden></span>
+                  <button type="button" class="ppu-metabtn" id="ppuFollowersBtn"><b id="ppuStatFollowers">–</b> <span data-i18n="profile.statFollowers">ผู้ติดตาม</span></button>
+                  <button type="button" class="ppu-metabtn" id="ppuFollowingBtn"><b id="ppuStatFollowing">–</b> <span data-i18n="profile.statFollowing">กำลังติดตาม</span></button>
+               </p>
+               <p class="ppu-bio" id="ppuBio" hidden></p>
+               <p class="ppu-loc" id="ppuLoc" hidden><i class="fas fa-location-dot" aria-hidden="true"></i><span></span></p>
+               <div class="ppu-chips" id="ppuChips" hidden></div>
+            </div>
+
+            <ul class="ppu-stats" data-i18n-aria="publicprofile.statsLabel" aria-label="สถิติโปรไฟล์">
+               <li><b id="ppuStatDiary">–</b><span data-i18n="publicprofile.statDiary">บันทึก</span></li>
+               <li><b id="ppuStatShops">–</b><span data-i18n="publicprofile.statShops">ร้าน</span></li>
+               <li><b id="ppuStatReviews">–</b><span data-i18n="publicprofile.statReviews">รีวิว</span></li>
+               <li><b id="ppuStatRating">–</b><span data-i18n="publicprofile.statRating">คะแนนเฉลี่ย</span></li>
+            </ul>
+
+            <div class="ppu-tabs" role="tablist" data-i18n-aria="publicprofile.tabsLabel" aria-label="เนื้อหาโปรไฟล์">
+               <button type="button" role="tab" class="ppu-tab active" id="ppuTabDiary" data-tab="diary" aria-controls="ppuPaneDiary" aria-selected="true" data-i18n="publicprofile.tabDiary">ไดอารี่</button>
+               <button type="button" role="tab" class="ppu-tab" id="ppuTabShops" data-tab="shops" aria-controls="ppuPaneShops" aria-selected="false" tabindex="-1" data-i18n="publicprofile.tabShops">ร้านโปรด</button>
+               <button type="button" role="tab" class="ppu-tab" id="ppuTabReviews" data-tab="reviews" aria-controls="ppuPaneReviews" aria-selected="false" tabindex="-1" data-i18n="publicprofile.tabReviews2">รีวิว</button>
+               <button type="button" role="tab" class="ppu-tab" id="ppuTabAbout" data-tab="about" aria-controls="ppuPaneAbout" aria-selected="false" tabindex="-1" data-i18n="publicprofile.tabAbout">เกี่ยวกับ</button>
+            </div>
+
+            <section class="ppu-pane" id="ppuPaneDiary" role="tabpanel" aria-labelledby="ppuTabDiary" tabindex="0">
+               <ul class="ppu-grid" id="ppDiaryList" hidden></ul>
+               <div class="ppu-empty" id="ppDiaryState" hidden>
+                  <i class="fas fa-book-open" aria-hidden="true" id="ppDiaryIcon"></i>
+                  <p id="ppDiaryMsg" role="status"></p>
+                  <button type="button" class="jbtn jbtn-quiet" id="ppDiaryLogin" hidden data-i18n="auth.login">เข้าสู่ระบบ</button>
+               </div>
+               <p class="ppu-loading" id="ppDiaryLoading"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span data-i18n="common.loading">กำลังโหลด…</span></p>
+               <a href="#" class="jbtn jbtn-quiet ppu-all" id="ppDiaryAll" hidden><span data-i18n="publicprofile.diaryAll">ดูไดอารี่ทั้งหมด</span><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
             </section>
-            <p class="ppu-note" id="ppDnaNone" hidden data-i18n="publicprofile.noDna">ยังไม่ได้ทำแบบทดสอบ Food DNA</p>
+
+            <section class="ppu-pane" id="ppuPaneShops" role="tabpanel" aria-labelledby="ppuTabShops" tabindex="0" hidden>
+               <p class="ppu-note" id="ppShopsNote" hidden data-i18n="publicprofile.shopsNote">จัดอันดับจากร้านที่บันทึกในไดอารี่บ่อยที่สุด</p>
+               <ol class="ppu-shops" id="ppShopsList" hidden></ol>
+               <div class="ppu-empty" id="ppShopsState" hidden>
+                  <i class="fas fa-store" aria-hidden="true"></i>
+                  <p id="ppShopsMsg" role="status"></p>
+               </div>
+            </section>
+
+            <section class="ppu-pane" id="ppuPaneReviews" role="tabpanel" aria-labelledby="ppuTabReviews" tabindex="0" hidden>
+               <div class="ppu-revsum" id="ppuRevSummary" hidden>
+                  <div class="ppu-revscore">
+                     <b id="ppuRevAvg"></b><small data-i18n="publicprofile.ofFive">จาก 5</small>
+                     <span class="ppu-revstars" id="ppuRevStars" aria-hidden="true"></span>
+                     <span class="ppu-revcount" id="ppuRevCount"></span>
+                  </div>
+                  <dl class="ppu-revcats" id="ppuRevCats"></dl>
+               </div>
+               <div class="ppu-revlist" id="ppuRevList"></div>
+               <p class="ppu-loading" id="ppuRevLoading" hidden><i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span data-i18n="common.loading">กำลังโหลด…</span></p>
+               <div class="ppu-empty" id="ppuRevEmpty" hidden>
+                  <i class="fas fa-pen" aria-hidden="true"></i>
+                  <p data-i18n="publicprofile.reviewsEmpty">ยังไม่ได้รีวิวร้านไหน</p>
+               </div>
+            </section>
+
+            <section class="ppu-pane" id="ppuPaneAbout" role="tabpanel" aria-labelledby="ppuTabAbout" tabindex="0" hidden>
+               <div class="ppu-about">
+                  <h3 data-i18n="publicprofile.aboutBio">แนะนำตัว</h3>
+                  <p id="ppuAboutBio"></p>
+                  <p class="ppu-joined" id="ppuJoined" hidden></p>
+               </div>
+               <section class="ppdna" id="ppDna" hidden aria-labelledby="ppDnaTit">
+                  <div class="ppdna-head">
+                     <h3 class="ppdna-tit" id="ppDnaTit"><i class="fas fa-dna" aria-hidden="true"></i><span data-i18n="publicprofile.foodDna">Food DNA</span></h3>
+                     <span class="ppdna-match" id="ppDnaMatch" hidden></span>
+                  </div>
+                  <div class="ppdna-rows" id="ppDnaRows"></div>
+               </section>
+               <p class="ppu-note" id="ppDnaNone" hidden data-i18n="publicprofile.noDna">ยังไม่ได้ทำแบบทดสอบ Food DNA</p>
+            </section>
          </section>
       </main>
 
@@ -167,9 +197,8 @@
 
       <nav class="appnav">
          <a href="home.html" class="anitem"><i class="fas fa-fire"></i><span data-i18n="nav.trending">เทรนด์</span></a>
-         <a href="roulette.html" class="ancenter"><img src="img/Dino/1.png" alt="สุ่มเมนู"/></a>
+         <a href="roulette.html" class="ancenter" aria-label="สุ่มร้าน" data-i18n-aria="nav.roulette"><img src="img/Dino/egg-nav.png" alt="" width="56" height="56"/></a>
          <a href="following.html" class="anitem active"><i class="fas fa-users"></i><span data-i18n="nav.following">ติดตาม</span></a>
-         <a href="profile.html" class="anitem"><i class="fas fa-user"></i><span data-i18n="nav.profile">โปรไฟล์</span></a>
       </nav>
 
       <!-- ============================================================

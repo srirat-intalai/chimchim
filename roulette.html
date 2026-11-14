@@ -50,7 +50,7 @@
                </div>
             </div>
             <button id="loginBtn" class="apptop-loginbtn" data-i18n="auth.login">เข้าสู่ระบบ</button>
-            <a href="profile.html" id="userAvatarLink" class="apptop-avatar" hidden><span id="userAvatarIco">🦖</span></a>
+            <a href="profile.html" id="userAvatarLink" class="apptop-avatar" data-i18n-aria="nav.profile" aria-label="โปรไฟล์" hidden><span id="userAvatarIco">🦖</span></a>
          </div>
       </header>
 
@@ -58,33 +58,48 @@
          <div class="glob a"></div>
          <div class="glob b"></div>
          <div class="container" style="max-width:520px;">
-            <div class="text-center mb-3" data-aos="fade-up">
+            <div class="rhead">
                <h1 class="stitle" style="font-size:1.5rem;margin-bottom:6px;"><span class="stitleplain" data-i18n="roulette.heading1">ไข่ปริศนา</span> <span data-i18n="roulette.heading2">สุ่มร้าน</span></h1>
                <p class="sdesc" style="font-size:.8rem;" data-i18n="roulette.desc">ตัดสินใจไม่ได้ว่าจะกินอะไรใช่ไหม? แตะไข่ 3 ครั้ง แล้วให้ ChimChim เปิดร้านจริงให้เลย</p>
             </div>
 
-            <div class="rmodes" id="rmodes" data-aos="fade-up">
+            <div class="rmodes" id="rmodes" role="group" data-i18n-aria="roulette.modesLabel" aria-label="แบบการสุ่ม">
                <button type="button" class="rmodebtn active" data-mode="like"><span class="rmico"><i class="fas fa-heart"></i></span><span data-i18n="roulette.modeLike">Eat What I Like</span></button>
                <button type="button" class="rmodebtn" data-mode="opposite"><span class="rmico"><i class="fas fa-shuffle"></i></span><span data-i18n="roulette.modeOpposite">Try My Opposite</span></button>
                <button type="button" class="rmodebtn" data-mode="mix"><span class="rmico"><i class="fas fa-dice"></i></span><span data-i18n="roulette.modeMix">Mix It Up</span></button>
             </div>
-            <p class="rmodedesc" id="rmodeDesc" data-aos="fade-up"></p>
+            <p class="rmodedesc" id="rmodeDesc"></p>
             <div class="rmodenote" id="rmodeNote" role="status" hidden>
                <span data-i18n="roulette.modeNeedsDna">โหมดนี้ใช้ Food DNA ของคุณ ตอนนี้เลยสุ่มแบบ “สุ่มมั่ว ๆ” ไปก่อน</span>
                <button type="button" class="eggreclink" id="rmodeDnaBtn"><i class="fas fa-dna"></i><span data-i18n="roulette.doDna">ทำ Food DNA (30 วิ)</span></button>
             </div>
 
-            <!-- Prompt (ใช้ Token) — ให้ AI แปลงคำพูดเป็นเงื่อนไขกรองร้านจริง ไม่พิมพ์ก็สุ่มพื้นฐานได้ฟรีเหมือนเดิม -->
-            <form class="rprompt" id="rPrompt" novalidate>
-               <label class="rprompt-lbl" for="rPromptInput"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span data-i18n="roulette.promptLabel">วันนี้อยากกินอะไรเป็นพิเศษ?</span></label>
-               <div class="rprompt-row">
-                  <textarea class="rprompt-input" id="rPromptInput" rows="1" maxlength="200" data-i18n-ph="roulette.promptPlaceholder" placeholder="เช่น ไทย งบ 100 บาท"></textarea>
-                  <button type="submit" class="btn-red rprompt-btn" id="rPromptBtn"><i class="fas fa-egg" aria-hidden="true"></i><span id="rPromptBtnText">สุ่ม · 1 Token</span></button>
+            <!-- ตัวเลือกเพิ่มเติม — ไม่บังคับ ไม่เลือกอะไรก็สุ่มได้เลย (พับไว้เป็นค่าเริ่มต้น) -->
+            <details class="rfilters" id="rFilters">
+               <summary>
+                  <i class="fas fa-sliders" aria-hidden="true"></i>
+                  <span data-i18n="roulette.filtersTitle">ตัวเลือกเพิ่มเติม</span>
+                  <span class="rfsummary" id="rFilterSummary"></span>
+                  <i class="fas fa-chevron-down rfchev" aria-hidden="true"></i>
+               </summary>
+               <div class="rfbody">
+                  <div class="rfgroup">
+                     <div class="rflbl" id="rfLblCat"><span data-i18n="roulette.filterCatMulti">หมวดหมู่อาหาร</span> <small data-i18n="roulette.filterCatMultiHint">เลือกได้หลายหมวด</small></div>
+                     <div class="rfchips rfcats" id="rfCat" role="group" aria-labelledby="rfLblCat"></div>
+                     <p class="rfnote" id="rfCatHint" aria-live="polite"></p>
+                  </div>
+                  <div class="rfgroup">
+                     <div class="rflbl" id="rfLblBudget" data-i18n="roulette.filterBudget">งบต่อคน (ราคาเริ่มต้นของร้าน)</div>
+                     <div class="rfchips" id="rfBudget" role="group" aria-labelledby="rfLblBudget"></div>
+                  </div>
+                  <div class="rfgroup">
+                     <div class="rflbl" id="rfLblDist" data-i18n="roulette.filterDist">ระยะทาง</div>
+                     <div class="rfchips" id="rfDist" role="group" aria-labelledby="rfLblDist"></div>
+                     <p class="rfnote" id="rfDistNote"></p>
+                  </div>
+                  <button type="button" class="eggreclink rfclear" id="rfClear" hidden><i class="fas fa-rotate-left"></i><span data-i18n="roulette.filterClear">ล้างตัวเลือกทั้งหมด</span></button>
                </div>
-               <div class="rprompt-examples" id="rPromptExamples"></div>
-               <p class="rprompt-cost" id="rPromptCost"></p>
-               <p class="rprompt-msg" id="rPromptMsg" role="status" aria-live="polite" hidden></p>
-            </form>
+            </details>
             <div class="rpromptactive" id="rPromptActive" hidden>
                <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>
                <div class="rpromptactive-text">
@@ -94,6 +109,7 @@
                </div>
                <button type="button" class="rpromptclear" id="rPromptClear" data-i18n-title="roulette.promptClear" title="ล้างเงื่อนไขจาก Prompt"><i class="fas fa-xmark" aria-hidden="true"></i></button>
             </div>
+
 
 
             <!-- ไข่ปริศนา (แทนวงล้อเดิม) — แตะ 3 ครั้ง: ขยับ → ร้าว → เปิด แล้วเผยร้านจริงที่สุ่มตามโหมดที่เลือก
@@ -149,32 +165,20 @@
 
             </div>
 
-            <!-- ตัวเลือกเพิ่มเติม — ไม่บังคับ ไม่เลือกอะไรก็สุ่มได้เลย (พับไว้เป็นค่าเริ่มต้น) -->
-            <details class="rfilters" id="rFilters">
-               <summary>
-                  <i class="fas fa-sliders" aria-hidden="true"></i>
-                  <span data-i18n="roulette.filtersTitle">ตัวเลือกเพิ่มเติม</span>
-                  <span class="rfsummary" id="rFilterSummary"></span>
-                  <i class="fas fa-chevron-down rfchev" aria-hidden="true"></i>
-               </summary>
-               <div class="rfbody">
-                  <div class="rfgroup">
-                     <div class="rflbl" id="rfLblCat"><span data-i18n="roulette.filterCatMulti">หมวดหมู่อาหาร</span> <small data-i18n="roulette.filterCatMultiHint">เลือกได้หลายหมวด</small></div>
-                     <div class="rfchips rfcats" id="rfCat" role="group" aria-labelledby="rfLblCat"></div>
-                     <p class="rfnote" id="rfCatHint" aria-live="polite"></p>
-                  </div>
-                  <div class="rfgroup">
-                     <div class="rflbl" id="rfLblBudget" data-i18n="roulette.filterBudget">งบต่อคน (ราคาเริ่มต้นของร้าน)</div>
-                     <div class="rfchips" id="rfBudget" role="group" aria-labelledby="rfLblBudget"></div>
-                  </div>
-                  <div class="rfgroup">
-                     <div class="rflbl" id="rfLblDist" data-i18n="roulette.filterDist">ระยะทาง</div>
-                     <div class="rfchips" id="rfDist" role="group" aria-labelledby="rfLblDist"></div>
-                     <p class="rfnote" id="rfDistNote"></p>
-                  </div>
-                  <button type="button" class="eggreclink rfclear" id="rfClear" hidden><i class="fas fa-rotate-left"></i><span data-i18n="roulette.filterClear">ล้างตัวเลือกทั้งหมด</span></button>
+
+            <!-- ทางเลือกรอง: พิมพ์บอกไข่ (ใช้ Token) — ไม่พิมพ์ก็แตะไข่สุ่มได้ฟรีตามปกติ -->
+            <div class="rordivider" aria-hidden="true"><span data-i18n="roulette.or">หรือ</span></div>
+            <!-- Prompt (ใช้ Token) — ให้ AI แปลงคำพูดเป็นเงื่อนไขกรองร้านจริง ไม่พิมพ์ก็สุ่มพื้นฐานได้ฟรีเหมือนเดิม -->
+            <form class="rprompt" id="rPrompt" novalidate>
+               <label class="rprompt-lbl" for="rPromptInput"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span data-i18n="roulette.promptLabel">วันนี้อยากกินอะไรเป็นพิเศษ?</span></label>
+               <div class="rprompt-row">
+                  <textarea class="rprompt-input" id="rPromptInput" rows="1" maxlength="200" data-i18n-ph="roulette.promptPlaceholder" placeholder="เช่น ไทย งบ 100 บาท"></textarea>
+                  <button type="submit" class="btn-red rprompt-btn" id="rPromptBtn"><i class="fas fa-egg" aria-hidden="true"></i><span id="rPromptBtnText">สุ่ม · 1 Token</span></button>
                </div>
-            </details>
+               <div class="rprompt-examples" id="rPromptExamples"></div>
+               <p class="rprompt-cost" id="rPromptCost"></p>
+               <p class="rprompt-msg" id="rPromptMsg" role="status" aria-live="polite" hidden></p>
+            </form>
 
             <div class="wsimilar" id="wSimilarSection" hidden data-aos="fade-up">
                <h2 class="rowtitle" style="font-size:.9rem;" data-i18n="roulette.similarShops">ร้านที่คล้ายกัน</h2>
@@ -185,9 +189,8 @@
 
       <nav class="appnav">
          <a href="home.html" class="anitem"><i class="fas fa-fire"></i><span data-i18n="nav.trending">เทรนด์</span></a>
-         <a href="roulette.html" class="ancenter"><img src="img/Dino/1.png" alt="สุ่มเมนู"/></a>
+         <a href="roulette.html" class="ancenter" aria-label="สุ่มร้าน" data-i18n-aria="nav.roulette" aria-current="page"><img src="img/Dino/egg-nav.png" alt="" width="56" height="56"/></a>
          <a href="following.html" class="anitem"><i class="fas fa-users"></i><span data-i18n="nav.following">ติดตาม</span></a>
-         <a href="profile.html" class="anitem"><i class="fas fa-user"></i><span data-i18n="nav.profile">โปรไฟล์</span></a>
       </nav>
 
       <!-- ============================================================

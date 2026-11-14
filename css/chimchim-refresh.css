@@ -4327,3 +4327,324 @@ h1.rdtitle {
   overflow-wrap: anywhere;
 }
 .profhandle[hidden] { display: none; }
+
+/* ---- โปรไฟล์ไม่มีในแถบล่างแล้ว — เข้าจากวงกลมรูปโปรไฟล์บนแถบบน ตอนอยู่หน้าโปรไฟล์ให้วงนั้นเป็นสถานะ "อยู่ที่นี่" ---- */
+.apptop-avatar[aria-current="page"] {
+  box-shadow: 0 0 0 2px var(--rf-surface), 0 0 0 4px var(--rf-brand);
+}
+
+/* ---- ปุ่มกลางแถบล่าง: ไข่ปริศนา (ทางเข้าหน้าสุ่มร้าน) — ใหญ่กว่าไอคอนอื่น ลอยเหนือแถบเล็กน้อย ---- */
+.ancenter {
+  width: 62px;
+  height: 62px;
+  margin: -20px 4px 0;
+  background: radial-gradient(circle at 50% 38%, #fbf9fe 0%, #e7dff4 100%);
+  border: 3px solid var(--rf-ink-deep);
+  box-shadow: 0 10px 22px -8px rgba(120, 101, 168, 0.75);
+  transition: transform 0.25s ease;
+}
+[data-theme="dark"] .ancenter {
+  border-color: #2a2535;
+}
+/* ลอยขึ้นลงจังหวะเดียวกับไข่หน้าสุ่ม (eggFloat/eggShadow 3.2s) แต่ระยะสั้นลงให้พอดีปุ่ม */
+.ancenter {
+  position: relative;
+}
+.ancenter img {
+  position: relative;
+  z-index: 1;
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 2px 3px rgba(60, 40, 100, 0.25));
+  animation: navEggFloat 3.2s ease-in-out infinite;
+}
+.ancenter::after {
+  content: "";
+  position: absolute;
+  left: 30%;
+  right: 30%;
+  bottom: 7px;
+  height: 5px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(40, 24, 80, 0.3), transparent 70%);
+  animation: eggShadow 3.2s ease-in-out infinite;
+}
+@keyframes navEggFloat {
+  0%, 100% { transform: translateY(1px); }
+  50% { transform: translateY(-4px); }
+}
+/* ชี้/แตะ: ไข่ส่ายแบบเดียวกับตอนแตะไข่หน้าสุ่ม */
+.ancenter:hover img {
+  animation: eggWobble 0.5s ease-in-out;
+}
+.ancenter[aria-current="page"] {
+  box-shadow: 0 0 0 2px var(--rf-brand), 0 10px 22px -8px rgba(120, 101, 168, 0.75);
+}
+.ancenter:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ancenter img,
+  .ancenter::after,
+  .ancenter:hover img { animation: none; }
+}
+
+/* ---- ไข่ในแถบล่างแบบไม่มีวงกลม: ใช้ PNG พื้นใสลอยบนแถบตรง ๆ ใหญ่กว่าไอคอนอื่น ---- */
+.ancenter,
+[data-theme="dark"] .ancenter {
+  width: 64px;
+  height: 64px;
+  margin: -24px 2px 0;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  box-shadow: none;
+}
+.ancenter img {
+  width: 56px;
+  height: 56px;
+  filter: drop-shadow(0 4px 6px rgba(20, 10, 40, 0.35));
+}
+.ancenter::after {
+  bottom: 2px;
+  left: 26%;
+  right: 26%;
+  height: 6px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.45), transparent 70%);
+}
+/* อยู่หน้าสุ่มร้าน: ไข่มีแสงม่วงรอบตัวแทนวงแหวน */
+.ancenter[aria-current="page"] {
+  box-shadow: none;
+}
+.ancenter[aria-current="page"] img {
+  filter: drop-shadow(0 0 7px rgba(165, 147, 214, 0.9)) drop-shadow(0 4px 6px rgba(20, 10, 40, 0.35));
+}
+
+/* ---- ขนาดไข่: อยู่หน้าอื่น = ไข่ใหญ่ชวนกด / อยู่หน้าสุ่มร้านแล้ว = กลับเป็นขนาดปกติ (หดลงนุ่ม ๆ ตอนเปิดหน้า) ---- */
+.ancenter:not([aria-current="page"]) {
+  width: 78px;
+  height: 78px;
+  margin-top: -38px;
+}
+.ancenter:not([aria-current="page"]) img {
+  width: 72px;
+  height: 72px;
+}
+.ancenter[aria-current="page"] {
+  animation: navEggSettle 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes navEggSettle {
+  from { transform: scale(1.28) translateY(-6px); }
+  to { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ancenter[aria-current="page"] { animation: none; }
+}
+
+/* ---- ฟองข้อความชวนกดไข่ (สุ่มประโยค เด้งเหนือไข่ในแถบล่าง) ---- */
+.eggtease {
+  position: fixed;
+  z-index: 960;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 24px));
+  padding: 9px 14px;
+  border-radius: 16px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  color: var(--rf-ink);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 10px 24px -10px rgba(60, 30, 120, 0.45);
+  transform: translateY(8px) scale(0.6);
+  transform-origin: var(--tail, 50%) 100%;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+.eggtease::after {
+  content: "";
+  position: absolute;
+  left: var(--tail, 50%);
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  border-right: 1px solid var(--rf-line);
+  border-bottom: 1px solid var(--rf-line);
+  transform: translateX(-50%) rotate(45deg);
+}
+.eggtease.show {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.eggtease:hover {
+  color: var(--rf-brand);
+}
+@media (prefers-reduced-motion: reduce) {
+  .eggtease,
+  .eggtease.show {
+    transition: opacity 0.2s ease;
+    transform: none;
+  }
+}
+
+/* =====================================================================
+   หน้าสุ่มร้าน — จัดลำดับใหม่: หัวข้อ → แบบการสุ่ม (แถบเลือก) → ตัวเลือกเพิ่มเติม → ไข่ → หรือ Prompt
+   เนื้อหาไหลจากบนลงล่าง (ไม่จัดกึ่งกลางแนวตั้ง) และเว้นที่ด้านล่างให้พ้นแถบเมนู
+   ===================================================================== */
+#roulette {
+  display: block;
+  min-height: 0;
+  padding: 16px 0 calc(128px + env(safe-area-inset-bottom, 0px)) !important;
+}
+.rhead {
+  margin-bottom: 14px;
+}
+.rhead .stitle {
+  margin-bottom: 4px !important;
+}
+.rhead .sdesc {
+  margin: 0;
+  line-height: 1.55;
+}
+/* แบบการสุ่ม: แถบเลือกแถวเดียว (segmented) แทนการ์ดใหญ่ 3 ใบ */
+.rmodes {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  box-shadow: var(--rf-shadow-sm);
+}
+.rmodebtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  box-shadow: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--rf-ink-2);
+}
+.rmodebtn .rmico {
+  display: inline;
+  margin: 0;
+  font-size: 0.9rem;
+}
+.rmodebtn:hover {
+  transform: none;
+  color: var(--rf-ink);
+}
+.rmodebtn.active,
+.rmodebtn.active:hover {
+  border: none;
+  background: var(--rf-brand-grad);
+  color: #fff;
+  box-shadow: var(--rf-glow);
+}
+.rmodedesc {
+  margin: 0 0 12px;
+  min-height: 1.4em;
+  text-align: center;
+}
+@media (max-width: 359px) {
+  .rmodebtn .rmico { display: none; }
+}
+.rmodenote {
+  margin-bottom: 12px;
+}
+/* ตัวเลือกเพิ่มเติมอยู่ใต้แบบการสุ่ม ก่อนถึงไข่ */
+.rmodedesc + .rmodenote + .rfilters,
+.rmodedesc + .rmodenote[hidden] + .rfilters {
+  margin: 0 0 8px;
+}
+.rpromptactive {
+  margin: 0 0 8px;
+}
+.egghatch + .rfilters {
+  margin-top: 0;
+}
+.eggstage {
+  margin: 0 0 4px;
+}
+/* หรือ — คั่นระหว่างการแตะไข่ (ฟรี) กับการพิมพ์บอกไข่ (ใช้ Token) */
+.rordivider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 12px;
+  color: var(--rf-ink-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.rordivider::before,
+.rordivider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rf-line);
+}
+/* ป้ายแบบการสุ่มอยู่บรรทัดเดียวเสมอ — ช่องกว้างตามความยาวข้อความ */
+.rmodebtn {
+  flex: 1 1 auto;
+  gap: 5px;
+  padding: 4px 6px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+@media (max-width: 374px) {
+  .rmodebtn:not(.active) .rmico { display: none; }
+}
+
+/* ---- ฟองข้อความของไข่เป็นสีม่วงแบรนด์ (ตัวขาว contrast ~7:1) — สีเดียวทั้งฟองและหาง ทั้งโหมดสว่าง/มืด ---- */
+.eggtease,
+[data-theme="dark"] .eggtease {
+  background: #6842b5;
+  border-color: #6842b5;
+  color: #fff;
+  box-shadow: 0 10px 24px -8px rgba(78, 47, 151, 0.6);
+}
+.eggtease::after {
+  border-color: #6842b5;
+}
+.eggtease:hover {
+  background: #7a54c8;
+  border-color: #7a54c8;
+  color: #fff;
+}
+.eggtease:hover::after {
+  border-color: #7a54c8;
+}
+
+/* ---- ไข่ตอบสนองไวขึ้น: แตกเปิดใน 0.7 วิ (เดิม 1.2 วิ) ให้ตรงกับ EGG_OPEN_MS ใน chimchim-roulette.js ---- */
+.eggstage[data-state="opening"] .eggshell-top {
+  animation-duration: 0.7s;
+}
+.eggstage[data-state="opening"] .eggshell-bottom {
+  animation-duration: 0.7s;
+}
+.eggstage[data-state="opening"] .eggglow {
+  animation-duration: 0.7s;
+}
+.eggshell {
+  transition: transform 0.55s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 0.4s ease;
+}
+.eggstage[data-state="firstTap"].is-shaking .eggbody,
+.eggstage[data-state="secondTap"].is-shaking .eggbody {
+  animation-duration: 0.35s;
+}

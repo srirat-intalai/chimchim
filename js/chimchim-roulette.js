@@ -268,9 +268,9 @@ function สุ่มร้านตามโหมด(mode) {
    idle → firstTap → secondTap → opening → revealing → result
    (ลดการเคลื่อนไหว: idle → reducedMotionReveal → result ทันทีในแตะเดียว) / error เมื่อไม่มีร้าน
    ===================================================================== */
-var EGG_OPEN_MS = 1200;   // แอนิเมชันไข่แตกออก
-var EGG_REVEAL_MS = 450;  // การ์ดร้านเลื่อนขึ้นมา
-var EGG_SHAKE_MS = 520;   // ช่วงสั่นแต่ละแตะ (กันแตะรัวจนแอนิเมชันซ้อน)
+var EGG_OPEN_MS = 700;    // แอนิเมชันไข่แตกออก (ตรงกับ .eggstage[data-state="opening"] ใน CSS)
+var EGG_REVEAL_MS = 350;  // การ์ดร้านเลื่อนขึ้นมา
+var EGG_SHAKE_MS = 350;   // ความยาวแอนิเมชันสั่นหนึ่งรอบ (แตะรัวได้ — แตะใหม่เริ่มสั่นใหม่ทันที ไม่ต้องรอให้จบ)
 
 var eggStage = document.getElementById("eggStage");
 var eggBtn = document.getElementById("eggBtn");
@@ -426,7 +426,8 @@ function onEggTap() {
 }
 
 function shakeEgg(nextState) {
-	eggBusy = true;
+	// ไม่ล็อกระหว่างสั่น: แตะรัว ๆ ไข่ก็ไปขั้นถัดไปทันที แอนิเมชันสั่นเริ่มใหม่ทุกแตะ
+	clearEggTimers();
 	setEggState(nextState);
 	// เริ่มคลาส shake ใหม่ทุกครั้ง (ลบแล้ว reflow แล้วใส่กลับ) ให้แอนิเมชันเล่นซ้ำได้
 	eggStage.classList.remove("is-shaking");
@@ -434,11 +435,12 @@ function shakeEgg(nextState) {
 	eggStage.classList.add("is-shaking");
 	eggLater(function() {
 		eggStage.classList.remove("is-shaking");
-		eggBusy = false;
 	}, EGG_SHAKE_MS);
 }
 
 function openEgg() {
+	clearEggTimers();
+	eggStage.classList.remove("is-shaking");
 	eggBusy = true;
 	setEggState("opening");
 	eggLater(function() {
@@ -609,7 +611,15 @@ function pickAndReveal(reroll) {
 	eggResult.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "nearest" });
 }
 
-eggBtn.addEventListener("click", onEggTap);
+// นิ้ว/เมาส์: ตอบสนองตั้งแต่แตะลง (pointerdown) ไม่ต้องรอยกนิ้ว แตะรัวได้ไว
+// คีย์บอร์ด (Enter/Space) ยิงเป็น click ที่ detail = 0 จึงยังใช้ได้ตามเดิม
+eggBtn.addEventListener("pointerdown", function(e) {
+	if (e.pointerType === "mouse" && e.button !== 0) return;
+	onEggTap();
+});
+eggBtn.addEventListener("click", function(e) {
+	if (e.detail === 0) onEggTap();
+});
 // "สุ่มอีกครั้ง" = ได้ไข่ใบใหม่กลับมาให้แตะเองอีกรอบ (ร้านที่เคยออกแล้วในรอบนี้ยังถูกกันซ้ำตามเดิม)
 var eggNextIsReroll = false;
 document.getElementById("eggAgainBtn").addEventListener("click", function() {

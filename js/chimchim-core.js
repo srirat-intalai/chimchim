@@ -2316,9 +2316,9 @@ var REPORT_NOTE_MAX = 300;
 	var modal = document.createElement("div");
 	modal.id = "reportPopModal";
 	modal.innerHTML =
-		'<div class="apbox rpbox">' +
-			'<button class="apclose" id="reportPopClose" type="button"><i class="fas fa-times"></i></button>' +
-			'<div class="rphead"><span class="rpheadicon"><i class="fas fa-flag"></i></span><h4 class="rptitle" id="reportPopTitle"></h4></div>' +
+		'<div class="apbox rpbox" role="dialog" aria-modal="true" aria-labelledby="reportPopTitle">' +
+			'<button class="apclose" id="reportPopClose" type="button" aria-label="' + escapeHtml(t("common.close")) + '"><i class="fas fa-times" aria-hidden="true"></i></button>' +
+			'<div class="rphead"><span class="rpheadicon" aria-hidden="true"><i class="fas fa-flag"></i></span><h2 class="rptitle" id="reportPopTitle"></h2></div>' +
 			'<p class="rpsub" id="reportPopHint"></p>' +
 			'<div class="rpreasons" id="reportReasonList" role="radiogroup"></div>' +
 			'<label class="rpnotelbl" for="reportNote"><span id="reportNoteLbl"></span><span class="rpnotecount" id="reportNoteCount"></span></label>' +
@@ -2327,6 +2327,7 @@ var REPORT_NOTE_MAX = 300;
 			'<button type="button" class="rpsubmit" id="reportSubmit" disabled><i class="fas fa-paper-plane"></i><span></span></button>' +
 		"</div>";
 	document.body.appendChild(modal);
+	modal.querySelector("#reportPopTitle").textContent = t("report.title"); // หัวข้อไม่ว่าง (ใช้เป็นชื่อ dialog) — เปลี่ยนตามชนิดตอนเปิด
 
 	var listEl = modal.querySelector("#reportReasonList");
 	var noteEl = modal.querySelector("#reportNote");

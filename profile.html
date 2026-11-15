@@ -87,6 +87,8 @@
             <button type="button" class="profswitchbtn" id="profSwitchBtn" aria-haspopup="dialog"><span class="profname" id="profName"></span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
             <span class="profhandle" id="profHandle" hidden></span>
             <button type="button" class="profrole" id="profRole" aria-haspopup="dialog"></button>
+            <!-- ยอด Token (บัญชีจริง) — กดเพื่อเปิดปฏิทินเช็กอินรายวัน -->
+            <button type="button" class="tkchip" id="profTokenChip" data-token-chip data-open-tokens aria-haspopup="dialog" hidden><i class="fas fa-coins" aria-hidden="true"></i><b data-token-balance>–</b><span data-i18n="token.unit">Token</span></button>
             <div class="profemail" id="profEmail"></div>
             <p class="profbio" id="profBio" hidden></p>
             <!-- เลเวลนักชิม — กดดูว่าได้ XP จากอะไรบ้าง -->
@@ -129,7 +131,12 @@
                <a href="diary.html" class="jlink" id="profDiaryAll"><i class="far fa-calendar" aria-hidden="true"></i><span data-i18n="profile.diarySeeAll">ดูทั้งหมด</span></a>
             </div>
             <p class="jbanner is-warn" id="profDiaryNote" role="status" hidden></p>
-            <ul class="jlatest" id="profDiaryLatest" aria-busy="true"></ul>
+            <!-- แถบไดอารี่เลื่อนซ้าย-ขวา: วันนี้อยู่ขวาสุด เลื่อนไปทางซ้ายเพื่อดูวันเก่า ๆ (ปุ่มลูกศรสำหรับเมาส์) -->
+            <div class="jlatest-wrap">
+               <button type="button" class="jlatest-nav is-prev" id="profDiaryPrev" data-i18n-aria="profile.diaryOlder" aria-label="วันก่อนหน้า" hidden><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+               <ul class="jlatest" id="profDiaryLatest" aria-busy="true" data-i18n-aria="profile.diaryStrip" aria-label="ไดอารี่รายวัน"></ul>
+               <button type="button" class="jlatest-nav is-next" id="profDiaryNext" data-i18n-aria="profile.diaryNewer" aria-label="วันถัดไป" hidden><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+            </div>
             <p class="jstart-msg" id="profDiaryStartMsg" hidden data-i18n="profile.diaryStartMsg">ยังไม่มีบันทึกมื้ออาหาร มาเริ่มเก็บความทรงจำมื้อแรกกัน</p>
             <a class="jbtn jbtn-primary jbtn-block" id="profDiaryAdd" href="diary.html?new=1&amp;return=profile"><i class="fas fa-plus" aria-hidden="true"></i><span id="profDiaryAddText"></span></a>
          </section>
@@ -208,10 +215,10 @@
 
       </div>
 
-      <nav class="appnav">
-         <a href="home.html" class="anitem"><i class="fas fa-fire"></i><span data-i18n="nav.trending">เทรนด์</span></a>
-         <a href="roulette.html" class="ancenter" aria-label="สุ่มร้าน" data-i18n-aria="nav.roulette"><img src="img/Dino/egg-nav.png" alt="" width="56" height="56"/></a>
-         <a href="following.html" class="anitem"><i class="fas fa-users"></i><span data-i18n="nav.following">ติดตาม</span></a>
+      <nav class="appnav" data-i18n-aria="nav.mainLabel" aria-label="เมนูหลัก">
+         <a href="home.html" class="anitem"><i class="fas fa-fire" aria-hidden="true"></i><span data-i18n="nav.trending">เทรนด์</span></a>
+         <a href="roulette.html" class="anitem ancenter"><i class="fas fa-egg" aria-hidden="true"></i><span data-i18n="nav.roulette">สุ่มร้าน</span></a>
+         <a href="following.html" class="anitem"><i class="fas fa-users" aria-hidden="true"></i><span data-i18n="nav.following">ติดตาม</span></a>
       </nav>
 
       <!-- ============================================================

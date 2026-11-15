@@ -8,6 +8,17 @@ var ppIsPage = ppUid && ppUid.indexOf("page-") === 0;
 var ppIsBuShop = ppUid && ppUid.indexOf("bu-") === 0;
 var ppSession = getSession();
 
+(function ppNavFromReferrer() {
+	var from = "";
+	try { var r = new URL(document.referrer); if (r.origin === location.origin) from = r.pathname.split("/").pop(); } catch (e) {}
+	var map = { "home.html": "home.html", "roulette.html": "roulette.html" };
+	var target = map[from];
+	if (!target) return; // มาจากหน้าติดตาม/ลิงก์ภายนอก — คงไฮไลต์ "ติดตาม" ตามเดิม
+	document.querySelectorAll(".appnav .anitem").forEach(function(a) {
+		a.classList.toggle("active", a.getAttribute("href") === target);
+	});
+})();
+
 var ppReviewerAvatars = {}; // userId → url รูปโปรไฟล์ (ดึงจาก profiles ของ Supabase / ผู้ใช้ในเครื่อง)
 function ppFormatDate(iso) {
 	var d = new Date(iso);
@@ -72,17 +83,81 @@ function ppRenderFoodDna(dna, isMe) {
 	}
 	box.hidden = !rows.length;
 	document.getElementById("ppDnaNone").hidden = !!rows.length;
-	ppuRenderChips(dna);
+	document.getElementById("ppDnaMatch").hidden = true; // % อยู่ในหัวโปรไฟล์แล้ว ไม่ซ้ำในแท็บเกี่ยวกับ
+	ppuRenderTaste(rows.length ? dna : null, isMe);
 	if (!rows.length) return;
 	document.getElementById("ppDnaRows").innerHTML = rows.join("");
-	var matchEl = document.getElementById("ppDnaMatch");
+}
+// หัวโปรไฟล์: คำตอบของ "กินตามคนนี้ได้ไหม" เป็นประโยคใหญ่ — % ตรงกัน · ชอบอะไรเหมือนกัน · งบต่อมื้อ
+// ข้อมูลจริงจาก Food DNA ของทั้งสองฝั่งเท่านั้น: ผู้ชมยังไม่มี DNA → ชวนทำแบบทดสอบ / ยังไม่ล็อกอิน → ชวนเข้าสู่ระบบ (ไม่เดา %)
+function ppuSharedTastes(a, b) {
+	var out = [];
+	["ชอบหมวด", "ชอบรส", "ชอบชาติอาหาร"].forEach(function(k) {
+		var mine = Array.isArray(a[k]) ? a[k] : [];
+		(Array.isArray(b[k]) ? b[k] : []).forEach(function(v) {
+			if (v && mine.indexOf(v) !== -1 && out.length < 3) out.push(catLabel(v));
+		});
+	});
+	return out;
+}
+function ppuRenderTaste(dna, isMe) {
+	var el = document.getElementById("ppuTaste");
+	el.innerHTML = "";
+	el.className = "ppu-taste";
+	if (!dna || isMe) { el.hidden = true; return; }
+	var name = document.getElementById("ppuName").textContent;
+	var budget = Number(dna.งบเฉลี่ยที่ใช้บ่อย);
+	var budgetText = budget > 0 ? t("publicprofile.budgetPill").replace("{n}", Math.round(budget)) : "";
 	var meUser = typeof getMe === "function" ? getMe() : null;
-	if (!isMe && meUser && meUser.foodDNA && typeof คำนวณความชอบคล้ายกัน === "function") {
-		matchEl.textContent = t("publicprofile.dnaMatch").replace("{n}", คำนวณความชอบคล้ายกัน(meUser.foodDNA, dna));
-		matchEl.hidden = false;
-	} else {
-		matchEl.hidden = true;
+	function line(cls, text) {
+		var p = document.createElement("p");
+		p.className = cls;
+		p.textContent = text;
+		el.appendChild(p);
+		return p;
 	}
+	if (meUser && meUser.foodDNA && typeof คำนวณความชอบคล้ายกัน === "function") {
+		var pct = คำนวณความชอบคล้ายกัน(meUser.foodDNA, dna);
+		var head = document.createElement("p");
+		head.className = "ppu-taste-head";
+		head.innerHTML = '<b class="ppu-taste-pct"></b><span></span>';
+		head.querySelector("b").textContent = pct + "%";
+		head.querySelector("span").textContent = t("publicprofile.tasteMatchLabel");
+		el.appendChild(head);
+		var shared = ppuSharedTastes(meUser.foodDNA, dna);
+		line("ppu-taste-shared", shared.length
+			? t("publicprofile.tasteShared").replace("{name}", name).replace("{list}", shared.join(", "))
+			: t("publicprofile.tasteNoShared").replace("{name}", name));
+		// งบ · ที่มาของ % — แต่ละท่อนไม่ตัดกลางคำ ถ้ายาวเกินจะขึ้นบรรทัดใหม่ทั้งท่อน
+		var foot = line("ppu-taste-foot", "");
+		[budgetText, t("publicprofile.tasteHow")].filter(Boolean).forEach(function(txt, i) {
+			if (i) foot.appendChild(document.createTextNode(" · "));
+			var seg = document.createElement("span");
+			seg.className = "ppu-taste-seg";
+			seg.textContent = txt;
+			foot.appendChild(seg);
+		});
+	} else {
+		el.classList.add("is-invite");
+		line("ppu-taste-shared", t("publicprofile.tasteInvite").replace("{name}", name));
+		if (budgetText) line("ppu-taste-foot", budgetText);
+		var cta;
+		if (meUser) {
+			cta = document.createElement("a");
+			cta.href = "profile-setup.html";
+			cta.innerHTML = '<i class="fas fa-flask" aria-hidden="true"></i><span></span>';
+			cta.querySelector("span").textContent = t("publicprofile.tasteTakeTest");
+		} else {
+			cta = document.createElement("button");
+			cta.type = "button";
+			cta.innerHTML = '<i class="fas fa-right-to-bracket" aria-hidden="true"></i><span></span>';
+			cta.querySelector("span").textContent = t("publicprofile.tasteLogin");
+			cta.addEventListener("click", function() { if (typeof openAuthPop === "function") openAuthPop("register"); });
+		}
+		cta.className = "jbtn jbtn-quiet ppu-taste-cta";
+		el.appendChild(cta);
+	}
+	el.hidden = false;
 }
 // ดึง Food DNA + วันที่สมัครล่าสุดจาก Supabase (คนที่ไม่เคยเห็นในเครื่องนี้ หรืออัปเดตจากเครื่องอื่น)
 function ppLoadFoodDna(userId, localDna) {
@@ -116,7 +191,12 @@ function ppuLoadLevel(userId) {
 		var role = document.getElementById("ppuRole");
 		role.innerHTML = '<i class="fas fa-medal" aria-hidden="true"></i><span></span>';
 		role.querySelector("span").textContent = t("publicprofile.levelPill").replace("{n}", lv.level).replace("{name}", lv.name);
-		role.title = t("publicprofile.levelXp").replace("{xp}", lv.xp);
+		role.title = t("publicprofile.levelHow").replace("{n}", lv.level);
+		var note = document.getElementById("ppuLevelNote");
+		if (note) {
+			note.textContent = t("publicprofile.levelHow").replace("{n}", lv.level);
+			note.hidden = false;
+		}
 	});
 }
 
@@ -128,6 +208,14 @@ function ppuRenderCover(entries) {
 	cover.innerHTML = "";
 	cover.classList.toggle("has-photos", pics.length > 0);
 	cover.setAttribute("data-count", String(pics.length));
+	if (!pics.length) {
+		var dino = document.createElement("img");
+		dino.className = "ppu-cover-dino";
+		dino.src = "img/Dino/7.png";
+		dino.alt = "";
+		dino.decoding = "async";
+		cover.appendChild(dino);
+	}
 	pics.forEach(function(e) {
 		var img = document.createElement("img");
 		img.alt = "";
@@ -136,18 +224,6 @@ function ppuRenderCover(entries) {
 		img.src = safeImgSrc(e.img);
 		cover.appendChild(img);
 	});
-}
-function ppuRenderChips(dna) {
-	var box = document.getElementById("ppuChips");
-	var cats = dna && Array.isArray(dna.ชอบหมวด) ? dna.ชอบหมวด.filter(Boolean).slice(0, 3) : [];
-	box.innerHTML = "";
-	cats.forEach(function(c) {
-		var chip = document.createElement("span");
-		chip.className = "ppu-chip";
-		chip.textContent = catLabel(c);
-		box.appendChild(chip);
-	});
-	box.hidden = !cats.length;
 }
 function ppuSetLocation(text) {
 	var el = document.getElementById("ppuLoc");
@@ -251,7 +327,7 @@ function ppuEntryCard(user, e) {
 	var li = document.createElement("li");
 	li.innerHTML =
 		'<a class="ppu-entry">' +
-			(e.img ? '<img class="ppu-entry-img" alt="" loading="lazy" decoding="async"/>' : '<span class="ppu-entry-noimg" aria-hidden="true"><i class="fas fa-utensils"></i></span>') +
+			(e.img ? '<img class="ppu-entry-img" alt="" loading="lazy" decoding="async"/>' : '<span class="ppu-entry-noimg" aria-hidden="true"></span>') +
 			'<span class="ppu-entry-body">' +
 				'<b class="ppu-entry-dish"></b>' +
 				'<span class="ppu-entry-meta"></span>' +
@@ -261,6 +337,11 @@ function ppuEntryCard(user, e) {
 	var a = li.querySelector("a");
 	a.href = "diary.html?u=" + encodeURIComponent(user.id) + "&entry=" + encodeURIComponent(e.id) + "&date=" + encodeURIComponent(e.date);
 	if (e.img) li.querySelector("img").src = safeImgSrc(e.img);
+	else {
+		// ไอคอนหมวดจากร้านที่ผูกไว้ (ถ้ามี) — catEmoji คืน <i> ที่ระบบสร้างเอง ไม่มีข้อความจากผู้ใช้
+		var shopRef = e.shopId && typeof หาร้านจากId === "function" ? หาร้านจากId(Number(e.shopId)) : null;
+		li.querySelector(".ppu-entry-noimg").innerHTML = shopRef && typeof catEmoji === "function" ? catEmoji(shopRef.หมวด) : '<i class="fas fa-utensils"></i>';
+	}
 	li.querySelector("b").textContent = e.dish;
 	var meta = li.querySelector(".ppu-entry-meta");
 	function metaItem(icon, text) {
@@ -274,21 +355,54 @@ function ppuEntryCard(user, e) {
 	metaItem("calendar", diaryFormatDate(e.date));
 	if (e.rating && typeof diaryFeelingLabel === "function") metaItem("face-smile", diaryFeelingLabel(e.rating));
 	if (e.note) li.querySelector(".ppu-entry-note").textContent = e.note;
+	a.setAttribute("aria-label", [e.dish, e.shop, diaryFormatDate(e.date), e.rating && typeof diaryFeelingLabel === "function" ? diaryFeelingLabel(e.rating) : "", e.note].filter(Boolean).join(", "));
 	return li;
 }
-function ppuDiaryMessage(msgKey, showLogin) {
+// สถานะของแท็บไดอารี่ไม่เป็นทางตัน: ส่วนตัว → บอกตรง ๆ ว่าติดตามแล้วก็ไม่เห็น + พาไปดูรสนิยม / โหลดไม่ได้ → ลองใหม่
+function ppuDiaryMessage(msgKey, opts) {
+	opts = opts || {};
 	document.getElementById("ppDiaryList").hidden = true;
 	document.getElementById("ppDiaryAll").hidden = true;
 	document.getElementById("ppDiaryState").hidden = false;
-	document.getElementById("ppDiaryMsg").textContent = t(msgKey);
-	document.getElementById("ppDiaryLogin").hidden = !showLogin;
+	document.getElementById("ppDiaryMsg").textContent = opts.text || t(msgKey);
+	var hint = document.getElementById("ppDiaryHint");
+	hint.textContent = opts.hint || "";
+	hint.hidden = !opts.hint;
+	document.getElementById("ppDiaryIcon").className = "fas " + (opts.locked ? "fa-lock" : "fa-book-open");
+	document.getElementById("ppDiaryLogin").hidden = !opts.login;
+	document.getElementById("ppDiaryRetry").hidden = !opts.retry;
+	document.getElementById("ppDiaryTaste").hidden = !opts.taste;
+	document.getElementById("ppDiaryAdd").hidden = !opts.add;
+}
+// จำนวนมื้อ/ร้านอยู่ในแท็บ ("ไดอารี่ 6" / "ร้านโปรด 3") — บรรทัดใต้ชื่อเหลือแค่ผู้ติดตาม จึงไม่ตกบรรทัดเมื่อเลขยาวขึ้น
+// ตัวเลขจริง / แม่กุญแจ + คำว่า "ส่วนตัว" (อ่านได้ทั้งตาและ screen reader) / ซ่อนเมื่อไม่รู้ ไม่โชว์ "–"
+function ppuSetCount(numId, value) {
+	var num = document.getElementById(numId);
+	if (value === "locked") {
+		num.innerHTML = '<i class="fas fa-lock" aria-hidden="true"></i><span class="jvisually-hidden"></span>';
+		num.querySelector("span").textContent = t("publicprofile.statLocked");
+		num.hidden = false;
+	} else if (value === null || value === undefined) {
+		num.hidden = true;
+	} else {
+		num.textContent = formatLikeCount(value);
+		num.hidden = false;
+	}
+}
+function ppuSetDiaryCounts(diary, shops) {
+	ppuSetCount("ppuStatDiary", diary);
+	ppuSetCount("ppuStatShops", shops);
 }
 function ppRenderDiary(user) {
 	var loading = document.getElementById("ppDiaryLoading");
+	loading.hidden = false;
+	document.getElementById("ppDiaryState").hidden = true;
 	document.getElementById("ppDiaryLogin").onclick = function() { if (typeof openAuthPop === "function") openAuthPop("login"); };
+	document.getElementById("ppDiaryRetry").onclick = function() { ppRenderDiary(user); };
+	document.getElementById("ppDiaryTaste").onclick = function() { ppuShowTab("about", true); };
 	if (typeof diaryLoadFor !== "function") {
 		loading.hidden = true;
-		ppuDiaryMessage("publicprofile.diaryFailed", false);
+		ppuDiaryMessage("publicprofile.diaryFailed", { retry: true });
 		ppRenderFavShops(null, "publicprofile.diaryFailed");
 		return;
 	}
@@ -296,20 +410,32 @@ function ppRenderDiary(user) {
 		loading.hidden = true;
 		var blocked = res.visibility === "private" && !res.own;
 		if (res.error === "auth" || blocked || (res.error && !res.entries.length)) {
-			var key = res.error === "auth" ? "publicprofile.diaryLogin" : blocked ? "publicprofile.diaryPrivate" : "publicprofile.diaryFailed";
-			ppuDiaryMessage(key, res.error === "auth");
-			ppRenderFavShops(null, key);
-			ppuText("ppuStatDiary", null);
-			ppuText("ppuStatShops", null);
+			if (res.error === "auth") {
+				ppuDiaryMessage("publicprofile.diaryLoginOnce", { login: true });
+				ppRenderFavShops(null, "publicprofile.diaryLoginOnce");
+				ppuSetDiaryCounts(null, null);
+			} else if (blocked) {
+				ppuDiaryMessage(null, {
+					text: t("publicprofile.diaryPrivateName").replace("{name}", user.name || ""),
+					hint: t("publicprofile.diaryPrivateHint"),
+					locked: true,
+					taste: true
+				});
+				ppRenderFavShops(null, "publicprofile.shopsPrivate", true);
+				ppuSetDiaryCounts("locked", "locked");
+			} else {
+				ppuDiaryMessage("publicprofile.diaryFailed", { retry: true });
+				ppRenderFavShops(null, "publicprofile.diaryFailed");
+				ppuSetDiaryCounts(null, null);
+			}
 			return;
 		}
 		var entries = res.entries || [];
 		ppuRenderCover(entries);
-		ppuText("ppuStatDiary", entries.length);
-		ppuText("ppuStatShops", typeof diaryShopCount === "function" ? diaryShopCount(entries) : null);
+		ppuSetDiaryCounts(entries.length, typeof diaryShopCount === "function" ? diaryShopCount(entries) : null);
 		ppRenderFavShops(entries, null);
 		if (!entries.length) {
-			ppuDiaryMessage("publicprofile.diaryEmpty", false);
+			ppuDiaryMessage("publicprofile.diaryEmpty", { add: !!res.own });
 			return;
 		}
 		var list = document.getElementById("ppDiaryList");
@@ -319,12 +445,13 @@ function ppRenderDiary(user) {
 		document.getElementById("ppDiaryState").hidden = true;
 		var all = document.getElementById("ppDiaryAll");
 		all.href = "diary.html?u=" + encodeURIComponent(user.id);
-		all.hidden = false;
+		all.querySelector("span").textContent = t("publicprofile.diaryAllN").replace("{n}", formatLikeCount(entries.length));
+		all.hidden = entries.length <= PPU_DIARY_MAX;
 	});
 }
 
 /* --- แท็บร้านโปรด: รวมร้านจากไดอารี่ที่ผู้ชมมีสิทธิ์เห็น เรียงตามจำนวนมื้อ --- */
-function ppRenderFavShops(entries, msgKey) {
+function ppRenderFavShops(entries, msgKey, locked) {
 	var list = document.getElementById("ppShopsList");
 	var state = document.getElementById("ppShopsState");
 	var note = document.getElementById("ppShopsNote");
@@ -333,6 +460,7 @@ function ppRenderFavShops(entries, msgKey) {
 		note.hidden = true;
 		state.hidden = false;
 		document.getElementById("ppShopsMsg").textContent = t(key);
+		document.getElementById("ppShopsIcon").className = "fas " + (locked ? "fa-lock" : "fa-store");
 	}
 	if (msgKey) { message(msgKey); return; }
 	var groups = {};
@@ -380,6 +508,19 @@ function ppuSetupFollow(user, isMe) {
 			? '<i class="fas fa-check" aria-hidden="true"></i><span>' + escapeHtml(t("publicprofile.followingBtn")) + "</span>"
 			: '<i class="fas fa-user-plus" aria-hidden="true"></i><span>' + escapeHtml(t("publicprofile.followBtn")) + "</span>";
 	}
+	// ปุ่มติดตามท้ายไดอารี่ — ซ่อนเมื่อเป็นตัวเอง/ติดตามแล้ว/เป็นโปรไฟล์ร้าน (ไม่มีชื่อส่งมา)
+	var end = document.getElementById("ppuEnd");
+	var endBtn = document.getElementById("ppuFollowEnd");
+	if (!isMe && user.name) {
+		document.getElementById("ppuEndMsg").textContent = t("publicprofile.endAsk").replace("{name}", user.name);
+		endBtn.querySelector("span").textContent = t("publicprofile.endFollow").replace("{name}", user.name);
+		endBtn.addEventListener("click", function() { btn.click(); });
+	}
+	var basePaint = paint;
+	paint = function() {
+		basePaint();
+		end.hidden = isMe || !user.name || isUserFollowed(user.id);
+	};
 	if (!isMe) {
 		btn.hidden = false;
 		paint();
@@ -457,7 +598,9 @@ function ppuSetupFollowSheet(user) {
 			var on = b.getAttribute("data-tab") === tab;
 			b.classList.toggle("active", on);
 			b.setAttribute("aria-selected", on ? "true" : "false");
+			b.tabIndex = on ? 0 : -1;
 		});
+		document.getElementById("fsTitle").textContent = t(tab === "followers" ? "publicprofile.sheetFollowers" : "publicprofile.sheetFollowing").replace("{name}", user.name || "");
 		if (typeof sbClient === "undefined" || !sbClient || (tab === "following" && !isUuid(user.id))) { message("publicprofile.listFailed"); return; }
 		list.innerHTML = '<p class="fsheet-empty"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></p>';
 		var q = tab === "followers"
@@ -493,6 +636,7 @@ function ppuSetupFollowSheet(user) {
 		setTimeout(function() { sheet.hidden = true; }, 200);
 		if (lastFocus && lastFocus.focus) lastFocus.focus();
 	}
+	document.getElementById("fsTitle").textContent = t("publicprofile.sheetFollowers").replace("{name}", user.name || "");
 	document.getElementById("ppuFollowersBtn").addEventListener("click", function() { open("followers"); });
 	document.getElementById("ppuFollowingBtn").addEventListener("click", function() { open("following"); });
 	sheet.querySelectorAll(".fsheet-tab").forEach(function(b) {
@@ -500,7 +644,18 @@ function ppuSetupFollowSheet(user) {
 	});
 	document.getElementById("fsheetClose").addEventListener("click", close);
 	sheet.addEventListener("click", function(e) { if (e.target === sheet) close(); });
-	document.addEventListener("keydown", function(e) { if (e.key === "Escape" && !sheet.hidden) close(); });
+	document.addEventListener("keydown", function(e) {
+		if (sheet.hidden) return;
+		if (e.key === "Escape") { close(); return; }
+		if (e.key !== "Tab") return;
+		// วนโฟกัสอยู่ในแผ่นรายชื่อ ไม่หลุดไปหน้าข้างหลัง
+		var items = Array.prototype.filter.call(sheet.querySelectorAll("button, a[href]"), function(el) { return !el.disabled && el.tabIndex >= 0 && el.getClientRects().length; });
+		if (!items.length) return;
+		var first = items[0], last = items[items.length - 1];
+		var inside = sheet.contains(document.activeElement);
+		if (e.shiftKey && (document.activeElement === first || !inside)) { e.preventDefault(); last.focus(); }
+		else if (!e.shiftKey && (document.activeElement === last || !inside)) { e.preventDefault(); first.focus(); }
+	});
 }
 
 /* =====================================================================
@@ -697,7 +852,7 @@ function ppRenderShopShowcase(o) {
 		settings.querySelector("span").textContent = t("settings.title");
 		document.getElementById("ppuShare").insertAdjacentElement("beforebegin", settings);
 	}
-	ppuSetupFollowSheet({ id: o.followId });
+	ppuSetupFollowSheet({ id: o.followId, name: o.name });
 	ppuSetupTabs();
 	ppuSetText(document.querySelector("#ppuRevEmpty p"), "publicprofile.noReviews");
 	ppuLoadShopReviews(o.shopId);
@@ -742,9 +897,10 @@ if (ppIsBuShop) {
 		var bioEl = document.getElementById("ppuBio");
 		bioEl.textContent = bio;
 		bioEl.hidden = !bio;
-		var aboutBio = document.getElementById("ppuAboutBio");
-		aboutBio.textContent = bio || t("publicprofile.noBio");
-		aboutBio.classList.toggle("is-empty", !bio);
+		// bio แสดงในหัวโปรไฟล์แล้ว แท็บเกี่ยวกับไม่ต้องซ้ำ — เหลือวันที่เข้าร่วม · ที่มาของ Lv · Food DNA
+		var aboutBox = document.querySelector("#ppuPaneAbout .ppu-about");
+		aboutBox.querySelector("h3").remove();
+		document.getElementById("ppuAboutBio").remove();
 
 		document.getElementById("ppuShare").addEventListener("click", function() {
 			shareLink(location.origin + location.pathname + "?u=" + encodeURIComponent(user.id), user.name + " - ChimChim");
@@ -753,7 +909,9 @@ if (ppIsBuShop) {
 		ppuSetupFollowSheet(user);
 		// โปรไฟล์นักชิมไม่มีส่วนรีวิว (แท็บ + ช่องสถิติ) — รีวิวยังอยู่ที่หน้าร้านแต่ละร้าน
 		["ppuTabReviews", "ppuPaneReviews"].forEach(function(id) { var el = document.getElementById(id); if (el) el.remove(); });
-		["ppuStatReviews", "ppuStatRating"].forEach(function(id) { var el = document.getElementById(id); if (el) el.parentNode.remove(); });
+		// ตัวเลขบันทึก/ร้านย้ายไปอยู่บรรทัดเดียวกับผู้ติดตาม — กล่องสถิติใหญ่ใช้เฉพาะโปรไฟล์ร้าน
+		document.querySelector("#ppUser .ppu-stats").remove();
+		ppuRenderCover([]);
 		ppuSetupTabs();
 		ppLoadFoodDna(user.id, user.foodDNA || null);
 		ppRenderDiary(user);

@@ -383,6 +383,7 @@ formEl.addEventListener("submit", function(ev) {
 			formDialog.close();
 			selectDate(res.entry.date);
 			showToast(t("diary.updated"));
+			if (res.entry.img && typeof chimchimRefreshTokens === "function") setTimeout(chimchimRefreshTokens, 2900);
 			return;
 		}
 		diaryState.entries = diarySort(diaryState.entries.concat([res.entry]));
@@ -394,6 +395,8 @@ formEl.addEventListener("submit", function(ev) {
 		formDialog.close();
 		selectDate(res.entry.date);
 		showToast(t("diary.saved"));
+		// บันทึกมีรูป → ฐานข้อมูลให้ +1 Token วันละครั้ง (Phase 26) — ถามยอดใหม่ ได้โบนัสวันนี้ครั้งแรกจะขึ้นข้อความบอก
+		if (res.entry.img && typeof chimchimRefreshTokens === "function") setTimeout(chimchimRefreshTokens, 2900);
 		if (typeof logEvent === "function") logEvent("diary_entry_created", { hasPhoto: !!res.entry.img, hasShop: !!res.entry.shopId });
 	});
 });

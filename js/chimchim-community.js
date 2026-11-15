@@ -317,21 +317,34 @@ function openProfileSwitcher(opts) {
 
 /* --- เปิด/ปิด popup เข้าสู่ระบบ (เฉพาะหน้าที่มี #authPop อยู่จริง) --- */
 var authPop = document.getElementById("authPop");
+var authPopBox = authPop ? authPop.querySelector(".apbox") : null;
+var authPopReturnFocus = null;
+// screen reader รู้ว่าเป็นหน้าต่าง dialog และชื่อเปลี่ยนตามแท็บ (เข้าสู่ระบบ / สมัครสมาชิก)
+if (authPopBox) {
+	authPopBox.setAttribute("role", "dialog");
+	authPopBox.setAttribute("aria-modal", "true");
+}
 function openAuthPop(tab) {
 	if (!authPop) return;
+	authPopReturnFocus = document.activeElement;
 	switchAuthTab(tab || "login");
 	document.getElementById("loginErr").classList.remove("show");
 	document.getElementById("registerErr").classList.remove("show");
 	authPop.classList.add("open");
 	document.body.style.overflow = "hidden";
+	var field = document.getElementById(tab === "register" ? "registerName" : "loginEmail");
+	if (field) setTimeout(function() { field.focus({ preventScroll: true }); }, 60);
 }
 function closeAuthPop() {
 	if (!authPop) return;
 	authPop.classList.remove("open");
 	document.body.style.overflow = "";
+	if (authPopReturnFocus && authPopReturnFocus.focus && document.body.contains(authPopReturnFocus)) authPopReturnFocus.focus();
+	authPopReturnFocus = null;
 }
 function switchAuthTab(tab) {
 	var isLogin = tab === "login";
+	if (authPopBox) authPopBox.setAttribute("aria-label", t(isLogin ? "auth.login" : "auth.register"));
 	document.getElementById("apTabLogin").classList.toggle("active", isLogin);
 	document.getElementById("apTabRegister").classList.toggle("active", !isLogin);
 	document.getElementById("loginForm").style.display = isLogin ? "block" : "none";
@@ -1249,4 +1262,136 @@ var CHIMCHIM_EGG_TEASES = {
 		if (document.hidden) { clearTimeout(timer); bubble.classList.remove("show"); if (shows < MAX_SHOWS) schedule(8000); }
 	});
 	schedule(5000);
+})();
+
+/* =====================================================================
+   กระเป๋า Token (SQL Phase 26) — เช็กอินรายวันแบบกิจกรรมล็อกอินในเกม + โบนัสอัปรูปไดอารี่
+   - เปิดแอปวันละครั้ง (เวลาไทย) → เช็กอินให้อัตโนมัติ แล้วเด้งปฏิทิน 7 วัน: บางวันได้ Token บางวันแค่รักษาไฟ 🔥
+   - ยอด/รางวัลทั้งหมดคำนวณที่ฐานข้อมูล หน้าเว็บแค่แสดงผล (ผู้ใช้เพิ่ม Token เองไม่ได้)
+   - เฉพาะบัญชีจริง (บัญชีทดลองในเครื่องใช้ Prompt ไม่ได้อยู่แล้ว) / ไม่ทำในโปรไฟล์ที่ถูกฝังในหน้าอื่น
+   ===================================================================== */
+var chimchimTokenStatus = null;
+function chimchimBkkToday() {
+	try { return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date()); }
+	catch (e) { return new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10); }
+}
+function chimchimTokenReady() {
+	return typeof ต้องบันทึกขึ้นเซิร์ฟเวอร์ === "function" && ต้องบันทึกขึ้นเซิร์ฟเวอร์() && typeof sbDailyCheckin === "function"
+		&& !document.documentElement.classList.contains("ppembed");
+}
+// ทุกที่ที่แสดงยอด Token ใช้ [data-token-balance] — อัปเดตพร้อมกันหมด
+function chimchimPaintTokenBalance(balance) {
+	document.querySelectorAll("[data-token-balance]").forEach(function(el) { el.textContent = balance; });
+	document.querySelectorAll("[data-token-chip]").forEach(function(el) { el.hidden = false; });
+}
+function chimchimRefreshTokens(afterStatus) {
+	if (!chimchimTokenReady()) return Promise.resolve(null);
+	return sbTokenStatus().then(function(st) {
+		if (!st) return null;
+		chimchimTokenStatus = st;
+		chimchimPaintTokenBalance(st.balance);
+		// โบนัสรูปไดอารี่วันนี้ (ฐานข้อมูลให้ตอนบันทึกรูป) — บอกครั้งเดียวต่อวัน
+		var key = "chimchim_photo_bonus_" + getSession().id;
+		var today = chimchimBkkToday();
+		var told = null;
+		try { told = localStorage.getItem(key); } catch (e) {}
+		if (st.diaryPhotoToday && told !== today) {
+			try { localStorage.setItem(key, today); } catch (e) {}
+			showToast(t("token.photoBonus"));
+		}
+		if (typeof afterStatus === "function") afterStatus(st);
+		return st;
+	});
+}
+// ปฏิทินเช็กอิน 7 วัน — info = ผลเช็กอินที่เพิ่งได้ (ถ้ามี) / ไม่มี = เปิดดูเอง (ใช้สถานะล่าสุดจากฐานข้อมูล)
+function openTokenDialog(info) {
+	if (!chimchimTokenReady()) return;
+	function render(st) {
+		var cycle = st.cycle || [1, 0, 1, 0, 1, 0, 2];
+		var streak = info ? info.streak : st.streak;
+		var checked = info ? true : st.checkedInToday;
+		// ตำแหน่งวันนี้ในรอบ 7 วัน: เช็กอินแล้ว = วันที่ของไฟ / ยังไม่เช็กอิน = วันถัดจากไฟที่ยังไม่ดับ
+		var pos = checked ? ((streak - 1) % 7) + 1 : (streak % 7) + 1;
+		var dlg = document.getElementById("tokenDialog");
+		if (!dlg) {
+			dlg = document.createElement("dialog");
+			dlg.id = "tokenDialog";
+			dlg.className = "tkdlg";
+			dlg.setAttribute("aria-labelledby", "tkTitle");
+			document.body.appendChild(dlg);
+			dlg.addEventListener("click", function(e) { if (e.target === dlg) dlg.close(); });
+		}
+		var days = cycle.map(function(reward, i) {
+			var n = i + 1;
+			var state = n < pos || (n === pos && checked) ? "is-done" : n === pos ? "is-today" : "";
+			if (n === pos) state += " is-now";
+			return '<li class="tk-day ' + state + '"><span class="tk-day-n"></span><span class="tk-day-r">' +
+				(reward > 0 ? '<i class="fas fa-coins" aria-hidden="true"></i><b>+' + reward + "</b>" : '<i class="fas fa-fire" aria-hidden="true"></i>') +
+				"</span>" + (state.indexOf("is-done") !== -1 ? '<i class="fas fa-check tk-day-ok" aria-hidden="true"></i>' : "") + "</li>";
+		}).join("");
+		var reward = info ? info.reward : null;
+		var msg = info
+			? (reward > 0 ? t("token.gotReward").replace("{n}", reward) : t("token.fireOnly"))
+			: (checked ? t("token.checkedAlready") : t("token.notYet"));
+		dlg.innerHTML =
+			'<div class="tk-head">' +
+				'<span class="tk-fire"><i class="fas fa-fire" aria-hidden="true"></i><b></b></span>' +
+				'<h2 id="tkTitle"></h2>' +
+				'<button type="button" class="tk-close" data-close><i class="fas fa-xmark" aria-hidden="true"></i></button>' +
+			"</div>" +
+			'<p class="tk-msg"></p>' +
+			(info && info.starter ? '<p class="tk-starter"><i class="fas fa-gift" aria-hidden="true"></i><span></span></p>' : "") +
+			'<ol class="tk-week">' + days + "</ol>" +
+			'<ul class="tk-ways">' +
+				'<li class="' + (checked ? "is-done" : "") + '"><i class="fas fa-calendar-check" aria-hidden="true"></i><span></span></li>' +
+				'<li class="' + (st.diaryPhotoToday ? "is-done" : "") + '"><i class="fas fa-camera" aria-hidden="true"></i><span></span>' + (st.diaryPhotoToday ? "" : '<a href="diary.html?new=1"></a>') + "</li>" +
+				'<li><i class="fas fa-egg" aria-hidden="true"></i><span></span></li>' +
+			"</ul>" +
+			'<div class="tk-foot"><span class="tk-balance"><i class="fas fa-coins" aria-hidden="true"></i><span></span></span><button type="button" class="btn-red tk-ok" data-close></button></div>';
+		dlg.querySelector(".tk-fire b").textContent = streak || 0;
+		dlg.querySelector(".tk-fire").setAttribute("title", t("token.streak").replace("{n}", streak || 0));
+		dlg.querySelector("#tkTitle").textContent = t("token.title");
+		dlg.querySelector(".tk-close").setAttribute("aria-label", t("common.close"));
+		dlg.querySelector(".tk-msg").textContent = msg;
+		if (info && info.starter) dlg.querySelector(".tk-starter span").textContent = t("token.starter").replace("{n}", info.starter);
+		dlg.querySelectorAll(".tk-day").forEach(function(li, i) {
+			li.querySelector(".tk-day-n").textContent = t("token.dayShort").replace("{n}", i + 1);
+			li.setAttribute("aria-label", t("token.day").replace("{n}", i + 1) + " — " + (cycle[i] > 0 ? "+" + cycle[i] + " Token" : t("token.fireDay")) + (li.classList.contains("is-done") ? " ✓" : ""));
+		});
+		var ways = dlg.querySelectorAll(".tk-ways li");
+		ways[0].querySelector("span").textContent = t("token.wayCheckin");
+		ways[1].querySelector("span").textContent = st.diaryPhotoToday ? t("token.wayPhotoDone") : t("token.wayPhoto");
+		if (!st.diaryPhotoToday) ways[1].querySelector("a").textContent = t("token.wayPhotoGo");
+		ways[2].querySelector("span").textContent = t("token.waySpend");
+		dlg.querySelector(".tk-balance span").textContent = t("token.balance").replace("{n}", st.balance);
+		dlg.querySelector(".tk-ok").textContent = t("token.ok");
+		dlg.querySelectorAll("[data-close]").forEach(function(b) { b.addEventListener("click", function() { dlg.close(); }); });
+		if (!dlg.open) dlg.showModal();
+		dlg.querySelector(".tk-ok").focus();
+	}
+	if (info) chimchimRefreshTokens(render);
+	else if (chimchimTokenStatus) { render(chimchimTokenStatus); chimchimRefreshTokens(); }
+	else chimchimRefreshTokens(render);
+}
+window.openTokenDialog = openTokenDialog;
+// ปุ่ม/ลิงก์ใดก็ตามที่มี data-open-tokens → เปิดปฏิทินเช็กอิน
+document.addEventListener("click", function(e) {
+	var el = e.target.closest && e.target.closest("[data-open-tokens]");
+	if (!el) return;
+	e.preventDefault();
+	openTokenDialog();
+});
+(function dailyCheckin() {
+	if (!chimchimTokenReady()) return;
+	var key = "chimchim_checkin_day_" + getSession().id;
+	var today = chimchimBkkToday();
+	var seen = null;
+	try { seen = localStorage.getItem(key); } catch (e) {}
+	if (seen === today) { chimchimRefreshTokens(); return; }
+	sbDailyCheckin().then(function(res) {
+		if (!res || !res.status || res.status === "auth") { chimchimRefreshTokens(); return; } // เน็ต/ยังไม่รัน SQL — ลองใหม่ครั้งหน้า
+		try { localStorage.setItem(key, today); } catch (e) {}
+		if (res.status === "checked_in" || res.starter > 0) openTokenDialog(res);
+		else chimchimRefreshTokens();
+	});
 })();

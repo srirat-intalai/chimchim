@@ -770,6 +770,19 @@ function sbPromptTokensLeft() {
 		return res.data;
 	}).catch(function() { return null; });
 }
+// กระเป๋า Token (SQL Phase 26) — เช็กอินวันนี้ / สถานะกระเป๋า คืน Promise<object | null> ไม่ throw
+function sbDailyCheckin() {
+	if (!sbClient || !getSession()) return Promise.resolve(null);
+	return Promise.resolve(sbClient.rpc("chimchim_daily_checkin")).then(function(res) {
+		return res.error || !res.data ? null : res.data;
+	}).catch(function() { return null; });
+}
+function sbTokenStatus() {
+	if (!sbClient || !getSession()) return Promise.resolve(null);
+	return Promise.resolve(sbClient.rpc("chimchim_token_status")).then(function(res) {
+		return res.error || !res.data || typeof res.data.balance !== "number" ? null : res.data;
+	}).catch(function() { return null; });
+}
 // ส่ง Prompt ให้เซิร์ฟเวอร์แปลงเป็นเงื่อนไข — requestId เดิม = ไม่หักซ้ำ (เซิร์ฟเวอร์ตอบผลเดิม)
 // คืน Promise<{ filters, left, empty?, refunded? } | { error, left?, refunded? }> ไม่ throw
 function sbPromptFilters(prompt, requestId, vocab) {

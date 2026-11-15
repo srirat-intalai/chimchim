@@ -1665,26 +1665,6 @@ a.ppu-shop:hover { background: var(--j-bg); }
 .ppu-about .ppu-joined[hidden] { display: none; }
 .ppu .ppdna-tit { font-size: 0.9rem; }
 
-/* จอกว้าง: รูปซ้าย ชื่อ/bio กลาง ปุ่มขวา แบบหน้าโปรไฟล์ฟรีแลนซ์ */
-@media (min-width: 640px) {
-  .ppu-head {
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas: "av name act" "av handle act" "av role act" "av bio act";
-    justify-items: start;
-    align-items: center;
-    text-align: left;
-    column-gap: 18px;
-    margin-top: 16px;
-    padding: 22px 22px 20px;
-  }
-  .ppu-avatar { grid-area: av; margin-top: 0; align-self: start; }
-  .ppu-name { grid-area: name; margin-top: 0; }
-  .ppu-handle { grid-area: handle; }
-  .ppu-role { grid-area: role; }
-  .ppu-bio { grid-area: bio; margin-top: 4px; }
-  .ppu-actions { grid-area: act; margin-top: 0; align-self: start; }
-}
-
 /* =====================================================================
    โปรไฟล์นักชิมแบบโชว์เคส (อิงหน้าโปรไฟล์ Fastwork) — การ์ดใบเดียว: ปกรูปไดอารี่ → รูปซ้อนขอบปก → ชื่อ/@/ผู้ติดตาม
    → กล่องสถิติ 4 ช่อง → แท็บขีดเส้นใต้ชิดซ้าย → กริดรูปแบบ masonry (โทนครีม/ม่วงของ ChimChim)
@@ -2234,3 +2214,219 @@ a.ppu-review-who:hover .ppu-review-name { text-decoration: underline; text-under
 @media (prefers-reduced-motion: reduce) {
   .jfav-chev { transition: none; }
 }
+
+/* ---- ป๊อปอัป (<dialog class="jsheet">) อยู่กลางจอเสมอ — style.css รีเซ็ต margin เป็น 0 ทำให้ไปชิดมุมซ้ายบน ---- */
+.jsheet {
+  margin: auto;
+  width: min(520px, calc(100% - 32px));
+}
+
+/* ---- ไดอารี่ของฉัน: แถบเลื่อนซ้าย-ขวาแบบสไลด์ (เห็นทีละ ~4 วัน วันนี้อยู่ขวาสุด) ---- */
+.jlatest-wrap {
+  position: relative;
+  margin: 0 0 14px;
+}
+.jlatest-wrap .jlatest,
+.prof-diarymode .jlatest-wrap .jlatest {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 2px 2px 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 2px;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.jlatest-wrap .jlatest::-webkit-scrollbar { display: none; }
+.jlatest-wrap .jlatest > li {
+  flex: 0 0 calc((100% - 24px) / 4);
+  min-width: 72px;
+  scroll-snap-align: end;
+}
+.jlatest-nav {
+  position: absolute;
+  top: calc(50% - 22px);
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--j-line);
+  background: var(--j-card);
+  color: var(--j-ink);
+  box-shadow: var(--j-shadow);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+.jlatest-nav[hidden] { display: none; }
+.jlatest-nav.is-prev { left: -10px; }
+.jlatest-nav.is-next { right: -10px; }
+.jlatest-nav:hover { border-color: var(--j-ink-2); }
+/* จอสัมผัสใช้นิ้วปัดอยู่แล้ว ไม่ต้องมีปุ่มลูกศรมาบังช่อง */
+@media (hover: none) and (pointer: coarse) {
+  .jlatest-nav { display: none !important; }
+}
+
+/* ---- โปรไฟล์นักชิม (รอบ 2): หัวโปรไฟล์กระชับ — ตัวเลขอยู่บรรทัดเดียวกับผู้ติดตาม, รสนิยมเป็นประโยคใหญ่แทนกล่องสถิติ,
+   ไดอารี่เรียงตามแถว (ลำดับวันที่ = ลำดับที่ตาเห็น = ลำดับ Tab), ปกไม่มีรูปใช้ Dino ฟักไข่ ---- */
+.ppu:not(.is-shop) .ppu-cover { height: 104px; }
+.ppu-cover { position: relative; }
+/* .ppu-cover img ยืดรูปเต็มปก — Dino ต้องชนะกฎนั้น (เดิมโดนยืดจนครอปหัว) ให้เห็นทั้งตัวที่มุมขวาล่าง */
+.ppu-cover img.ppu-cover-dino {
+  position: absolute;
+  right: 18px;
+  bottom: 0;
+  width: auto;
+  height: 100px;
+  object-fit: contain;
+  pointer-events: none;
+}
+.ppu-meta { gap: 0 14px; }
+.ppu-metabtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+}
+.ppu-metabtn[hidden] { display: none; }
+/* จำนวนในแท็บ: "ไดอารี่ 6" — ตัวเลขเป็นป้ายเล็กข้างชื่อแท็บ */
+.ppu-tabn {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--j-cream);
+  color: var(--j-ink-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.ppu-tabn[hidden] { display: none; }
+.ppu-tab.active .ppu-tabn { background: var(--j-brand-tint); color: var(--j-brand-deep); }
+.ppu-tabn .fa-lock { font-size: 0.85em; }
+
+.ppu-taste {
+  margin: 12px 0 0;
+  padding: 10px 14px 12px;
+  border-radius: 18px;
+  background: var(--j-brand-tint);
+}
+.ppu-taste[hidden] { display: none; }
+.ppu-taste p { margin: 0; }
+.ppu-taste-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  color: var(--j-ink);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.ppu-taste-pct {
+  font-size: 1.75rem;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--j-brand-deep);
+}
+.ppu-taste-shared {
+  margin-top: 2px !important;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--j-ink);
+  text-wrap: pretty;
+}
+.ppu-taste.is-invite .ppu-taste-shared { margin-top: 0 !important; font-weight: 700; font-size: 1rem; }
+.ppu-taste-foot {
+  margin-top: 2px !important;
+  font-size: 0.78rem;
+  color: var(--j-ink-2);
+}
+.ppu-taste-cta { margin-top: 10px; text-decoration: none; }
+.ppu-taste-seg { white-space: nowrap; }
+/* ผู้ชมยังไม่ล็อกอิน: ปุ่มชวนสมัครในแถบรสนิยมคือทางเดียวไปหน้าเข้าสู่ระบบ — ไม่ซ้ำปุ่มในแท็บไดอารี่
+   (แสดงปุ่มในแท็บเฉพาะตอนแถบรสนิยมไม่ขึ้น เช่น เจ้าของโปรไฟล์ยังไม่ทำ Food DNA) */
+.ppu:has(.ppu-taste.is-invite:not([hidden])) #ppDiaryLogin { display: none; }
+.ppu:not(.is-shop) .ppu-tabs { margin-top: 12px; margin-bottom: 12px; }
+.ppu:not(.is-shop) .ppu-loc { margin-top: 4px; }
+/* สถานะว่าง/ส่วนตัว/ต้องล็อกอิน: กระชับพอให้ปุ่มทางออกอยู่เหนือแถบเมนูล่างในจอแรก */
+.ppu:not(.is-shop) .ppu-empty { gap: 8px; padding: 20px 16px; border: none; background: none; }
+.ppu .ppu-tab { min-width: 44px; }
+.ppu:not(.is-shop) .ppu-empty > i { width: 44px; height: 44px; font-size: 1.1rem; }
+
+/* ไดอารี่: กริด 2 คอลัมน์เรียงทีละแถว รูปสัดส่วนคงที่ 4:5 — การ์ดไม่มีรูปสูงเท่ากันในแถวเดียวกัน */
+.ppu:not(.is-shop) .ppu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  columns: auto;
+}
+.ppu:not(.is-shop) .ppu-grid[hidden] { display: none; }
+.ppu:not(.is-shop) .ppu-grid > li { margin: 0; break-inside: auto; }
+.ppu:not(.is-shop) .ppu-entry-img { aspect-ratio: 4 / 5; height: auto; object-fit: cover; }
+/* การ์ดไม่มีรูป: ไอคอนหมวดบนซ้าย ชื่อเมนูตัวใหญ่ชิดล่าง เรียง ชื่อ → ข้อมูล → โน้ต เหมือนการ์ดรูป
+   ความสูงตามแถว (ข้างการ์ดรูป) — อ่านเป็นการ์ดข้อความตั้งใจ ไม่ใช่กล่องรูปที่โหลดไม่ขึ้น */
+.ppu:not(.is-shop) .ppu-entry:not(:has(img)) { padding: 16px; min-height: 180px; }
+.ppu:not(.is-shop) .ppu-entry:not(:has(img)) .ppu-entry-noimg {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  aspect-ratio: auto;
+  border-radius: 50%;
+  background: var(--j-card);
+  color: var(--j-brand-deep);
+  font-size: 1.1rem;
+}
+.ppu:not(.is-shop) .ppu-entry:not(:has(img)) .ppu-entry-body { flex: 1; justify-content: flex-end; padding: 16px 0 0; }
+.ppu:not(.is-shop) .ppu-entry:not(:has(img)) .ppu-entry-dish { font-size: 1.15rem; line-height: 1.3; }
+.ppu:not(.is-shop) .ppu-entry:not(:has(img)) .ppu-entry-note {
+  margin-top: 8px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  font-weight: 600;
+  -webkit-line-clamp: 4;
+}
+.ppu:not(.is-shop) .ppu-entry:not(:has(img)) .ppu-entry-note::before { content: "“"; color: var(--j-brand-deep); }
+.ppu:not(.is-shop) .ppu-entry:not(:has(img)) .ppu-entry-note::after { content: "”"; color: var(--j-brand-deep); }
+.ppu:not(.is-shop) .ppu-bio { margin-top: 2px; }
+@media (max-width: 339px) {
+  .ppu:not(.is-shop) .ppu-grid { grid-template-columns: 1fr; }
+}
+@media (min-width: 560px) {
+  .ppu:not(.is-shop) .ppu-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.ppu-empty-hint { margin: 0; max-width: 32ch; font-size: 0.82rem; color: var(--j-ink-2); text-wrap: pretty; }
+.ppu-empty-hint[hidden] { display: none; }
+.ppu-empty .jbtn[hidden] { display: none; }
+.ppu-about:not(:has(> :not([hidden]))) { display: none; }
+.ppu-about .ppu-joined:first-child { margin-top: 0; }
+.ppu-about .ppu-levelnote { overflow-wrap: break-word; line-height: 1.6; }
+.ppu-skel-cover { height: 104px; border-radius: 0; margin-top: 14px; }
+.ppu-skel-avatar { width: 88px; height: 88px; border-radius: 50%; border: 4px solid var(--j-card); }
+.ppu-skel-stats { height: 96px; margin: 16px 16px 0; border-radius: 18px; }
+#authPop .apform .btn-red { width: 100%; justify-content: center; margin-top: 8px; }
+.ppu .ppu-avatar, .ppu-skel-avatar { flex-shrink: 0; }
+.ppu .ppu-actions { min-width: 0; }
+.ppu-share { flex-shrink: 0; }
+@media (max-width: 359px) {
+  .ppu .ppu-avatar, .ppu-skel-avatar { width: 76px; height: 76px; font-size: 1.7rem; }
+  .ppu .ppu-follow { min-width: 0; padding-left: 14px; padding-right: 14px; }
+  .ppu .ppu-tabs { gap: 14px; }
+}
+
+/* ท้ายไดอารี่: ชวนติดตามในโซนนิ้วโป้ง — ซ่อนเมื่อยังไม่มีการ์ด */
+.ppu-end {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  text-align: center;
+}
+.ppu-end[hidden],
+.ppu-grid[hidden] ~ .ppu-end { display: none; }
+.ppu-end p { margin: 0; font-size: 0.9rem; color: var(--j-ink-2); }

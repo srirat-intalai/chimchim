@@ -873,3 +873,181 @@ alter table public.shops add constraint shops_user_shop_complete check (
     and lat between -90 and 90 and lng between -180 and 180
   )
 ) not valid;
+
+-- =====================================================================
+-- Phase 26 — กระเป๋า Token สะสมได้ + เช็กอินรายวัน (แบบกิจกรรมล็อกอินในเกม) + โบนัสอัปรูปไดอารี่
+-- แทนกติกาเดิม "ฟรีวันละ 5 รีเซ็ตทุกวัน" (Phase 20) — ยอดคงเหลือสะสมข้ามวันได้ / ใช้ Prompt 1 ครั้ง = 1 Token เหมือนเดิม
+-- ยอดคงเหลือ = Token ที่ได้รับทั้งหมด (token_grants) − Prompt ที่หักแล้ว (prompt_token_spends สถานะ charged)
+-- ทางได้ Token (ผู้ใช้เพิ่มแถวเองไม่ได้ — ได้ผ่านฟังก์ชัน/trigger ฝั่งฐานข้อมูลเท่านั้น):
+--   - starter: โบนัสเริ่มต้น 5 Token ครั้งเดียวต่อบัญชี (รวมสมาชิกเดิม — ไม่ให้ใครติดศูนย์ทันทีที่เลิกแจกรายวัน)
+--   - checkin: เช็กอินวันละครั้ง (เวลาไทย) รอบ 7 วัน: +1 · 🔥 · +1 · 🔥 · +1 · 🔥 · +2 (🔥 = วันที่แค่รักษาไฟ ไม่ได้ Token)
+--              ขาดวันไหน ไฟดับ → นับวันที่ 1 ใหม่
+--   - diary_photo: บันทึกไดอารี่ที่มีรูป ได้ +1 วันละครั้ง (trigger บน diary_entries — ไม่เชื่อค่าจากหน้าเว็บ)
+-- เปลี่ยนตัวเลขได้ที่ chimchim_checkin_reward() / chimchim_starter_tokens() / ใน trigger ไดอารี่ จุดเดียว รันซ้ำได้
+-- =====================================================================
+create table if not exists public.token_grants (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  kind text not null check (kind in ('starter', 'checkin', 'diary_photo')),
+  day date not null,
+  amount int not null check (amount > 0),
+  created_at timestamptz not null default now()
+);
+create unique index if not exists token_grants_once_per_day on public.token_grants (user_id, kind, day);
+create unique index if not exists token_grants_starter_once on public.token_grants (user_id) where kind = 'starter';
+alter table public.token_grants enable row level security;
+drop policy if exists "token_grants_select_own" on public.token_grants;
+create policy "token_grants_select_own" on public.token_grants for select using (auth.uid() = user_id);
+
+create table if not exists public.daily_checkins (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  day date not null,
+  streak int not null check (streak >= 1),
+  reward int not null default 0,
+  created_at timestamptz not null default now(),
+  primary key (user_id, day)
+);
+alter table public.daily_checkins enable row level security;
+drop policy if exists "daily_checkins_select_own" on public.daily_checkins;
+create policy "daily_checkins_select_own" on public.daily_checkins for select using (auth.uid() = user_id);
+-- ไม่มี policy insert/update/delete ทั้งสองตาราง = ผู้ใช้เพิ่ม/แก้ยอดเองไม่ได้
+
+create or replace function public.chimchim_starter_tokens()
+returns int language sql immutable as $$ select 5 $$;
+-- รางวัลของวันที่ n ในรอบ 7 วัน (1–7): 0 = วันรักษาไฟ 🔥
+create or replace function public.chimchim_checkin_reward(n int)
+returns int language sql immutable as $$ select (array[1, 0, 1, 0, 1, 0, 2])[((n - 1) % 7) + 1] $$;
+
+-- เวลาที่เปิดใช้กระเป๋า (บันทึกครั้งแรกที่รัน Phase นี้ รันซ้ำไม่เปลี่ยน) — Prompt ที่ใช้ไปสมัยแจกฟรีรายวันไม่หักจากกระเป๋า
+create table if not exists public.token_settings (key text primary key, value timestamptz not null);
+alter table public.token_settings enable row level security;
+insert into public.token_settings (key, value) values ('wallet_start', now()) on conflict (key) do nothing;
+
+create or replace function public.chimchim_token_balance_of(p_user uuid)
+returns int language sql stable security definer set search_path = public as $$
+  select greatest(0,
+    coalesce((select sum(amount)::int from public.token_grants where user_id = p_user), 0)
+    - (select count(*)::int from public.prompt_token_spends
+        where user_id = p_user and status = 'charged'
+          and created_at >= (select value from public.token_settings where key = 'wallet_start'))
+  );
+$$;
+revoke execute on function public.chimchim_token_balance_of(uuid) from public, anon, authenticated;
+grant execute on function public.chimchim_token_balance_of(uuid) to service_role;
+
+-- สถานะกระเป๋าของผู้ใช้ที่ล็อกอินอยู่: ยอดคงเหลือ + ไฟต่อเนื่อง + วันนี้เช็กอิน/ได้โบนัสรูปไดอารี่แล้วหรือยัง
+create or replace function public.chimchim_token_status()
+returns jsonb language sql stable security definer set search_path = public as $$
+  with today as (select (now() at time zone 'Asia/Bangkok')::date as d),
+  last_c as (select day, streak from public.daily_checkins where user_id = auth.uid() order by day desc limit 1)
+  select jsonb_build_object(
+    'balance', public.chimchim_token_balance_of(auth.uid()),
+    'checkedInToday', exists (select 1 from last_c, today where last_c.day = today.d),
+    -- ไฟยังไม่ดับ = เช็กอินล่าสุดคือวันนี้หรือเมื่อวาน
+    'streak', coalesce((select streak from last_c, today where last_c.day >= today.d - 1), 0),
+    'diaryPhotoToday', exists (select 1 from public.token_grants, today where user_id = auth.uid() and kind = 'diary_photo' and day = today.d),
+    'cycle', (select jsonb_agg(public.chimchim_checkin_reward(n)) from generate_series(1, 7) n)
+  );
+$$;
+revoke execute on function public.chimchim_token_status() from public, anon;
+grant execute on function public.chimchim_token_status() to authenticated;
+
+-- เช็กอินวันนี้ (กดซ้ำ/เปิดหลายแท็บ = ได้ครั้งเดียว) — คืน { status: checked_in | already, streak, reward, starter, balance }
+create or replace function public.chimchim_daily_checkin()
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  today date := (now() at time zone 'Asia/Bangkok')::date;
+  prev public.daily_checkins%rowtype;
+  s int;
+  r int;
+  got_starter int := 0;
+begin
+  if uid is null then
+    return jsonb_build_object('status', 'auth');
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended(uid::text, 26));
+  insert into public.token_grants (user_id, kind, day, amount)
+    values (uid, 'starter', today, public.chimchim_starter_tokens())
+    on conflict do nothing;
+  if found then got_starter := public.chimchim_starter_tokens(); end if;
+  select * into prev from public.daily_checkins where user_id = uid and day = today;
+  if found then
+    return jsonb_build_object('status', 'already', 'streak', prev.streak, 'reward', prev.reward, 'starter', got_starter,
+      'balance', public.chimchim_token_balance_of(uid));
+  end if;
+  select * into prev from public.daily_checkins where user_id = uid and day = today - 1;
+  s := case when found then prev.streak + 1 else 1 end;
+  r := public.chimchim_checkin_reward(s);
+  insert into public.daily_checkins (user_id, day, streak, reward) values (uid, today, s, r);
+  if r > 0 then
+    insert into public.token_grants (user_id, kind, day, amount) values (uid, 'checkin', today, r);
+  end if;
+  return jsonb_build_object('status', 'checked_in', 'streak', s, 'reward', r, 'starter', got_starter,
+    'balance', public.chimchim_token_balance_of(uid));
+end;
+$$;
+revoke execute on function public.chimchim_daily_checkin() from public, anon;
+grant execute on function public.chimchim_daily_checkin() to authenticated;
+
+-- โบนัสอัปรูปไดอารี่: บันทึก/แก้ไดอารี่ให้มีรูป → +1 วันละครั้ง (วันตามเวลาไทยที่อัป ไม่ใช่วันของมื้อ — กันได้ซ้ำจากการย้อนบันทึก)
+create or replace function public.chimchim_diary_photo_reward()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if coalesce(btrim(new.image_url), '') <> ''
+     and (tg_op = 'INSERT' or coalesce(old.image_url, '') is distinct from new.image_url) then
+    insert into public.token_grants (user_id, kind, day, amount)
+      values (new.user_id, 'diary_photo', (now() at time zone 'Asia/Bangkok')::date, 1)
+      on conflict do nothing;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists diary_photo_reward on public.diary_entries;
+create trigger diary_photo_reward after insert or update of image_url on public.diary_entries
+  for each row execute function public.chimchim_diary_photo_reward();
+
+-- ยอดคงเหลือ (รูปแบบเดิมของ Phase 20 — หน้าเว็บเดิมยังเรียกได้): left = ยอดในกระเป๋า
+create or replace function public.chimchim_prompt_tokens_left()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('left', public.chimchim_token_balance_of(auth.uid()), 'daily', null);
+$$;
+revoke execute on function public.chimchim_prompt_tokens_left() from public, anon;
+grant execute on function public.chimchim_prompt_tokens_left() to authenticated;
+
+-- หัก 1 Token จากกระเป๋า (atomic, ล็อกต่อผู้ใช้) — ผลลัพธ์รูปแบบเดิม server.js ไม่ต้องแก้
+-- คืน { status: charged | replay | in_progress | insufficient | conflict, left, result? }
+create or replace function public.chimchim_spend_prompt_token(p_user uuid, p_request uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  today date := (now() at time zone 'Asia/Bangkok')::date;
+  bal int;
+  existing public.prompt_token_spends%rowtype;
+begin
+  perform pg_advisory_xact_lock(hashtextextended(p_user::text, 26));
+  bal := public.chimchim_token_balance_of(p_user);
+  select * into existing from public.prompt_token_spends where request_id = p_request;
+  if found then
+    if existing.user_id <> p_user then
+      return jsonb_build_object('status', 'conflict');
+    end if;
+    if existing.status = 'charged' then
+      return jsonb_build_object('status', case when existing.result is null then 'in_progress' else 'replay' end,
+        'left', bal, 'result', existing.result);
+    end if;
+    if bal < 1 then
+      return jsonb_build_object('status', 'insufficient', 'left', 0);
+    end if;
+    -- ตั้งเวลาใหม่ด้วย ไม่งั้นคำขอเก่าที่เคยถูกคืน (ก่อนเปิดกระเป๋า) จะไม่ถูกนับหัก = ใช้ฟรี
+    update public.prompt_token_spends set status = 'charged', spent_on = today, result = null, created_at = now() where id = existing.id;
+    return jsonb_build_object('status', 'charged', 'left', bal - 1);
+  end if;
+  if bal < 1 then
+    return jsonb_build_object('status', 'insufficient', 'left', 0);
+  end if;
+  insert into public.prompt_token_spends (user_id, request_id, spent_on) values (p_user, p_request, today);
+  return jsonb_build_object('status', 'charged', 'left', bal - 1);
+end;
+$$;
+revoke execute on function public.chimchim_spend_prompt_token(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.chimchim_spend_prompt_token(uuid, uuid) to service_role;

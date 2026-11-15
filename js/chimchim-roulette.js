@@ -736,9 +736,20 @@ function renderPromptCost() {
 		return;
 	}
 	btnText.textContent = t("roulette.promptSubmit");
-	cost.textContent = promptTokens
-		? t("roulette.promptCostLeft").replace("{left}", promptTokens.left).replace("{daily}", promptTokens.daily)
-		: t("roulette.promptCost");
+	// กระเป๋า Token สะสม (SQL Phase 26): บอกยอดคงเหลือ + ลิงก์เปิดปฏิทินเช็กอินเพื่อรับเพิ่ม
+	cost.innerHTML = "";
+	var text = document.createElement("span");
+	text.textContent = promptTokens ? t("roulette.promptCostWallet").replace("{left}", promptTokens.left) : t("roulette.promptCost");
+	cost.appendChild(text);
+	if (typeof openTokenDialog === "function" && typeof ต้องบันทึกขึ้นเซิร์ฟเวอร์ === "function" && ต้องบันทึกขึ้นเซิร์ฟเวอร์()) {
+		var more = document.createElement("button");
+		more.type = "button";
+		more.className = "rprompt-earn";
+		more.setAttribute("data-open-tokens", "");
+		more.textContent = t("token.earnMore");
+		cost.appendChild(document.createTextNode(" · "));
+		cost.appendChild(more);
+	}
 }
 function refreshPromptTokens() {
 	if (typeof sbPromptTokensLeft !== "function") return;

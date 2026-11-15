@@ -209,6 +209,25 @@ function diarySlot(key, entries) {
 	li.appendChild(el);
 	return li;
 }
+// ปุ่มลูกศรของแถบไดอารี่: ซ่อนเมื่อเลื่อนสุดทางแล้ว / เลื่อนทีละประมาณ 3 ช่อง
+function updateDiaryNav() {
+	var list = document.getElementById("profDiaryLatest");
+	if (!list) return;
+	document.getElementById("profDiaryPrev").hidden = list.scrollLeft <= 4;
+	document.getElementById("profDiaryNext").hidden = list.scrollLeft >= list.scrollWidth - list.clientWidth - 4;
+}
+(function setupDiaryStrip() {
+	var list = document.getElementById("profDiaryLatest");
+	if (!list) return;
+	var step = function(dir) {
+		var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		list.scrollBy({ left: dir * list.clientWidth * 0.75, behavior: reduce ? "auto" : "smooth" });
+	};
+	document.getElementById("profDiaryPrev").addEventListener("click", function() { step(-1); });
+	document.getElementById("profDiaryNext").addEventListener("click", function() { step(1); });
+	list.addEventListener("scroll", updateDiaryNav, { passive: true });
+	window.addEventListener("resize", updateDiaryNav);
+})();
 function renderProfileDiary() {
 	if (typeof diaryLoad !== "function") return;
 	document.getElementById("profDiaryCard").hidden = false;
@@ -227,12 +246,20 @@ function renderProfileDiary() {
 	});
 
 	function paint(entries) {
-		// 4 ช่อง = 4 วันจริงล่าสุด ตามเวลาไทย เรียงเก่า → ใหม่ (ซ้าย → ขวา แบบปฏิทิน) "วันนี้" อยู่ช่องขวาสุด
+		// แถบเลื่อนซ้าย-ขวา: วันจริงตามเวลาไทย เรียงเก่า → ใหม่ (ซ้าย → ขวา แบบปฏิทิน) "วันนี้" อยู่ขวาสุด เห็นทีละ ~4 วัน
+		// ย้อนไปถึงวันที่มีบันทึกเก่าสุด (อย่างน้อย 2 สัปดาห์ สูงสุด 90 วัน) — เก่ากว่านั้นดูต่อได้ที่ปฏิทิน "ดูทั้งหมด"
 		// มีบันทึก = รูป/ชื่อเมนูของวันนั้น / ไม่มี + ยังเปิดบันทึก (วันนี้/เมื่อวาน) = ช่อง + / ไม่มี + เลยกำหนด = ช่องว่างธรรมดา
 		var list = document.getElementById("profDiaryLatest");
+		var keepScroll = list.children.length && list.scrollLeft < list.scrollWidth - list.clientWidth - 4 ? list.scrollWidth - list.scrollLeft : null;
 		list.innerHTML = "";
 		var today = diaryToday();
-		for (var i = 3; i >= 0; i--) list.appendChild(diarySlot(diaryAddDays(today, -i), entries));
+		var dayNum = function(key) { var p = String(key).split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 864e5; };
+		var oldest = entries.reduce(function(min, e) { return e.date && e.date < min ? e.date : min; }, today);
+		var back = Math.min(89, Math.max(13, Math.round(dayNum(today) - dayNum(oldest))));
+		for (var i = back; i >= 0; i--) list.appendChild(diarySlot(diaryAddDays(today, -i), entries));
+		// เปิดมาที่วันนี้ (ขวาสุด) — ถ้ากำลังเลื่อนดูอยู่แล้วตอนข้อมูลจากเซิร์ฟเวอร์มาถึง คงตำแหน่งเดิมไว้
+		list.scrollLeft = keepScroll === null ? list.scrollWidth : list.scrollWidth - keepScroll;
+		updateDiaryNav();
 		document.getElementById("profDiaryStartMsg").hidden = entries.length > 0;
 		var addText = document.getElementById("profDiaryAddText");
 		addText.setAttribute("data-i18n", entries.length ? "profile.diaryAdd" : "profile.diaryStart"); // เปลี่ยนภาษาแล้วป้ายตามด้วย

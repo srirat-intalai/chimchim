@@ -2459,8 +2459,8 @@ body.appshell,
   box-shadow: var(--rf-shadow-sm);
 }
 .fsheet-close {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 50%;
   background: var(--rf-fill);
@@ -4333,115 +4333,6 @@ h1.rdtitle {
   box-shadow: 0 0 0 2px var(--rf-surface), 0 0 0 4px var(--rf-brand);
 }
 
-/* ---- ปุ่มกลางแถบล่าง: ไข่ปริศนา (ทางเข้าหน้าสุ่มร้าน) — ใหญ่กว่าไอคอนอื่น ลอยเหนือแถบเล็กน้อย ---- */
-.ancenter {
-  width: 62px;
-  height: 62px;
-  margin: -20px 4px 0;
-  background: radial-gradient(circle at 50% 38%, #fbf9fe 0%, #e7dff4 100%);
-  border: 3px solid var(--rf-ink-deep);
-  box-shadow: 0 10px 22px -8px rgba(120, 101, 168, 0.75);
-  transition: transform 0.25s ease;
-}
-[data-theme="dark"] .ancenter {
-  border-color: #2a2535;
-}
-/* ลอยขึ้นลงจังหวะเดียวกับไข่หน้าสุ่ม (eggFloat/eggShadow 3.2s) แต่ระยะสั้นลงให้พอดีปุ่ม */
-.ancenter {
-  position: relative;
-}
-.ancenter img {
-  position: relative;
-  z-index: 1;
-  width: 44px;
-  height: 44px;
-  filter: drop-shadow(0 2px 3px rgba(60, 40, 100, 0.25));
-  animation: navEggFloat 3.2s ease-in-out infinite;
-}
-.ancenter::after {
-  content: "";
-  position: absolute;
-  left: 30%;
-  right: 30%;
-  bottom: 7px;
-  height: 5px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(40, 24, 80, 0.3), transparent 70%);
-  animation: eggShadow 3.2s ease-in-out infinite;
-}
-@keyframes navEggFloat {
-  0%, 100% { transform: translateY(1px); }
-  50% { transform: translateY(-4px); }
-}
-/* ชี้/แตะ: ไข่ส่ายแบบเดียวกับตอนแตะไข่หน้าสุ่ม */
-.ancenter:hover img {
-  animation: eggWobble 0.5s ease-in-out;
-}
-.ancenter[aria-current="page"] {
-  box-shadow: 0 0 0 2px var(--rf-brand), 0 10px 22px -8px rgba(120, 101, 168, 0.75);
-}
-.ancenter:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 3px;
-}
-@media (prefers-reduced-motion: reduce) {
-  .ancenter img,
-  .ancenter::after,
-  .ancenter:hover img { animation: none; }
-}
-
-/* ---- ไข่ในแถบล่างแบบไม่มีวงกลม: ใช้ PNG พื้นใสลอยบนแถบตรง ๆ ใหญ่กว่าไอคอนอื่น ---- */
-.ancenter,
-[data-theme="dark"] .ancenter {
-  width: 64px;
-  height: 64px;
-  margin: -24px 2px 0;
-  background: none;
-  border: none;
-  border-radius: 50%;
-  box-shadow: none;
-}
-.ancenter img {
-  width: 56px;
-  height: 56px;
-  filter: drop-shadow(0 4px 6px rgba(20, 10, 40, 0.35));
-}
-.ancenter::after {
-  bottom: 2px;
-  left: 26%;
-  right: 26%;
-  height: 6px;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.45), transparent 70%);
-}
-/* อยู่หน้าสุ่มร้าน: ไข่มีแสงม่วงรอบตัวแทนวงแหวน */
-.ancenter[aria-current="page"] {
-  box-shadow: none;
-}
-.ancenter[aria-current="page"] img {
-  filter: drop-shadow(0 0 7px rgba(165, 147, 214, 0.9)) drop-shadow(0 4px 6px rgba(20, 10, 40, 0.35));
-}
-
-/* ---- ขนาดไข่: อยู่หน้าอื่น = ไข่ใหญ่ชวนกด / อยู่หน้าสุ่มร้านแล้ว = กลับเป็นขนาดปกติ (หดลงนุ่ม ๆ ตอนเปิดหน้า) ---- */
-.ancenter:not([aria-current="page"]) {
-  width: 78px;
-  height: 78px;
-  margin-top: -38px;
-}
-.ancenter:not([aria-current="page"]) img {
-  width: 72px;
-  height: 72px;
-}
-.ancenter[aria-current="page"] {
-  animation: navEggSettle 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-@keyframes navEggSettle {
-  from { transform: scale(1.28) translateY(-6px); }
-  to { transform: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ancenter[aria-current="page"] { animation: none; }
-}
-
 /* ---- ฟองข้อความชวนกดไข่ (สุ่มประโยค เด้งเหนือไข่ในแถบล่าง) ---- */
 .eggtease {
   position: fixed;
@@ -4752,3 +4643,306 @@ h1.rdtitle {
   object-fit: contain;
   object-position: center;
 }
+
+/* =====================================================================
+   แถบล่าง (ออกแบบใหม่ให้เป็นชุดเดียวกัน) — 3 ปุ่มหน้าตาเหมือนกันทุกปุ่ม: ไอคอน + ชื่อใต้ไอคอน
+   3 ช่องกว้างเท่ากัน ระยะเท่ากัน · หน้าที่อยู่ = แคปซูลม่วงหลังไอคอน + ชื่อสีขาว (ไม่ขยายดันปุ่มอื่น)
+   บล็อกนี้แทนสไตล์แถบล่างก่อนหน้าทั้งหมด (ไข่ลอย/ปุ่มยืด) — ประกาศท้ายไฟล์จึงชนะกฎเดิม
+   ===================================================================== */
+.appnav,
+[data-theme="dark"] .appnav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+}
+.appnav .anitem,
+.appnav .anitem:hover,
+.appnav .anitem.active,
+.appnav .anitem.active:hover,
+.appnav .ancenter,
+.appnav .ancenter:not([aria-current="page"]),
+.appnav .ancenter[aria-current="page"],
+[data-theme="dark"] .appnav .ancenter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: auto;
+  min-height: 56px;
+  margin: 0;
+  padding: 4px 0;
+  border: none;
+  border-radius: 16px;
+  background: none;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.6);
+  flex-grow: 0;
+  transform: none;
+  animation: none;
+  text-decoration: none;
+}
+.appnav .anitem::before,
+.appnav .anitem::after,
+.appnav .ancenter::after {
+  display: none;
+}
+/* ไอคอนอยู่ในแคปซูลขนาดคงที่ — ทุกปุ่มขนาดเท่ากัน */
+.appnav .anitem i {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 32px;
+  border-radius: 999px;
+  font-size: 1.15rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.appnav .anitem span,
+.appnav .anitem.active span {
+  position: static;
+  display: block;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.appnav .anitem:hover {
+  color: #fff;
+}
+.appnav .anitem:hover i {
+  background: rgba(255, 255, 255, 0.08);
+}
+.appnav .anitem.active,
+.appnav .anitem[aria-current="page"] {
+  color: #fff;
+}
+.appnav .anitem.active i,
+.appnav .anitem[aria-current="page"] i {
+  background: var(--rf-brand-grad);
+  color: #fff;
+  box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.45);
+}
+.appnav .anitem:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .appnav .anitem i { transition: none; }
+}
+
+/* =====================================================================
+   กระเป๋า Token — ปฏิทินเช็กอิน 7 วัน (ป๊อปอัป), ชิปยอด Token, ลิงก์ "รับ Token เพิ่ม"
+   ===================================================================== */
+.tkdlg {
+  width: min(420px, calc(100% - 32px));
+  margin: auto;
+  padding: 18px 18px 16px;
+  border: none;
+  border-radius: 24px;
+  background: var(--rf-surface);
+  color: var(--rf-ink);
+  box-shadow: 0 30px 80px -20px rgba(20, 18, 24, 0.45);
+}
+.tkdlg::backdrop { background: rgba(23, 19, 31, 0.5); }
+.tk-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tk-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.tk-fire {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff1e6;
+  color: #c2410c;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+[data-theme="dark"] .tk-fire { background: #3b2416; color: #ffb37a; }
+.tk-close {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--rf-line);
+  border-radius: 50%;
+  background: var(--rf-surface);
+  color: var(--rf-ink);
+  cursor: pointer;
+}
+.tk-msg {
+  margin: 12px 0 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.tk-starter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--rf-brand-tint);
+  color: var(--rf-brand);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.tk-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.tk-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 2px;
+  border-radius: 12px;
+  background: var(--rf-fill);
+  color: var(--rf-ink-2);
+  font-size: 0.75rem;
+}
+.tk-day-n { white-space: nowrap; }
+.tk-day-r {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-height: 34px;
+  justify-content: center;
+}
+.tk-day-r i { font-size: 1rem; }
+.tk-day-r .fa-coins { color: #d99a1e; }
+.tk-day-r .fa-fire { color: #ea7a2c; }
+.tk-day-r b { color: var(--rf-ink); font-size: 0.8rem; }
+.tk-day.is-done { opacity: 0.6; }
+.tk-day.is-now {
+  opacity: 1;
+  background: var(--rf-brand-tint);
+  box-shadow: inset 0 0 0 2px var(--rf-brand);
+  color: var(--rf-brand);
+  font-weight: 700;
+}
+.tk-day-ok {
+  position: absolute;
+  top: -5px;
+  right: -3px;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #2f9e57;
+  color: #fff;
+  font-size: 0.55rem;
+}
+.tk-ways {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 12px 0 0;
+  list-style: none;
+  border-top: 1px solid var(--rf-line);
+  font-size: 0.85rem;
+}
+.tk-ways li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+.tk-ways li > i {
+  width: 20px;
+  text-align: center;
+  color: var(--rf-brand);
+}
+.tk-ways li.is-done { color: var(--rf-ink-2); }
+.tk-ways li.is-done > i { color: #2f9e57; }
+.tk-ways a {
+  color: var(--rf-brand);
+  font-weight: 700;
+}
+.tk-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+.tk-balance {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+.tk-balance .fa-coins { color: #d99a1e; }
+.tk-ok {
+  min-height: 44px;
+  padding: 0 22px;
+}
+/* ชิปยอด Token บนหน้าโปรไฟล์ */
+.tkchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--rf-line);
+  border-radius: 999px;
+  background: var(--rf-surface);
+  color: var(--rf-ink);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tkchip[hidden],
+.prof-shopmode .tkchip { display: none; }
+.tkchip .fa-coins { color: #d99a1e; }
+.tkchip:hover { border-color: var(--rf-ink-2); }
+/* ลิงก์ "รับ Token เพิ่ม" ใต้ช่อง Prompt */
+.rprompt-earn {
+  min-height: 24px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: var(--rf-brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+/* ปรับปฏิทินเช็กอินให้พอดีจอแคบ: ไอคอน+ข้อความอยู่แถวเดียวกัน / 7 ช่องไม่ล้น / ปุ่มไม่ตัดคำ */
+.tk-ways li {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: start;
+  gap: 2px 8px;
+}
+.tk-ways li > i { margin-top: 2px; }
+.tk-ways li > a { grid-column: 2; }
+.tk-week { gap: 4px; }
+.tk-day { min-width: 0; padding: 8px 0; }
+.tk-day-n { font-size: 0.75rem; }
+.tk-ok { white-space: nowrap; flex: none; }
+.tk-foot { flex-wrap: wrap; }

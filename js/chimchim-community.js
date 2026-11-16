@@ -1290,6 +1290,7 @@ function chimchimRefreshTokens(afterStatus) {
 		if (!st) return null;
 		chimchimTokenStatus = st;
 		chimchimPaintTokenBalance(st.balance);
+		chimchimPaintFire(st);
 		// ได้เหรียญไดอารี่วันนี้แต่ยังไม่เปิด — บอกครั้งเดียวต่อวัน (หน้าไดอารี่เปิดหน้าต่างลุ้นให้เองอยู่แล้ว ไม่ต้องบอกซ้ำ)
 		var key = "chimchim_photo_bonus_" + getSession().id;
 		var today = chimchimBkkToday();
@@ -1358,7 +1359,8 @@ function openTokenDialog(info) {
 				'<li class="' + (coinDone ? "is-done" : "") + '"><i class="fas fa-camera" aria-hidden="true"></i><span></span>' + (coinDone ? "" : '<a href="' + (coinSealed ? "diary.html" : "diary.html?new=1") + '"></a>') + "</li>" +
 				'<li><i class="fas fa-egg" aria-hidden="true"></i><span></span></li>' +
 			"</ul>" +
-			'<div class="tk-foot"><span class="tk-balance"><i class="fas fa-coins" aria-hidden="true"></i><span></span></span><button type="button" class="btn-red tk-ok" data-close></button></div>';
+			'<div class="tk-foot"><span class="tk-balance"><i class="fas fa-coins" aria-hidden="true"></i><span></span></span>' +
+				(checked ? '<button type="button" class="btn-red tk-ok" data-close></button>' : '<button type="button" class="btn-red tk-ok tk-claim"><i class="fas fa-fire" aria-hidden="true"></i><span></span></button>') + "</div>";
 		dlg.querySelector(".tk-fire b").textContent = streak || 0;
 		dlg.querySelector(".tk-fire").setAttribute("title", t("token.streak").replace("{n}", streak || 0));
 		dlg.querySelector("#tkTitle").textContent = t("token.title");
@@ -1384,12 +1386,31 @@ function openTokenDialog(info) {
 		if (!coinDone) ways[1].querySelector("a").textContent = t(coinSealed ? "token.wayPhotoOpen" : "token.wayPhotoGo");
 		ways[2].querySelector("span").textContent = t("token.waySpend");
 		dlg.querySelector(".tk-balance span").textContent = t("token.balance").replace("{n}", st.balance);
-		dlg.querySelector(".tk-ok").textContent = t("token.ok");
+		var okBtn = dlg.querySelector(".tk-ok");
+		if (checked) okBtn.textContent = t("token.ok");
+		else {
+			// รับของวันนี้ = เช็กอิน (ไฟติด) — ฐานข้อมูลให้รางวัลตามรอบที่สุ่มไว้ กดซ้ำ/หลายแท็บก็ได้ครั้งเดียว
+			okBtn.querySelector("span").textContent = t("token.claim");
+			okBtn.addEventListener("click", function() {
+				okBtn.disabled = true;
+				sbDailyCheckin().then(function(res) {
+					okBtn.disabled = false;
+					if (!res || !res.status || res.status === "auth") { showToast(t("token.claimFailed")); return; }
+					openTokenDialog(res);
+				});
+			});
+		}
 		dlg.querySelectorAll("[data-close]").forEach(function(b) { b.addEventListener("click", function() { dlg.close(); }); });
 		if (!dlg.open) dlg.showModal();
 		(dlg.querySelector(".tk-chest") || dlg.querySelector(".tk-ok")).focus();
 	}
-	if (info) chimchimRefreshTokens(render);
+	if (info) chimchimRefreshTokens(function(st) {
+		// เพิ่งรับของ: ไฟติดทันทีตามผลเช็กอิน (ไม่ต้องรอสถานะรอบถัดไป)
+		st = Object.assign({}, st, { checkedInToday: true, streak: info.streak || st.streak });
+		chimchimTokenStatus = st;
+		chimchimPaintFire(st);
+		render(st);
+	});
 	else if (chimchimTokenStatus) { render(chimchimTokenStatus); chimchimRefreshTokens(); }
 	else chimchimRefreshTokens(render);
 }
@@ -1401,17 +1422,22 @@ document.addEventListener("click", function(e) {
 	e.preventDefault();
 	openTokenDialog();
 });
-(function dailyCheckin() {
-	if (!chimchimTokenReady()) return;
-	var key = "chimchim_checkin_day_" + getSession().id;
-	var today = chimchimBkkToday();
-	var seen = null;
-	try { seen = localStorage.getItem(key); } catch (e) {}
-	if (seen === today) { chimchimRefreshTokens(); return; }
-	sbDailyCheckin().then(function(res) {
-		if (!res || !res.status || res.status === "auth") { chimchimRefreshTokens(); return; } // เน็ต/ยังไม่รัน SQL — ลองใหม่ครั้งหน้า
-		try { localStorage.setItem(key, today); } catch (e) {}
-		if (res.status === "checked_in" || res.starter > 0) openTokenDialog(res);
-		else chimchimRefreshTokens();
+// ไฟของแอป: เข้าแอปแล้วกด "รับของวันนี้" เอง ไฟถึงจะติด (ไม่เช็กอินให้อัตโนมัติ)
+// ยังไม่รับของวันนี้ = ไฟเทา · รับแล้ว = ไฟแดง · ต่อเนื่อง 20 วันขึ้นไป = ไฟม่วง · ขาดวัน = ไฟดับ กลับมารับของก็ติดใหม่
+var CHIMCHIM_FIRE_HOT = 20;
+function chimchimPaintFire(st) {
+	var streak = st ? st.streak || 0 : 0;
+	var lit = !!(st && st.checkedInToday);
+	var state = !lit ? "off" : streak >= CHIMCHIM_FIRE_HOT ? "hot" : "on";
+	document.querySelectorAll("[data-fire]").forEach(function(el) {
+		el.hidden = !st;
+		el.setAttribute("data-state", state);
+		var n = el.querySelector("[data-fire-n]");
+		if (n) n.textContent = streak;
+		el.setAttribute("aria-label", t(lit ? "token.fireLabelLit" : "token.fireLabelOff").replace("{n}", streak));
 	});
+}
+(function loadFire() {
+	if (!chimchimTokenReady()) return;
+	chimchimRefreshTokens();
 })();

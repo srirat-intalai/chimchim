@@ -5217,3 +5217,80 @@ h1.rdtitle {
 .rfilters summary:focus-visible { outline: 2px solid var(--rfx-accent); outline-offset: 2px; border-radius: 24px; }
 .rfilters[open] { border-radius: 24px; }
 .rfilters .rfbody { padding: 4px 18px 16px; }
+
+/* ---- ไฟของแอปบนหน้าแรก (ข้างคำทักทาย) — แตะเปิดกิจกรรมเช็กอิน 7 วัน ----
+   off = ยังไม่รับของวันนี้ (เทา + จุดชวนกด) · on = รับแล้ว (แดง) · hot = ต่อเนื่อง 20 วันขึ้นไป (ม่วง) */
+.homegreet { position: relative; padding-right: 88px; }
+.homefire {
+  --fire-bg: #efedf3;
+  --fire-ink: #aaa3b8;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--rf-ink);
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.homefire[hidden] { display: none; }
+.homefire[data-state="on"] { --fire-bg: #ffe8df; --fire-ink: #f0441f; }
+.homefire[data-state="hot"] { --fire-bg: #efe5ff; --fire-ink: #8a4fe8; }
+[data-theme="dark"] .homefire { --fire-bg: #2a2733; --fire-ink: #6f6880; }
+[data-theme="dark"] .homefire[data-state="on"] { --fire-bg: #3d2119; --fire-ink: #ff6a45; }
+[data-theme="dark"] .homefire[data-state="hot"] { --fire-bg: #2e2347; --fire-ink: #b48cff; }
+.homefire-ico {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
+  background: var(--fire-bg);
+  color: var(--fire-ink);
+  font-size: 1.9rem;
+  transition: background 0.3s, color 0.3s, transform 0.2s;
+}
+.homefire:active .homefire-ico { transform: scale(0.94); }
+.homefire:focus-visible { outline: none; }
+.homefire:focus-visible .homefire-ico { outline: 2px solid var(--rf-brand); outline-offset: 3px; }
+.homefire[data-state="on"] .homefire-ico i,
+.homefire[data-state="hot"] .homefire-ico i { animation: fire-flicker 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
+/* ยังไม่รับของ: จุดแดงมุมขวาบนชวนกด */
+.homefire-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #f0441f;
+  box-shadow: 0 0 0 3px var(--rf-bg, #fff);
+}
+.homefire:not([data-state="off"]) .homefire-dot { display: none; }
+.homefire[data-state="off"] .homefire-ico { animation: fire-nudge 2.6s ease-in-out infinite; }
+.homefire-n { font-size: 0.78rem; color: var(--rf-ink-2); white-space: nowrap; }
+.homefire-n b { font-size: 0.95rem; color: var(--fire-ink); font-variant-numeric: tabular-nums; }
+.homefire[data-state="off"] .homefire-n b { color: var(--rf-ink-2); }
+@keyframes fire-flicker {
+  0%, 100% { transform: scale(1) rotate(0); }
+  30% { transform: scale(1.06, 0.96) rotate(-3deg); }
+  60% { transform: scale(0.97, 1.05) rotate(2deg); }
+}
+@keyframes fire-nudge {
+  0%, 80%, 100% { transform: translateY(0); }
+  88% { transform: translateY(-4px); }
+  94% { transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .homefire-ico,
+  .homefire[data-state] .homefire-ico i { animation: none !important; }
+}
+/* เคล็ดลับในปฏิทินเช็กอิน: ปุ่ม "รับของวันนี้" */
+.tk-claim { display: inline-flex; align-items: center; gap: 8px; }

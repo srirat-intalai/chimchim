@@ -1051,3 +1051,326 @@ end;
 $$;
 revoke execute on function public.chimchim_spend_prompt_token(uuid, uuid) from public, anon, authenticated;
 grant execute on function public.chimchim_spend_prompt_token(uuid, uuid) to service_role;
+
+-- =====================================================================
+-- Phase 27 — รางวัลลุ้นดาว: เหรียญ/หีบไดอารี่ + เช็กอินสุ่มรายรอบพร้อมหีบสมบัติ
+-- ต้องรัน Phase 26 ก่อน / รันซ้ำได้ — การสุ่มทั้งหมดเกิดในฐานข้อมูล หน้าเว็บแค่แสดงผล (ปลอมผลไม่ได้)
+-- 1) เช็กอิน: ทุกรอบ 7 วันสุ่มใหม่ต่อผู้ใช้ — มี "หีบสมบัติการันตี 3★" 1 วัน (สุ่มว่าวันไหน มักเป็นวันท้าย ๆ)
+--    โชคดี ~10% ได้หีบที่ 2 · วันอื่นได้วันละ 0–3 Token รวม 4–6 (มีวันรักษาไฟ 🔥 1–3 วัน)
+--    ขาดวัน = ไฟดับ → รอบใหม่ สุ่มใหม่
+-- 2) ไดอารี่: อัปรูป = ได้รางวัลของวันนั้น วันละ 1 ชิ้น (วันตามเวลาไทยที่อัป)
+--    ทุกสัปดาห์ (อาทิตย์–เสาร์) สุ่ม 2 วันเป็น "วันหีบ" — เห็นล่วงหน้าบนปฏิทิน: อัปวันนั้นได้หีบ (เริ่ม 2★) วันอื่นได้เหรียญ (เริ่ม 1★)
+-- 3) เปิดรางวัล: แตะทีละครั้ง ลุ้นได้ 3 ครั้ง — อัปดาวได้ลุ้นต่ออีก 3 ครั้ง · สูงสุด 4★ · หมดสิทธิ์/ครบ 4★ = เปิด
+--    เหรียญ 1★=1 2★=2 3★=3 4★=5 · หีบ 2★=4 3★=6 4★=10
+--    โอกาสอัปต่อการแตะ: เหรียญ 15/10/6% · หีบ 15/12/8% (ดาว 1→2 / 2→3 / 3→4)
+-- ปรับตัวเลขได้ที่ chimchim_box_reward / chimchim_box_upgrade_chance / chimchim_random_checkin_cycle จุดเดียว
+-- =====================================================================
+alter table public.token_grants drop constraint if exists token_grants_kind_check;
+alter table public.token_grants add constraint token_grants_kind_check
+  check (kind in ('starter', 'checkin', 'diary_photo', 'diary_coin', 'diary_box', 'login_chest'));
+
+-- ---- รางวัลลุ้นดาว (เหรียญ/หีบ) — ผู้ใช้อ่านของตัวเองได้อย่างเดียว ----
+create table if not exists public.prize_boxes (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  source text not null check (source in ('diary', 'login')),
+  kind text not null check (kind in ('coin', 'chest')),
+  day date not null,
+  stars int not null check (stars between 1 and 4),
+  taps_left int not null default 3 check (taps_left between 0 and 3),
+  taps int not null default 0,
+  opened boolean not null default false,
+  reward int,
+  created_at timestamptz not null default now(),
+  opened_at timestamptz,
+  unique (user_id, source, day)
+);
+alter table public.prize_boxes enable row level security;
+drop policy if exists "prize_boxes_select_own" on public.prize_boxes;
+create policy "prize_boxes_select_own" on public.prize_boxes for select using (auth.uid() = user_id);
+
+-- เคยรัน Phase 27 รุ่นแรก (ตาราง diary_coins): ย้ายเหรียญเดิมมาไว้ที่นี่ แล้วลบของเก่า
+do $$
+begin
+  if to_regclass('public.diary_coins') is not null then
+    execute 'insert into public.prize_boxes (user_id, source, kind, day, stars, taps_left, taps, opened, reward, created_at, opened_at)
+             select user_id, ''diary'', ''coin'', day, stars, taps_left, taps, opened, reward, created_at, opened_at from public.diary_coins
+             on conflict do nothing';
+    execute 'drop table public.diary_coins';
+  end if;
+end $$;
+drop function if exists public.chimchim_coin_tap(date);
+drop function if exists public.chimchim_coin_reward(int);
+drop function if exists public.chimchim_coin_upgrade_chance(int);
+
+create or replace function public.chimchim_box_reward(p_kind text, stars int)
+returns int language sql immutable as $$
+  select case when p_kind = 'chest' then (array[2, 4, 6, 10])[stars] else (array[1, 2, 3, 5])[stars] end
+$$;
+create or replace function public.chimchim_box_upgrade_chance(p_kind text, stars int)
+returns float8 language sql immutable as $$
+  select (case when p_kind = 'chest' then array[0.15, 0.12, 0.08, 0] else array[0.15, 0.10, 0.06, 0] end)[stars]::float8
+$$;
+
+-- ---- เช็กอิน: รอบ 7 วันของแต่ละผู้ใช้ (rewards[i] = Token ของวันที่ i, -1 = หีบสมบัติ) ----
+create table if not exists public.checkin_cycles (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  start_day date not null,
+  rewards int[] not null check (array_length(rewards, 1) = 7),
+  created_at timestamptz not null default now(),
+  primary key (user_id, start_day)
+);
+alter table public.checkin_cycles enable row level security;
+drop policy if exists "checkin_cycles_select_own" on public.checkin_cycles;
+create policy "checkin_cycles_select_own" on public.checkin_cycles for select using (auth.uid() = user_id);
+
+create or replace function public.chimchim_random_checkin_cycle()
+returns int[] language plpgsql volatile as $$
+declare
+  r int[];
+  x float8;
+  chest1 int;
+  chest2 int;
+  total int;
+  zeros int;
+begin
+  loop
+    r := array[]::int[];
+    for i in 1..7 loop
+      x := random();
+      r := r || (case when x < 0.35 then 0 when x < 0.75 then 1 when x < 0.95 then 2 else 3 end);
+    end loop;
+    -- หีบใบแรก: วันที่ 7 บ่อยสุด (40%) ไม่งั้นสุ่มวันที่ 3–6
+    chest1 := case when random() < 0.4 then 7 else 3 + floor(random() * 4)::int end;
+    r[chest1] := -1;
+    -- โชคดี ~10%: หีบใบที่สองวันอื่น (วันที่ 2–7)
+    if random() < 0.10 then
+      loop
+        chest2 := 2 + floor(random() * 6)::int;
+        exit when chest2 <> chest1;
+      end loop;
+      r[chest2] := -1;
+    end if;
+    select coalesce(sum(v), 0), count(*) filter (where v = 0) into total, zeros from unnest(r) v where v >= 0;
+    exit when total between 4 and 6 and zeros between 1 and 3;
+  end loop;
+  return r;
+end;
+$$;
+revoke execute on function public.chimchim_random_checkin_cycle() from public, anon, authenticated;
+
+-- รอบของวัน p_day ที่เป็นวันที่ n ของไฟ (1–7) — ยังไม่มีก็สุ่มสร้าง
+-- (ผู้ใช้ที่ไฟติดอยู่ตั้งแต่ Phase 26: วันที่ผ่านมาในรอบนี้ใช้รางวัลที่ได้จริง ส่วนวันที่เหลือสุ่มใหม่)
+create or replace function public.chimchim_checkin_cycle_for(p_user uuid, p_day date, n int)
+returns int[] language plpgsql volatile security definer set search_path = public as $$
+declare
+  start date := p_day - (n - 1);
+  r int[];
+begin
+  select rewards into r from public.checkin_cycles where user_id = p_user and start_day = start;
+  if found then return r; end if;
+  r := public.chimchim_random_checkin_cycle();
+  for i in 1..(n - 1) loop
+    r[i] := coalesce((select reward from public.daily_checkins where user_id = p_user and day = start + (i - 1)), r[i]);
+  end loop;
+  insert into public.checkin_cycles (user_id, start_day, rewards) values (p_user, start, r) on conflict do nothing;
+  select rewards into r from public.checkin_cycles where user_id = p_user and start_day = start;
+  return r;
+end;
+$$;
+revoke execute on function public.chimchim_checkin_cycle_for(uuid, date, int) from public, anon, authenticated;
+
+-- เช็กอินวันนี้ — คืน { status, streak, reward, chest: { id, stars } | null, starter, balance }
+create or replace function public.chimchim_daily_checkin()
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  today date := (now() at time zone 'Asia/Bangkok')::date;
+  prev public.daily_checkins%rowtype;
+  s int;
+  n int;
+  r int;
+  box public.prize_boxes%rowtype;
+  got_starter int := 0;
+begin
+  if uid is null then
+    return jsonb_build_object('status', 'auth');
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended(uid::text, 26));
+  insert into public.token_grants (user_id, kind, day, amount)
+    values (uid, 'starter', today, public.chimchim_starter_tokens())
+    on conflict do nothing;
+  if found then got_starter := public.chimchim_starter_tokens(); end if;
+  select * into prev from public.daily_checkins where user_id = uid and day = today;
+  if found then
+    select * into box from public.prize_boxes where user_id = uid and source = 'login' and day = today;
+    return jsonb_build_object('status', 'already', 'streak', prev.streak, 'reward', prev.reward, 'starter', got_starter,
+      'chest', case when box.id is null then null else jsonb_build_object('id', box.id, 'stars', box.stars, 'opened', box.opened) end,
+      'balance', public.chimchim_token_balance_of(uid));
+  end if;
+  select * into prev from public.daily_checkins where user_id = uid and day = today - 1;
+  s := case when found then prev.streak + 1 else 1 end;
+  n := ((s - 1) % 7) + 1;
+  r := (public.chimchim_checkin_cycle_for(uid, today, n))[n];
+  insert into public.daily_checkins (user_id, day, streak, reward) values (uid, today, s, greatest(r, 0));
+  if r > 0 then
+    insert into public.token_grants (user_id, kind, day, amount) values (uid, 'checkin', today, r);
+  elsif r = -1 then
+    insert into public.prize_boxes (user_id, source, kind, day, stars) values (uid, 'login', 'chest', today, 3)
+      on conflict do nothing returning * into box;
+  end if;
+  return jsonb_build_object('status', 'checked_in', 'streak', s, 'reward', greatest(r, 0), 'starter', got_starter,
+    'chest', case when box.id is null then null else jsonb_build_object('id', box.id, 'stars', box.stars, 'opened', false) end,
+    'balance', public.chimchim_token_balance_of(uid));
+end;
+$$;
+revoke execute on function public.chimchim_daily_checkin() from public, anon;
+grant execute on function public.chimchim_daily_checkin() to authenticated;
+
+-- ---- ไดอารี่: วันหีบ 2 วันต่อสัปดาห์ (อาทิตย์–เสาร์) ต่อผู้ใช้ ----
+create table if not exists public.diary_chest_weeks (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  week_start date not null,
+  days date[] not null,
+  primary key (user_id, week_start)
+);
+alter table public.diary_chest_weeks enable row level security;
+drop policy if exists "diary_chest_weeks_select_own" on public.diary_chest_weeks;
+create policy "diary_chest_weeks_select_own" on public.diary_chest_weeks for select using (auth.uid() = user_id);
+
+create or replace function public.chimchim_diary_chest_week(p_user uuid, p_day date)
+returns date[] language plpgsql volatile security definer set search_path = public as $$
+declare
+  ws date := p_day - extract(dow from p_day)::int;
+  a int;
+  b int;
+  d date[];
+begin
+  select days into d from public.diary_chest_weeks where user_id = p_user and week_start = ws;
+  if found then return d; end if;
+  a := floor(random() * 7)::int;
+  loop
+    b := floor(random() * 7)::int;
+    exit when b <> a;
+  end loop;
+  insert into public.diary_chest_weeks (user_id, week_start, days) values (p_user, ws, array[ws + least(a, b), ws + greatest(a, b)])
+    on conflict do nothing;
+  select days into d from public.diary_chest_weeks where user_id = p_user and week_start = ws;
+  return d;
+end;
+$$;
+revoke execute on function public.chimchim_diary_chest_week(uuid, date) from public, anon, authenticated;
+
+-- วันหีบในช่วง p_from–p_to (ไม่เกิน ~10 สัปดาห์ต่อครั้ง) ของผู้ใช้ที่ล็อกอิน — ใช้แสดงบนปฏิทินไดอารี่
+create or replace function public.chimchim_diary_chest_days(p_from date, p_to date)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  w date;
+  out date[] := array[]::date[];
+begin
+  if uid is null or p_from is null or p_to is null or p_to < p_from or p_to - p_from > 70 then
+    return '[]'::jsonb;
+  end if;
+  w := p_from - extract(dow from p_from)::int;
+  while w <= p_to loop
+    out := out || public.chimchim_diary_chest_week(uid, w);
+    w := w + 7;
+  end loop;
+  return coalesce((select jsonb_agg(d order by d) from unnest(out) d where d between p_from and p_to), '[]'::jsonb);
+end;
+$$;
+revoke execute on function public.chimchim_diary_chest_days(date, date) from public, anon;
+grant execute on function public.chimchim_diary_chest_days(date, date) to authenticated;
+
+-- อัปรูปไดอารี่ → ได้รางวัลของวันนี้ (วันหีบ = หีบ 2★ / วันอื่น = เหรียญ 1★) วันละครั้ง
+create or replace function public.chimchim_diary_photo_reward()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  today date := (now() at time zone 'Asia/Bangkok')::date;
+  is_chest boolean;
+begin
+  if coalesce(btrim(new.image_url), '') <> ''
+     and (tg_op = 'INSERT' or coalesce(old.image_url, '') is distinct from new.image_url) then
+    is_chest := today = any (public.chimchim_diary_chest_week(new.user_id, today));
+    insert into public.prize_boxes (user_id, source, kind, day, stars)
+      values (new.user_id, 'diary', case when is_chest then 'chest' else 'coin' end, today, case when is_chest then 2 else 1 end)
+      on conflict do nothing;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists diary_photo_reward on public.diary_entries;
+create trigger diary_photo_reward after insert or update of image_url on public.diary_entries
+  for each row execute function public.chimchim_diary_photo_reward();
+
+-- ---- แตะรางวัล 1 ครั้ง — คืน { status: tapping | opened | none | auth, id, kind, source, day, stars, tapsLeft, upgraded, reward, balance } ----
+create or replace function public.chimchim_box_tap(p_id bigint)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  c public.prize_boxes%rowtype;
+  up boolean := false;
+begin
+  if uid is null then
+    return jsonb_build_object('status', 'auth');
+  end if;
+  select * into c from public.prize_boxes where id = p_id and user_id = uid for update;
+  if not found then
+    return jsonb_build_object('status', 'none');
+  end if;
+  if not c.opened then
+    c.taps := c.taps + 1;
+    if c.stars < 4 and random() < public.chimchim_box_upgrade_chance(c.kind, c.stars) then
+      c.stars := c.stars + 1;
+      c.taps_left := 3;
+      up := true;
+    else
+      c.taps_left := c.taps_left - 1;
+    end if;
+    if c.stars = 4 or c.taps_left = 0 then
+      c.opened := true;
+      c.taps_left := 0;
+      c.reward := public.chimchim_box_reward(c.kind, c.stars);
+      c.opened_at := now();
+      perform pg_advisory_xact_lock(hashtextextended(uid::text, 26));
+      insert into public.token_grants (user_id, kind, day, amount)
+        values (uid, case when c.source = 'login' then 'login_chest' else 'diary_box' end, c.day, c.reward)
+        on conflict do nothing;
+    end if;
+    update public.prize_boxes
+      set stars = c.stars, taps_left = c.taps_left, taps = c.taps, opened = c.opened, reward = c.reward, opened_at = c.opened_at
+      where id = c.id;
+  end if;
+  return jsonb_build_object('status', case when c.opened then 'opened' else 'tapping' end, 'id', c.id, 'kind', c.kind,
+    'source', c.source, 'day', c.day, 'stars', c.stars, 'tapsLeft', c.taps_left, 'upgraded', up, 'reward', c.reward,
+    'balance', case when c.opened then public.chimchim_token_balance_of(uid) else null end);
+end;
+$$;
+revoke execute on function public.chimchim_box_tap(bigint) from public, anon;
+grant execute on function public.chimchim_box_tap(bigint) to authenticated;
+
+-- ---- สถานะกระเป๋า ----
+-- cycle = รางวัล 7 วันของรอบปัจจุบัน (-1 = หีบ, null = ยังไม่เริ่มรอบ) · diaryToday = รางวัลไดอารี่วันนี้
+-- waiting = รางวัลที่ยังไม่เปิดทั้งหมด (หีบเช็กอินที่ปิดหน้าต่างไปก่อน ฯลฯ) เรียงเก่าก่อน
+create or replace function public.chimchim_token_status()
+returns jsonb language sql stable security definer set search_path = public as $$
+  with today as (select (now() at time zone 'Asia/Bangkok')::date as d),
+  last_c as (select day, streak from public.daily_checkins where user_id = auth.uid() order by day desc limit 1),
+  live as (select last_c.* from last_c, today where last_c.day >= today.d - 1),
+  dbox as (select * from public.prize_boxes, today where user_id = auth.uid() and source = 'diary' and day = today.d)
+  select jsonb_build_object(
+    'balance', public.chimchim_token_balance_of(auth.uid()),
+    'checkedInToday', exists (select 1 from last_c, today where last_c.day = today.d),
+    'streak', coalesce((select streak from live), 0),
+    'diaryPhotoToday', exists (select 1 from dbox),
+    'diaryToday', (select jsonb_build_object('id', id, 'kind', kind, 'opened', opened, 'stars', stars, 'reward', reward) from dbox),
+    'waiting', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'kind', kind, 'source', source, 'day', day, 'stars', stars, 'tapsLeft', taps_left) order by day, id)
+                         from public.prize_boxes where user_id = auth.uid() and not opened), '[]'::jsonb),
+    'cycle', (select to_jsonb(cc.rewards) from live, public.checkin_cycles cc
+              where cc.user_id = auth.uid() and cc.start_day = live.day - ((live.streak - 1) % 7)
+                and not (live.day < (select d from today) and live.streak % 7 = 0))
+  );
+$$;
+revoke execute on function public.chimchim_token_status() from public, anon;
+grant execute on function public.chimchim_token_status() to authenticated;

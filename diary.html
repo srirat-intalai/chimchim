@@ -62,6 +62,12 @@
                   <h2 id="dayLabel"></h2>
                   <span class="jday-count" id="dayCount"></span>
                </div>
+               <!-- เหรียญไดอารี่ของวันที่เลือก (SQL Phase 27): รอเปิด / เปิดแล้วได้เท่าไร / วันนี้ยังไม่อัปรูป — เฉพาะไดอารี่ตัวเองบนบัญชีจริง -->
+               <div class="jcoinrow" id="dayCoin" hidden>
+                  <span class="jcoinrow-coin" aria-hidden="true"><i class="fas fa-star"></i></span>
+                  <p class="jcoinrow-text"></p>
+                  <button type="button" class="jbtn jbtn-primary jcoinrow-open" hidden></button>
+               </div>
                <div class="jlist" id="dayList" aria-busy="true"></div>
                <div class="jempty" id="dayEmpty" hidden>
                   <p id="dayEmptyText"></p>
@@ -202,6 +208,7 @@
       <script src="js/chimchim-community.js" defer></script>
       <script src="js/chimchim-diary-store.js" defer></script>
       <script src="js/chimchim-diary-calendar.js" defer></script>
+      <script src="js/chimchim-coin.js" defer></script>
       <script src="js/chimchim-diary.js" defer></script>
       <script>
          if ("serviceWorker" in navigator) {

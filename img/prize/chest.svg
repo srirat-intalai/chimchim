@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 124">
+  <!-- หีบสมบัติ ChimChim: ไม้สีขาวนวล คาดม่วง แม่กุญแจตรงกลางเป็นรอยเท้าไดโนเสาร์ -->
+  <defs>
+    <linearGradient id="chLid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#ece5fb"/>
+    </linearGradient>
+    <linearGradient id="chBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6f2ff"/>
+      <stop offset="1" stop-color="#ded3f6"/>
+    </linearGradient>
+    <linearGradient id="chBand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a98ff0"/>
+      <stop offset="1" stop-color="#7656d6"/>
+    </linearGradient>
+    <linearGradient id="chLock" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe066"/>
+      <stop offset="1" stop-color="#f2a900"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="70" cy="116" rx="56" ry="6" fill="#3b2a6b" opacity="0.18"/>
+  <!-- ตัวหีบ -->
+  <rect x="14" y="56" width="112" height="56" rx="8" fill="url(#chBody)" stroke="#6a4cc6" stroke-width="3"/>
+  <g stroke="#c9bbef" stroke-width="2">
+    <line x1="18" y1="74" x2="122" y2="74"/>
+    <line x1="18" y1="93" x2="122" y2="93"/>
+  </g>
+  <!-- ฝาโค้ง -->
+  <path d="M14 58 V40 C14 20 36 10 70 10 C104 10 126 20 126 40 V58 Z" fill="url(#chLid)" stroke="#6a4cc6" stroke-width="3" stroke-linejoin="round"/>
+  <g stroke="#d9cdf5" stroke-width="2" fill="none">
+    <path d="M18 30 C30 20 110 20 122 30"/>
+    <path d="M15 44 H125"/>
+  </g>
+  <!-- คาดม่วงแนวตั้งซ้าย/ขวา + คาดกลาง -->
+  <g fill="url(#chBand)" stroke="#5b3dbb" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M26 112 V40 C26 26 33 17 42 14 L48 14 C40 19 38 28 38 40 V112 Z"/>
+    <path d="M114 112 V40 C114 26 107 17 98 14 L92 14 C100 19 102 28 102 40 V112 Z"/>
+    <rect x="10" y="52" width="120" height="12" rx="4"/>
+    <rect x="12" y="104" width="22" height="12" rx="3"/>
+    <rect x="106" y="104" width="22" height="12" rx="3"/>
+  </g>
+  <!-- แม่กุญแจรอยเท้าไดโน -->
+  <rect x="50" y="44" width="40" height="44" rx="12" fill="url(#chLock)" stroke="#b97600" stroke-width="3"/>
+  <g fill="#fff8e6" stroke="#c98500" stroke-width="4.5" stroke-linejoin="round" transform="translate(70 67) scale(0.44) translate(-60 -52)">
+    <path d="M48 58 C40 53 30 43 28 33 C37 33 49 42 56 52 Z"/>
+    <path d="M53 52 C51 40 55 25 60 19 C65 25 69 40 67 52 Z"/>
+    <path d="M72 58 C80 53 90 43 92 33 C83 33 71 42 64 52 Z"/>
+    <path d="M60 49 C71 49 79 57 78 67 C77 77 69 83 60 83 C51 83 43 77 42 67 C41 57 49 49 60 49 Z"/>
+  </g>
+  <path d="M56 50 h8" stroke="#fff6c2" stroke-width="3" stroke-linecap="round"/>
+</svg>

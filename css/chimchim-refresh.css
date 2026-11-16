@@ -4946,3 +4946,274 @@ h1.rdtitle {
 .tk-day-n { font-size: 0.75rem; }
 .tk-ok { white-space: nowrap; flex: none; }
 .tk-foot { flex-wrap: wrap; }
+
+/* ---- หีบสมบัติในปฏิทินเช็กอิน (SQL Phase 27) ---- */
+.tk-day.is-chest { background: #efe8ff; }
+[data-theme="dark"] .tk-day.is-chest { background: #2c2640; }
+.tk-day-r img { width: 28px; height: 25px; object-fit: contain; }
+.tk-day.is-chest .tk-day-r b { color: #6a4cc6; }
+[data-theme="dark"] .tk-day.is-chest .tk-day-r b { color: #c9b8ff; }
+.tk-chest {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  margin: 12px 0 0;
+  padding: 6px 14px;
+  border: 2px solid #8f74e0;
+  border-radius: 16px;
+  background: #f4efff;
+  color: #4b2fb0;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  animation: tk-chest-nudge 2.2s ease-in-out infinite;
+}
+[data-theme="dark"] .tk-chest { background: #2c2640; color: #e3d8ff; border-color: #8f74e0; }
+.tk-chest img { width: 40px; height: 36px; object-fit: contain; }
+@keyframes tk-chest-nudge {
+  0%, 75%, 100% { transform: translateY(0); }
+  85% { transform: translateY(-3px); }
+  92% { transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) { .tk-chest { animation: none; } }
+
+/* ---- หน้าต่างแตะลุ้นดาว: เหรียญ/หีบ (SQL Phase 27) — ใช้ได้ทุกหน้า (หีบเช็กอินเด้งได้จากทุกหน้า) ---- */
+:root {
+  --coin-ink: #8a5a00;
+  --coin-star: #f5b301;
+  --coin-tint: #fff4cc;
+  --chest-tint: #f1ecff;
+  --prize-off: #e3dcef;
+}
+[data-theme="dark"] {
+  --coin-ink: #ffd24a;
+  --coin-tint: #3a3018;
+  --chest-tint: #2c2640;
+  --prize-off: #3d3650;
+}
+/* หน้าต่างแตะลุ้นดาว */
+.coindlg {
+  width: min(380px, calc(100% - 32px));
+  margin: auto;
+  padding: 16px 16px 20px;
+  border: none;
+  border-radius: 28px;
+  background: var(--rf-surface);
+  color: var(--rf-ink);
+  text-align: center;
+  box-shadow: 0 30px 80px -20px rgba(20, 18, 24, 0.45);
+  overflow: hidden;
+}
+.coindlg::backdrop { background: rgba(23, 19, 31, 0.55); }
+.cn-head { display: flex; align-items: center; gap: 8px; }
+.cn-head h2 { flex: 1; margin: 0; font-size: 1.1rem; font-weight: 800; }
+.cn-sound,
+.cn-close {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--rf-line);
+  border-radius: 50%;
+  background: var(--rf-surface);
+  color: var(--rf-ink);
+  cursor: pointer;
+}
+.cn-date { margin: 2px 0 10px; font-size: 0.84rem; color: var(--rf-ink-2); }
+.cn-stars {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 1.6rem;
+  color: var(--prize-off);
+}
+.cn-stars li.is-on { color: var(--coin-star); }
+.cn-stars li.is-pop { animation: cn-star-pop 0.55s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.cn-table { margin: 6px 0 0; font-size: 0.76rem; color: var(--rf-ink-2); font-variant-numeric: tabular-nums; }
+.cn-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 230px;
+  perspective: 700px;
+}
+/* วงสีหลังรางวัล (สีทึบ) เปลี่ยนตามดาว: ครีม → ทอง → ม่วง → ชมพูม่วง */
+.cn-aura {
+  position: absolute;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: #fff4d6;
+  transition: background 0.4s;
+}
+.cn-aura[hidden] { display: none; }
+.cn-stage[data-stars="2"] .cn-aura { background: #ffeaa6; }
+.cn-stage[data-stars="3"] .cn-aura { background: #e6dcff; }
+.cn-stage[data-stars="4"] .cn-aura { background: #f5d6f3; }
+[data-theme="dark"] .cn-aura { background: #3a3018; }
+[data-theme="dark"] .cn-stage[data-stars="2"] .cn-aura { background: #4a3a12; }
+[data-theme="dark"] .cn-stage[data-stars="3"] .cn-aura { background: #33285a; }
+[data-theme="dark"] .cn-stage[data-stars="4"] .cn-aura { background: #4a2a55; }
+.cn-coin {
+  --cn-grow: 1;
+  position: relative;
+  width: 150px;
+  height: 150px;
+  padding: 0;
+  border: none;
+  border-radius: 24px;
+  background: none;
+  cursor: pointer;
+  transform: scale(var(--cn-grow));
+  transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+  -webkit-tap-highlight-color: transparent;
+}
+.coindlg[data-kind="chest"] .cn-coin { width: 170px; height: 150px; }
+.cn-coin[hidden] { display: none; }
+.cn-coin:disabled { cursor: default; }
+.cn-coin:focus-visible { outline: 3px solid var(--rf-brand); outline-offset: 6px; }
+.cn-art { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; filter: drop-shadow(0 12px 14px rgba(80, 50, 0, 0.28)); }
+.cn-coin.is-bump { animation: cn-bump 0.24s ease-out; }
+.cn-coin.is-spin { animation: cn-spin 0.8s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.cn-coin.is-hop { animation: cn-hop 0.8s cubic-bezier(0.3, 0.7, 0.3, 1); }
+.cn-coin.is-open { animation: cn-open 0.42s ease-in forwards; }
+.cn-burst { position: absolute; inset: 0; pointer-events: none; }
+.cn-burst i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: var(--coin-star);
+  opacity: 0;
+}
+.cn-burst i:nth-child(1) { --a: 0deg; }
+.cn-burst i:nth-child(2) { --a: 45deg; }
+.cn-burst i:nth-child(3) { --a: 90deg; }
+.cn-burst i:nth-child(4) { --a: 135deg; }
+.cn-burst i:nth-child(5) { --a: 180deg; }
+.cn-burst i:nth-child(6) { --a: 225deg; }
+.cn-burst i:nth-child(7) { --a: 270deg; }
+.cn-burst i:nth-child(8) { --a: 315deg; }
+.coindlg[data-kind="chest"] .cn-burst i { background: #a98ff0; }
+.cn-coin.is-spin .cn-burst i,
+.cn-coin.is-hop .cn-burst i,
+.cn-coin.is-open .cn-burst i { animation: cn-spark 0.7s ease-out; }
+.cn-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  animation: cn-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.cn-result[hidden] { display: none; }
+.cn-result b { font-size: 3.2rem; font-weight: 800; line-height: 1; color: var(--coin-ink); font-variant-numeric: tabular-nums; }
+.cn-result span { margin-top: 4px; font-weight: 700; color: var(--rf-ink-2); }
+.cn-taps { display: flex; justify-content: center; gap: 8px; margin: 0; }
+.cn-taps[hidden] { display: none; }
+.cn-taps i { width: 10px; height: 10px; border-radius: 50%; background: var(--prize-off); transition: background 0.2s; }
+.cn-taps i.is-on { background: var(--coin-star); }
+.cn-hint { min-height: 1.4em; margin: 10px 0 0; font-size: 0.92rem; font-weight: 600; text-wrap: balance; }
+.cn-done { width: 100%; margin-top: 14px; justify-content: center; }
+.cn-done[hidden] { display: none; }
+@keyframes cn-bump {
+  0% { transform: scale(var(--cn-grow)); }
+  40% { transform: scale(calc(var(--cn-grow) * 0.9)); }
+  100% { transform: scale(var(--cn-grow)); }
+}
+@keyframes cn-spin {
+  0% { transform: rotateY(0) scale(1); }
+  60% { transform: rotateY(900deg) scale(1.15); }
+  100% { transform: rotateY(1080deg) scale(1); }
+}
+/* หีบอัปดาว: กระโดดขึ้น ส่ายสองที แล้วลงพื้น */
+@keyframes cn-hop {
+  0% { transform: translateY(0) rotate(0) scale(1); }
+  25% { transform: translateY(-34px) rotate(-8deg) scale(1.08); }
+  45% { transform: translateY(-34px) rotate(8deg) scale(1.1); }
+  65% { transform: translateY(-20px) rotate(-5deg) scale(1.05); }
+  85% { transform: translateY(0) rotate(2deg) scale(0.96, 1.04); }
+  100% { transform: translateY(0) rotate(0) scale(1); }
+}
+@keyframes cn-open {
+  0% { transform: scale(var(--cn-grow)); opacity: 1; }
+  45% { transform: scale(calc(var(--cn-grow) * 1.25)); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+@keyframes cn-spark {
+  0% { opacity: 1; transform: rotate(var(--a)) translateY(-40px) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--a)) translateY(-115px) scale(0.4); }
+}
+@keyframes cn-star-pop {
+  0% { transform: scale(0.4) rotate(-30deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+@keyframes cn-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cn-coin,
+  .cn-coin.is-bump,
+  .cn-coin.is-spin,
+  .cn-coin.is-hop,
+  .cn-coin.is-open,
+  .cn-coin.is-spin .cn-burst i,
+  .cn-coin.is-hop .cn-burst i,
+  .cn-coin.is-open .cn-burst i,
+  .cn-stars li.is-pop,
+  .cn-result { animation: none !important; transition: none !important; }
+  .cn-coin { transform: none; }
+}
+
+/* ---- หน้าสุ่มร้าน: "ตัวเลือกเพิ่มเติม" แบบพื้นม่วงอ่อน ไอคอนในวงกลม
+   (เป็นตัวเลือกรอง — ไม่แข่งกับปุ่มแบบการสุ่มที่เป็นม่วงทึบ แต่ยังดูออกว่ากดเปิดได้) ---- */
+.rfilters {
+  --rfx-bg: #f3eeff;
+  --rfx-line: #e2d7fb;
+  --rfx-dot: #e3d7fd;
+  --rfx-ink: #3d2a73;
+  --rfx-accent: #6842b5;
+  border-radius: 24px;
+  border: 1px solid var(--rfx-line);
+  background: var(--rfx-bg);
+  box-shadow: 0 6px 16px -10px rgba(104, 66, 181, 0.35);
+}
+[data-theme="dark"] .rfilters {
+  --rfx-bg: #2a2440;
+  --rfx-line: #3a3156;
+  --rfx-dot: #3a3060;
+  --rfx-ink: #ece5ff;
+  --rfx-accent: #c9b8ff;
+}
+.rfilters summary {
+  gap: 12px;
+  padding: 8px 18px 8px 8px;
+  min-height: 56px;
+  font-size: 0.92rem;
+  color: var(--rfx-ink);
+}
+.rfilters summary > .fa-sliders {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--rfx-dot);
+  color: var(--rfx-accent);
+  font-size: 0.95rem;
+}
+.rfilters .rfsummary { color: var(--rfx-ink); opacity: 0.75; }
+.rfilters .rfchev { color: var(--rfx-accent); font-size: 0.85rem; }
+.rfilters summary:hover > .fa-sliders { background: var(--rfx-line); }
+.rfilters summary:focus-visible { outline: 2px solid var(--rfx-accent); outline-offset: 2px; border-radius: 24px; }
+.rfilters[open] { border-radius: 24px; }
+.rfilters .rfbody { padding: 4px 18px 16px; }

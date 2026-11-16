@@ -1290,12 +1290,12 @@ function chimchimRefreshTokens(afterStatus) {
 		if (!st) return null;
 		chimchimTokenStatus = st;
 		chimchimPaintTokenBalance(st.balance);
-		// โบนัสรูปไดอารี่วันนี้ (ฐานข้อมูลให้ตอนบันทึกรูป) — บอกครั้งเดียวต่อวัน
+		// ได้เหรียญไดอารี่วันนี้แต่ยังไม่เปิด — บอกครั้งเดียวต่อวัน (หน้าไดอารี่เปิดหน้าต่างลุ้นให้เองอยู่แล้ว ไม่ต้องบอกซ้ำ)
 		var key = "chimchim_photo_bonus_" + getSession().id;
 		var today = chimchimBkkToday();
 		var told = null;
 		try { told = localStorage.getItem(key); } catch (e) {}
-		if (st.diaryPhotoToday && told !== today) {
+		if (st.diaryToday && !st.diaryToday.opened && told !== today && !document.body.classList.contains("diarypage")) {
 			try { localStorage.setItem(key, today); } catch (e) {}
 			showToast(t("token.photoBonus"));
 		}
@@ -1307,7 +1307,8 @@ function chimchimRefreshTokens(afterStatus) {
 function openTokenDialog(info) {
 	if (!chimchimTokenReady()) return;
 	function render(st) {
-		var cycle = st.cycle || [1, 0, 1, 0, 1, 0, 2];
+		// รางวัล 7 วันของรอบนี้ สุ่มเฉพาะผู้ใช้คนนี้ที่ฐานข้อมูล (Phase 27) — ยังไม่เริ่มรอบ = ยังไม่รู้ ขึ้นเป็น "?"
+		var cycle = Array.isArray(st.cycle) && st.cycle.length === 7 ? st.cycle : [null, null, null, null, null, null, null];
 		var streak = info ? info.streak : st.streak;
 		var checked = info ? true : st.checkedInToday;
 		// ตำแหน่งวันนี้ในรอบ 7 วัน: เช็กอินแล้ว = วันที่ของไฟ / ยังไม่เช็กอิน = วันถัดจากไฟที่ยังไม่ดับ
@@ -1325,13 +1326,22 @@ function openTokenDialog(info) {
 			var n = i + 1;
 			var state = n < pos || (n === pos && checked) ? "is-done" : n === pos ? "is-today" : "";
 			if (n === pos) state += " is-now";
+			if (reward === -1) state += " is-chest";
 			return '<li class="tk-day ' + state + '"><span class="tk-day-n"></span><span class="tk-day-r">' +
-				(reward > 0 ? '<i class="fas fa-coins" aria-hidden="true"></i><b>+' + reward + "</b>" : '<i class="fas fa-fire" aria-hidden="true"></i>') +
+				(reward === null ? '<i class="fas fa-question" aria-hidden="true"></i>'
+					: reward === -1 ? '<img src="img/prize/chest.svg" alt=""/><b>3★</b>'
+					: reward > 0 ? '<i class="fas fa-coins" aria-hidden="true"></i><b>+' + reward + "</b>" : '<i class="fas fa-fire" aria-hidden="true"></i>') +
 				"</span>" + (state.indexOf("is-done") !== -1 ? '<i class="fas fa-check tk-day-ok" aria-hidden="true"></i>' : "") + "</li>";
 		}).join("");
 		var reward = info ? info.reward : null;
+		var coin = st.diaryToday || null;
+		var coinSealed = !!(coin && !coin.opened);
+		var coinDone = !!(coin && coin.opened);
+		// หีบสมบัติที่ยังไม่เปิด (หีบเช็กอินวันนี้ หรือที่ปิดหน้าต่างไปก่อน) — ปุ่มเปิดในหน้าต่างนี้เลย
+		var waitingChest = (st.waiting || []).filter(function(b) { return b.source === "login"; })[0] || null;
+		var gotChest = !!(info && info.chest && !info.chest.opened);
 		var msg = info
-			? (reward > 0 ? t("token.gotReward").replace("{n}", reward) : t("token.fireOnly"))
+			? (gotChest ? t("token.gotChest") : reward > 0 ? t("token.gotReward").replace("{n}", reward) : t("token.fireOnly"))
 			: (checked ? t("token.checkedAlready") : t("token.notYet"));
 		dlg.innerHTML =
 			'<div class="tk-head">' +
@@ -1341,10 +1351,11 @@ function openTokenDialog(info) {
 			"</div>" +
 			'<p class="tk-msg"></p>' +
 			(info && info.starter ? '<p class="tk-starter"><i class="fas fa-gift" aria-hidden="true"></i><span></span></p>' : "") +
+			(waitingChest && typeof openPrizeBox === "function" ? '<button type="button" class="tk-chest"><img src="img/prize/chest.svg" alt=""/><span></span></button>' : "") +
 			'<ol class="tk-week">' + days + "</ol>" +
 			'<ul class="tk-ways">' +
 				'<li class="' + (checked ? "is-done" : "") + '"><i class="fas fa-calendar-check" aria-hidden="true"></i><span></span></li>' +
-				'<li class="' + (st.diaryPhotoToday ? "is-done" : "") + '"><i class="fas fa-camera" aria-hidden="true"></i><span></span>' + (st.diaryPhotoToday ? "" : '<a href="diary.html?new=1"></a>') + "</li>" +
+				'<li class="' + (coinDone ? "is-done" : "") + '"><i class="fas fa-camera" aria-hidden="true"></i><span></span>' + (coinDone ? "" : '<a href="' + (coinSealed ? "diary.html" : "diary.html?new=1") + '"></a>') + "</li>" +
 				'<li><i class="fas fa-egg" aria-hidden="true"></i><span></span></li>' +
 			"</ul>" +
 			'<div class="tk-foot"><span class="tk-balance"><i class="fas fa-coins" aria-hidden="true"></i><span></span></span><button type="button" class="btn-red tk-ok" data-close></button></div>';
@@ -1354,20 +1365,29 @@ function openTokenDialog(info) {
 		dlg.querySelector(".tk-close").setAttribute("aria-label", t("common.close"));
 		dlg.querySelector(".tk-msg").textContent = msg;
 		if (info && info.starter) dlg.querySelector(".tk-starter span").textContent = t("token.starter").replace("{n}", info.starter);
+		var chestBtn = dlg.querySelector(".tk-chest");
+		if (chestBtn) {
+			chestBtn.querySelector("span").textContent = t("token.openChest");
+			chestBtn.addEventListener("click", function() {
+				dlg.close();
+				openPrizeBox(Object.assign({ opened: false }, waitingChest), function(b) { if (b.opened) chimchimRefreshTokens(); });
+			});
+		}
 		dlg.querySelectorAll(".tk-day").forEach(function(li, i) {
 			li.querySelector(".tk-day-n").textContent = t("token.dayShort").replace("{n}", i + 1);
-			li.setAttribute("aria-label", t("token.day").replace("{n}", i + 1) + " — " + (cycle[i] > 0 ? "+" + cycle[i] + " Token" : t("token.fireDay")) + (li.classList.contains("is-done") ? " ✓" : ""));
+			li.setAttribute("aria-label", t("token.day").replace("{n}", i + 1) + " — " + (cycle[i] === null ? t("token.dayUnknown") : cycle[i] === -1 ? t("token.chestDay") : cycle[i] > 0 ? "+" + cycle[i] + " Token" : t("token.fireDay")) + (li.classList.contains("is-done") ? " ✓" : ""));
 		});
 		var ways = dlg.querySelectorAll(".tk-ways li");
 		ways[0].querySelector("span").textContent = t("token.wayCheckin");
-		ways[1].querySelector("span").textContent = st.diaryPhotoToday ? t("token.wayPhotoDone") : t("token.wayPhoto");
-		if (!st.diaryPhotoToday) ways[1].querySelector("a").textContent = t("token.wayPhotoGo");
+		ways[1].querySelector("span").textContent = coinDone ? t("token.wayPhotoDone").replace("{n}", coin.reward)
+			: coinSealed ? t("token.wayPhotoSealed") : t("token.wayPhoto");
+		if (!coinDone) ways[1].querySelector("a").textContent = t(coinSealed ? "token.wayPhotoOpen" : "token.wayPhotoGo");
 		ways[2].querySelector("span").textContent = t("token.waySpend");
 		dlg.querySelector(".tk-balance span").textContent = t("token.balance").replace("{n}", st.balance);
 		dlg.querySelector(".tk-ok").textContent = t("token.ok");
 		dlg.querySelectorAll("[data-close]").forEach(function(b) { b.addEventListener("click", function() { dlg.close(); }); });
 		if (!dlg.open) dlg.showModal();
-		dlg.querySelector(".tk-ok").focus();
+		(dlg.querySelector(".tk-chest") || dlg.querySelector(".tk-ok")).focus();
 	}
 	if (info) chimchimRefreshTokens(render);
 	else if (chimchimTokenStatus) { render(chimchimTokenStatus); chimchimRefreshTokens(); }

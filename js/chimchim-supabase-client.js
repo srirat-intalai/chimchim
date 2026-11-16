@@ -783,6 +783,35 @@ function sbTokenStatus() {
 		return res.error || !res.data || typeof res.data.balance !== "number" ? null : res.data;
 	}).catch(function() { return null; });
 }
+// รางวัลลุ้นดาว (SQL Phase 27) — รางวัลไดอารี่ช่วงวันที่ from–to (YYYY-MM-DD)
+// คืน { "YYYY-MM-DD": { id, kind: coin|chest, source, day, stars, tapsLeft, opened, reward } } หรือ null ถ้าถามไม่ได้
+function sbBoxRow(r) {
+	return { id: r.id, kind: r.kind, source: r.source, day: r.day, stars: r.stars, tapsLeft: r.taps_left, opened: !!r.opened, reward: r.reward };
+}
+function sbDiaryBoxes(from, to) {
+	if (!sbClient || !getSession()) return Promise.resolve(null);
+	return Promise.resolve(sbClient.from("prize_boxes").select("id, kind, source, day, stars, taps_left, opened, reward")
+		.eq("source", "diary").gte("day", from).lte("day", to)).then(function(res) {
+		if (res.error || !Array.isArray(res.data)) return null;
+		var map = {};
+		res.data.forEach(function(r) { map[r.day] = sbBoxRow(r); });
+		return map;
+	}).catch(function() { return null; });
+}
+// วันหีบของไดอารี่ในช่วง from–to (ฐานข้อมูลสุ่มสัปดาห์ละ 2 วัน) — คืน ["YYYY-MM-DD", ...] หรือ null
+function sbDiaryChestDays(from, to) {
+	if (!sbClient || !getSession()) return Promise.resolve(null);
+	return Promise.resolve(sbClient.rpc("chimchim_diary_chest_days", { p_from: from, p_to: to })).then(function(res) {
+		return res.error || !Array.isArray(res.data) ? null : res.data;
+	}).catch(function() { return null; });
+}
+// แตะรางวัล 1 ครั้ง — ฐานข้อมูลสุ่มอัปดาวเอง คืน { status, id, kind, source, day, stars, tapsLeft, upgraded, reward, balance } หรือ null
+function sbBoxTap(id) {
+	if (!sbClient || !getSession()) return Promise.resolve(null);
+	return Promise.resolve(sbClient.rpc("chimchim_box_tap", { p_id: id })).then(function(res) {
+		return res.error || !res.data || !res.data.status ? null : res.data;
+	}).catch(function() { return null; });
+}
 // ส่ง Prompt ให้เซิร์ฟเวอร์แปลงเป็นเงื่อนไข — requestId เดิม = ไม่หักซ้ำ (เซิร์ฟเวอร์ตอบผลเดิม)
 // คืน Promise<{ filters, left, empty?, refunded? } | { error, left?, refunded? }> ไม่ throw
 function sbPromptFilters(prompt, requestId, vocab) {

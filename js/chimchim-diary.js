@@ -7,7 +7,10 @@ var diaryState = {
 	entries: [],
 	month: null,        // Date วันที่ 1 ของเดือนที่แสดง
 	selected: diaryToday(),
-	loaded: false
+	loaded: false,
+	boxes: null,        // รางวัลไดอารี่ (เหรียญ/หีบ) { "YYYY-MM-DD": {...} } — null = ไม่มีระบบรางวัล (คนอื่น/บัญชีทดลอง/ยังไม่รัน SQL Phase 27)
+	chestDays: {},      // วันหีบ { "YYYY-MM-DD": true }
+	coinMonths: {}      // เดือนที่ถามแล้ว
 };
 var params = new URLSearchParams(window.location.search);
 // ?u=<id> ของคนอื่น = ดูอย่างเดียว (ไม่มีเพิ่ม/ลบ) — สิทธิ์อ่านตัดสินที่ฐานข้อมูล (SQL Phase 22) ไม่ใช่ที่หน้านี้
@@ -30,8 +33,76 @@ function renderCalendar() {
 	renderDiaryCalendar({
 		label: document.getElementById("calMonthLabel"),
 		grid: document.getElementById("calGrid"),
-		summary: document.getElementById("calSummary")
+		summary: document.getElementById("calSummary"),
+		boxes: diaryState.boxes,
+		chestDays: diaryState.chestDays,
+		onCoin: openCoin
 	}, diaryState.month, diaryState.selected, diaryState.entries, selectDate);
+	loadCoinsFor(diaryState.month);
+}
+
+/* ---------------- รางวัลไดอารี่: เหรียญ/หีบ (SQL Phase 27) ---------------- */
+function coinFeatureOn() {
+	return !viewerMode && typeof sbDiaryBoxes === "function" && typeof ต้องบันทึกขึ้นเซิร์ฟเวอร์ === "function" && ต้องบันทึกขึ้นเซิร์ฟเวอร์();
+}
+// ถามรางวัล + วันหีบของทั้งเดือนจากฐานข้อมูล (ครั้งเดียวต่อเดือน) — ถามไม่ได้ = ไม่แสดงเลย ไม่เดา
+function loadCoinsFor(month) {
+	if (!coinFeatureOn()) return Promise.resolve();
+	var mk = month.getFullYear() + "-" + month.getMonth();
+	if (diaryState.coinMonths[mk]) return Promise.resolve();
+	diaryState.coinMonths[mk] = true;
+	var from = diaryDateKey(new Date(month.getFullYear(), month.getMonth(), 1));
+	var to = diaryDateKey(new Date(month.getFullYear(), month.getMonth() + 1, 0));
+	return Promise.all([sbDiaryBoxes(from, to), sbDiaryChestDays(from, to)]).then(function(r) {
+		if (!r[0]) { diaryState.coinMonths[mk] = false; return; }
+		diaryState.boxes = Object.assign(diaryState.boxes || {}, r[0]);
+		(r[1] || []).forEach(function(d) { diaryState.chestDays[d] = true; });
+		renderCalendar();
+		renderDayCoin();
+	});
+}
+function openCoin(key) {
+	var c = diaryState.boxes && diaryState.boxes[key];
+	if (!c || typeof openPrizeBox !== "function") return;
+	openPrizeBox(c, function(next) {
+		diaryState.boxes[key] = next;
+		renderCalendar();
+		renderDayCoin();
+	});
+}
+// แถวรางวัลใต้หัวข้อวัน: รอเปิด → ปุ่มเปิด · เปิดแล้ว → ดาว + ยอด · วันนี้/วันหีบข้างหน้ายังไม่อัป → บอกว่าจะได้อะไร
+function renderDayCoin() {
+	var box = document.getElementById("dayCoin");
+	var key = diaryState.selected;
+	var c = diaryState.boxes ? diaryState.boxes[key] : null;
+	var today = diaryToday();
+	var chestDay = !!diaryState.chestDays[key];
+	var upcoming = key === today || (chestDay && key > today);
+	if (!diaryState.boxes || (!c && !upcoming)) { box.hidden = true; return; }
+	var kind = c ? c.kind : chestDay ? "chest" : "coin";
+	var btn = box.querySelector(".jcoinrow-open");
+	box.className = "jcoinrow kind-" + kind + (c ? (c.opened ? " is-opened" : " is-sealed") : " is-earn");
+	box.querySelector(".jcoinrow-coin").innerHTML = '<img src="img/prize/' + kind + '.svg" alt=""/>';
+	box.querySelector(".jcoinrow-text").textContent = c
+		? (c.opened ? t("coin.rowOpened").replace("{s}", c.stars).replace("{n}", c.reward) : t(kind === "chest" ? "coin.rowSealedChest" : "coin.rowSealed"))
+		: kind === "chest" ? t(key === today ? "coin.rowChestToday" : "coin.rowChestAhead") : t("coin.rowEarn");
+	btn.hidden = !(c && !c.opened);
+	btn.textContent = t(kind === "chest" ? "coin.openChest" : "coin.open");
+	btn.onclick = function() { openCoin(key); };
+	box.hidden = false;
+}
+// หลังบันทึกรูป: ฐานข้อมูลให้รางวัลของวันนี้ทันที → ถามใหม่ ถ้ายังไม่เปิดก็เปิดหน้าต่างลุ้นให้เลย
+function afterPhotoSaved() {
+	if (typeof chimchimRefreshTokens === "function") chimchimRefreshTokens();
+	if (!coinFeatureOn()) return;
+	var today = diaryToday();
+	sbDiaryBoxes(today, today).then(function(map) {
+		if (!map) return;
+		diaryState.boxes = Object.assign(diaryState.boxes || {}, map);
+		renderCalendar();
+		renderDayCoin();
+		if (map[today] && !map[today].opened) setTimeout(function() { openCoin(today); }, 700);
+	});
 }
 
 /* ---------------- รายการของวันที่เลือก ---------------- */
@@ -91,6 +162,7 @@ function renderDay() {
 		: closedPast ? t("diary.emptyClosed")
 		: t("diary.emptyOtherDay");
 	document.getElementById("dayEmptyAdd").hidden = !open;
+	renderDayCoin();
 }
 
 function selectDate(key) {
@@ -383,7 +455,7 @@ formEl.addEventListener("submit", function(ev) {
 			formDialog.close();
 			selectDate(res.entry.date);
 			showToast(t("diary.updated"));
-			if (res.entry.img && typeof chimchimRefreshTokens === "function") setTimeout(chimchimRefreshTokens, 2900);
+			if (res.entry.img) afterPhotoSaved();
 			return;
 		}
 		diaryState.entries = diarySort(diaryState.entries.concat([res.entry]));
@@ -395,8 +467,8 @@ formEl.addEventListener("submit", function(ev) {
 		formDialog.close();
 		selectDate(res.entry.date);
 		showToast(t("diary.saved"));
-		// บันทึกมีรูป → ฐานข้อมูลให้ +1 Token วันละครั้ง (Phase 26) — ถามยอดใหม่ ได้โบนัสวันนี้ครั้งแรกจะขึ้นข้อความบอก
-		if (res.entry.img && typeof chimchimRefreshTokens === "function") setTimeout(chimchimRefreshTokens, 2900);
+		// บันทึกมีรูป → ฐานข้อมูลให้เหรียญไดอารี่ของวันนี้ (Phase 27) แล้วเปิดหน้าต่างลุ้นดาวให้
+		if (res.entry.img) afterPhotoSaved();
 		if (typeof logEvent === "function") logEvent("diary_entry_created", { hasPhoto: !!res.entry.img, hasShop: !!res.entry.shopId });
 	});
 });

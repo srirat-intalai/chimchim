@@ -2430,3 +2430,99 @@ a.ppu-review-who:hover .ppu-review-name { text-decoration: underline; text-under
 .ppu-end[hidden],
 .ppu-grid[hidden] ~ .ppu-end { display: none; }
 .ppu-end p { margin: 0; font-size: 0.9rem; color: var(--j-ink-2); }
+
+/* =====================================================================
+   รางวัลลุ้นดาว (SQL Phase 27) — เหรียญ/หีบบนปฏิทินไดอารี่ · แถวรางวัลของวัน · หน้าต่างแตะลุ้นดาว
+   ภาพเหรียญ/หีบเป็น SVG ใน img/prize/ (รอยเท้าไดโนเสาร์คือสัญลักษณ์ของ ChimChim)
+   ===================================================================== */
+:root {
+  --coin-ink: #8a5a00;
+  --coin-star: #f5b301;
+  --coin-tint: #fff4cc;
+  --chest-tint: #f1ecff;
+}
+[data-theme="dark"] {
+  --coin-ink: #ffd24a;
+  --coin-tint: #3a3018;
+  --chest-tint: #2c2640;
+}
+/* ปฏิทิน: ตัวเลขบน รางวัลล่าง */
+.jcal-cell.has-coin {
+  flex-direction: column;
+  gap: 1px;
+}
+.jcal-cell.has-coin .jcal-num { font-size: 0.78rem; line-height: 1; }
+.jcal-cell.has-coin.has-entry::after { bottom: auto; top: 10%; left: auto; right: 12%; margin: 0; }
+.jcal-coin {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 62%;
+  max-width: 32px;
+  aspect-ratio: 1 / 1;
+}
+.jcal-coin img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.jcal-coin.kind-chest { width: 72%; max-width: 36px; }
+.jcal-coin.is-missed img { filter: grayscale(1); opacity: 0.35; }
+.jcal-coin.is-sealed { animation: coin-wiggle 1.8s ease-in-out infinite; }
+.jcal-coin.is-opened img { opacity: 0.45; }
+.jcal-coin.is-opened b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--coin-ink);
+  text-shadow: 0 0 3px var(--j-card), 0 0 3px var(--j-card);
+}
+.jcal-coinbadge {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ffe066;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  color: #5c3a00;
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+.jcal-coinbadge.is-sealed { width: 22px; height: 22px; padding: 0; background: none; box-shadow: none; animation: coin-wiggle 1.8s ease-in-out infinite; }
+.jcal-coinbadge.is-sealed img { width: 100%; height: 100%; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)); }
+@keyframes coin-wiggle {
+  0%, 70%, 100% { transform: rotate(0) scale(1); }
+  78% { transform: rotate(-12deg) scale(1.08); }
+  86% { transform: rotate(10deg) scale(1.08); }
+  94% { transform: rotate(-4deg) scale(1.02); }
+}
+
+/* แถวรางวัลใต้หัวข้อวัน */
+.jcoinrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: var(--coin-tint);
+}
+.jcoinrow.kind-chest { background: var(--chest-tint); }
+.jcoinrow[hidden] { display: none; }
+.jcoinrow-coin { flex: none; width: 42px; height: 42px; }
+.jcoinrow-coin img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.jcoinrow.is-sealed .jcoinrow-coin { animation: coin-wiggle 1.8s ease-in-out infinite; }
+.jcoinrow-text { flex: 1; margin: 0; font-size: 0.86rem; font-weight: 600; color: var(--j-ink); line-height: 1.45; }
+.jcoinrow-open { flex: none; }
+.jcoinrow-open[hidden] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .jcal-coin.is-sealed,
+  .jcal-coinbadge.is-sealed,
+  .jcoinrow.is-sealed .jcoinrow-coin { animation: none !important; }
+}

@@ -1284,6 +1284,17 @@ function chimchimPaintTokenBalance(balance) {
 	document.querySelectorAll("[data-token-balance]").forEach(function(el) { el.textContent = balance; });
 	document.querySelectorAll("[data-token-chip]").forEach(function(el) { el.hidden = false; });
 }
+// จำนวนเหรียญ/หีบที่ได้แล้วแต่ยังไม่เปิด — ป้ายตัวเลขบนช่องเก็บเหรียญ
+function chimchimPaintWaiting(st) {
+	var n = st && Array.isArray(st.waiting) ? st.waiting.length : 0;
+	document.querySelectorAll("[data-token-waiting]").forEach(function(el) {
+		el.textContent = n > 9 ? "9+" : n;
+		el.hidden = !n;
+		var chip = el.closest("[data-token-chip]");
+		if (chip) chip.setAttribute("aria-label", t(n ? "token.walletLabelWaiting" : "token.walletLabel")
+			.replace("{b}", st && typeof st.balance === "number" ? st.balance : "–").replace("{n}", n));
+	});
+}
 function chimchimRefreshTokens(afterStatus) {
 	if (!chimchimTokenReady()) return Promise.resolve(null);
 	return sbTokenStatus().then(function(st) {
@@ -1291,6 +1302,7 @@ function chimchimRefreshTokens(afterStatus) {
 		chimchimTokenStatus = st;
 		chimchimPaintTokenBalance(st.balance);
 		chimchimPaintFire(st);
+		chimchimPaintWaiting(st);
 		// ได้เหรียญไดอารี่วันนี้แต่ยังไม่เปิด — บอกครั้งเดียวต่อวัน (หน้าไดอารี่เปิดหน้าต่างลุ้นให้เองอยู่แล้ว ไม่ต้องบอกซ้ำ)
 		var key = "chimchim_photo_bonus_" + getSession().id;
 		var today = chimchimBkkToday();
@@ -1412,7 +1424,7 @@ function openTokenDialog(info) {
 		render(st);
 	});
 	else if (chimchimTokenStatus) { render(chimchimTokenStatus); chimchimRefreshTokens(); }
-	else chimchimRefreshTokens(render);
+	else chimchimRefreshTokens(render).then(function(st) { if (!st) chimchimTokenLoadFailed(); });
 }
 window.openTokenDialog = openTokenDialog;
 // ปุ่ม/ลิงก์ใดก็ตามที่มี data-open-tokens → เปิดปฏิทินเช็กอิน
@@ -1430,14 +1442,24 @@ function chimchimPaintFire(st) {
 	var lit = !!(st && st.checkedInToday);
 	var state = !lit ? "off" : streak >= CHIMCHIM_FIRE_HOT ? "hot" : "on";
 	document.querySelectorAll("[data-fire]").forEach(function(el) {
-		el.hidden = !st;
+		el.hidden = false;
 		el.setAttribute("data-state", state);
 		var n = el.querySelector("[data-fire-n]");
-		if (n) n.textContent = streak;
+		if (n) n.textContent = st ? streak : "–";
 		el.setAttribute("aria-label", t(lit ? "token.fireLabelLit" : "token.fireLabelOff").replace("{n}", streak));
 	});
 }
+// ถามสถานะไม่ได้ — บอกเหตุผลจริงแทนการเงียบ (เซสชันหมด → ให้เข้าสู่ระบบใหม่)
+function chimchimTokenLoadFailed() {
+	if (sbTokenStatusError === "auth") {
+		showToast(t("token.loadAuth"));
+		if (typeof openAuthPop === "function") openAuthPop("login");
+	} else {
+		showToast(t("token.loadFailed"));
+	}
+}
 (function loadFire() {
 	if (!chimchimTokenReady()) return;
+	chimchimPaintFire(null); // บัญชีจริงเห็นไฟทันที (เทา) ระหว่างรอสถานะจากฐานข้อมูล
 	chimchimRefreshTokens();
 })();

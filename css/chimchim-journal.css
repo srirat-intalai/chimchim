@@ -109,8 +109,8 @@ body.journal ::selection {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--j-line);
   background: var(--j-card);
@@ -125,7 +125,7 @@ body.journal ::selection {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0;
   border: none;
   background: none;
@@ -212,8 +212,8 @@ body.journal ::selection {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   color: var(--j-ink);
   text-decoration: none;
@@ -708,7 +708,8 @@ body.journal ::selection {
   gap: 6px;
 }
 .jchip {
-  min-height: 38px;
+  min-height: 44px;
+  min-width: 44px;
   padding: 6px 14px;
   border: 1px solid var(--j-line);
   border-radius: 999px;
@@ -2465,16 +2466,35 @@ a.ppu-review-who:hover .ppu-review-name { text-decoration: underline; text-under
 .jcal-coin.kind-chest { width: 72%; max-width: 36px; }
 .jcal-coin.is-missed img { filter: grayscale(1); opacity: 0.35; }
 .jcal-coin.is-sealed { animation: coin-wiggle 1.8s ease-in-out infinite; }
-.jcal-coin.is-opened img { opacity: 0.45; }
-.jcal-coin.is-opened b {
+/* วันข้างหน้า: จางลง ให้รูปอาหารเด่นกว่า — วันนี้ (ทำได้ตอนนี้) คงสีเต็ม / วันหีบข้างหน้าจางน้อยกว่าเหรียญนิดหนึ่ง */
+.jcal-coin.is-earn img { opacity: 0.3; }
+.jcal-coin.is-earn.kind-chest img { opacity: 0.45; }
+.jcal-cell.is-today .jcal-coin.is-earn img { opacity: 1; }
+/* รอเปิด: จุดแดงคงที่ (เห็นได้แม้ปิดการเคลื่อนไหว) */
+.jcal-coin.is-sealed::after,
+.jcal-coinbadge.is-sealed::after {
+  content: "";
   position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: 0.7rem;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #f0441f;
+  box-shadow: 0 0 0 2px var(--j-card);
+}
+/* เปิดแล้ว: ป้าย "+N" แบบเดียวทุกช่อง */
+.jcal-coin.is-opened { width: auto; max-width: none; aspect-ratio: auto; }
+.jcal-coin.is-opened b {
+  min-width: 22px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #ffe066;
+  color: #5c3a00;
+  font-size: 0.68rem;
   font-weight: 800;
-  color: var(--coin-ink);
-  text-shadow: 0 0 3px var(--j-card), 0 0 3px var(--j-card);
+  line-height: 1.4;
+  text-align: center;
 }
 .jcal-coinbadge {
   position: absolute;
@@ -2483,14 +2503,15 @@ a.ppu-review-who:hover .ppu-review-name { text-decoration: underline; text-under
   z-index: 1;
   display: grid;
   place-items: center;
-  min-width: 18px;
+  min-width: 22px;
   height: 18px;
+  line-height: 1.4;
   padding: 0 4px;
   border-radius: 999px;
   background: #ffe066;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
   color: #5c3a00;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 800;
 }
 .jcal-coinbadge.is-sealed { width: 22px; height: 22px; padding: 0; background: none; box-shadow: none; animation: coin-wiggle 1.8s ease-in-out infinite; }
@@ -2525,4 +2546,42 @@ a.ppu-review-who:hover .ppu-review-name { text-decoration: underline; text-under
   .jcal-coin.is-sealed,
   .jcal-coinbadge.is-sealed,
   .jcoinrow.is-sealed .jcoinrow-coin { animation: none !important; }
+}
+
+/* ---- หน้าไดอารี่ (รอบ critique): วงโฟกัสต่างจากกรอบวันที่เลือก · คำอธิบายสัญลักษณ์ · ช่องรูปบอกรางวัล · จอแคบ ---- */
+.jcal-cell:focus-visible {
+  outline: 3px solid var(--j-ink);
+  outline-offset: 2px;
+  z-index: 1;
+}
+.jcal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 8px 2px 0;
+  font-size: 0.75rem;
+  color: var(--j-ink-2);
+}
+.jcal-legend[hidden] { display: none; }
+.jcal-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.jcal-legend img { width: 16px; height: 16px; object-fit: contain; }
+.jcal-legend img.jlg-faded { opacity: 0.35; }
+.jlg-dot { width: 9px; height: 9px; border-radius: 50%; background: #f0441f; }
+.jphoto-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--coin-tint);
+  color: var(--coin-ink);
+  font-weight: 700;
+}
+.jphoto-reward[hidden] { display: none; }
+.jphoto-pick:has(.jphoto-reward:not([hidden])) { flex-wrap: wrap; justify-content: center; row-gap: 8px; }
+.jphoto-pick .jphoto-reward { flex-basis: 100%; justify-content: center; max-width: max-content; margin: 0 auto; }
+/* จอแคบ (320): ช่องปฏิทินชิดกันขึ้น ได้พื้นที่แตะมากขึ้น */
+@media (max-width: 359px) {
+  .diarypage .jcal { padding: 12px 6px 10px; }
+  .jcal-week, .jcal-row, .jcal-grid { gap: 2px; }
 }

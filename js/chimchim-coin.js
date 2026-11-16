@@ -81,19 +81,25 @@ function coinBuildDialog() {
 		'<p class="cn-date"></p>' +
 		'<ol class="cn-stars">' + '<li><i class="fas fa-star" aria-hidden="true"></i></li>'.repeat(4) + "</ol>" +
 		'<p class="cn-table"></p>' +
+		'<p class="cn-rules"></p>' +
 		'<div class="cn-stage">' +
 			'<span class="cn-aura" aria-hidden="true"></span>' +
 			'<button type="button" class="cn-coin" aria-describedby="cnHint">' +
 				'<img class="cn-art" alt="" draggable="false"/>' +
 				'<span class="cn-burst" aria-hidden="true">' + "<i></i>".repeat(8) + "</span>" +
 			"</button>" +
-			'<p class="cn-result" hidden><b class="cn-amount"></b><span>Token</span></p>' +
+			'<p class="cn-result" hidden><img class="cn-result-art" alt=""/><b class="cn-amount"></b><span>Token</span></p>' +
 		"</div>" +
 		'<p class="cn-taps" aria-hidden="true"><i></i><i></i><i></i></p>' +
 		'<p class="cn-hint" id="cnHint" aria-live="polite"></p>' +
 		'<button type="button" class="btn-red cn-done" hidden></button>';
 	document.body.appendChild(dlg);
 	dlg.querySelector(".cn-close").addEventListener("click", function() { dlg.close(); });
+	// ปิดแล้วคืนโฟกัสให้ปุ่มที่เปิดหน้าต่างนี้ (ถ้ายังอยู่บนหน้า)
+	dlg.addEventListener("close", function() {
+		var back = coinDlgState && coinDlgState.opener;
+		if (back && document.contains(back) && typeof back.focus === "function") back.focus();
+	});
 	dlg.querySelector(".cn-done").addEventListener("click", function() { dlg.close(); });
 	dlg.addEventListener("click", function(e) { if (e.target === dlg) dlg.close(); });
 	dlg.querySelector(".cn-sound").addEventListener("click", function() {
@@ -125,15 +131,16 @@ function coinPaint(dlg, hintKey, hintN) {
 	var coinBtn = dlg.querySelector(".cn-coin");
 	coinBtn.hidden = done;
 	dlg.querySelector(".cn-aura").hidden = done;
-	coinBtn.disabled = c.opened || st.busy;
+	coinBtn.setAttribute("aria-disabled", c.opened || st.busy ? "true" : "false");
 	coinBtn.setAttribute("aria-label", t(c.kind === "chest" ? "coin.tapChestLabel" : "coin.tapLabel").replace("{n}", c.tapsLeft));
 	// ไม่อัปดาว: ยิ่งแตะในระดับเดียวกัน ยิ่งใหญ่ขึ้นทีละนิด (ลุ้นขึ้นเรื่อย ๆ)
 	coinBtn.style.setProperty("--cn-grow", String(1 + 0.08 * Math.min(st.levelTaps, 6)));
 	var result = dlg.querySelector(".cn-result");
 	result.hidden = !done;
 	if (done) dlg.querySelector(".cn-amount").textContent = "+" + c.reward;
+	dlg.querySelector(".cn-result-art").src = CHIMCHIM_BOX_ART[c.kind] || CHIMCHIM_BOX_ART.coin;
 	dlg.querySelector(".cn-done").hidden = !done;
-	dlg.querySelector(".cn-hint").textContent = t(hintKey).replace("{n}", hintN);
+	dlg.querySelector(".cn-hint").textContent = t(hintKey).replace("{n}", hintN).replace("{r}", c.reward || 0);
 }
 function coinTap() {
 	var st = coinDlgState;
@@ -142,7 +149,7 @@ function coinTap() {
 	var coinBtn = dlg.querySelector(".cn-coin");
 	var kind = st.box.kind;
 	st.busy = true;
-	coinBtn.disabled = true;
+	coinBtn.setAttribute("aria-disabled", "true");
 	// ตอบสนองทันทีที่แตะ (เด้งเล็ก ๆ + ติ๊ง) ระหว่างรอฐานข้อมูลสุ่มผล
 	coinPlay("tap", kind);
 	coinBtn.classList.remove("is-bump");
@@ -152,7 +159,7 @@ function coinTap() {
 		st.busy = false;
 		if (!res || res.status === "none" || res.status === "auth") {
 			coinPlay("fail", kind);
-			coinBtn.disabled = false;
+			coinBtn.setAttribute("aria-disabled", "false");
 			dlg.querySelector(".cn-hint").textContent = t(res && res.status === "none" ? "coin.none" : "coin.tapFailed");
 			return;
 		}
@@ -176,7 +183,7 @@ function coinTap() {
 			var wait = res.upgraded && !coinReducedMotion() ? 820 : 260;
 			st.revealing = true;
 			coinPaint(dlg, hintKey, hintN);
-			coinBtn.disabled = true;
+			coinBtn.setAttribute("aria-disabled", "true");
 			setTimeout(function() {
 				coinBtn.classList.add("is-open");
 				coinPlay("open", kind);
@@ -200,7 +207,7 @@ function openPrizeBox(box, onChange) {
 	if (!box || !box.id || typeof sbBoxTap !== "function") return;
 	var dlg = coinBuildDialog();
 	var kind = box.kind === "chest" ? "chest" : "coin";
-	coinDlgState = { box: Object.assign({}, box, { kind: kind }), onChange: onChange, busy: false, levelTaps: 3 - (box.tapsLeft || 0), revealing: false };
+	coinDlgState = { box: Object.assign({}, box, { kind: kind }), onChange: onChange, busy: false, levelTaps: 3 - (box.tapsLeft || 0), revealing: false, opener: document.activeElement };
 	dlg.setAttribute("data-kind", kind);
 	dlg.querySelector("#coinTitle").textContent = t(kind === "coin" ? "coin.title" : box.source === "login" ? "coin.titleLoginChest" : "coin.titleChest");
 	dlg.querySelector(".cn-close").setAttribute("aria-label", t("common.close"));
@@ -213,6 +220,7 @@ function openPrizeBox(box, onChange) {
 	var minStars = kind === "coin" ? 1 : box.source === "login" ? 3 : 2; // หีบเช็กอินการันตี 3★ / หีบไดอารี่เริ่ม 2★
 	dlg.querySelector(".cn-table").textContent = [1, 2, 3, 4].filter(function(s) { return s >= minStars; })
 		.map(function(s) { return s + "★ " + table[s]; }).join(" · ") + " Token";
+	dlg.querySelector(".cn-rules").textContent = t("coin.rules");
 	coinPaintSound(dlg);
 	coinPaint(dlg, box.opened ? "coin.opened" : "coin.tapsLeft", box.opened ? box.stars : box.tapsLeft);
 	if (!dlg.open) dlg.showModal();

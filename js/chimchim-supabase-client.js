@@ -777,11 +777,19 @@ function sbDailyCheckin() {
 		return res.error || !res.data ? null : res.data;
 	}).catch(function() { return null; });
 }
+// สาเหตุที่ถามสถานะไม่สำเร็จครั้งล่าสุด: "auth" = เซสชัน Supabase หมด/ไม่ได้ล็อกอินจริง · "server" = เน็ต/เซิร์ฟเวอร์
+var sbTokenStatusError = null;
 function sbTokenStatus() {
-	if (!sbClient || !getSession()) return Promise.resolve(null);
+	if (!sbClient || !getSession()) { sbTokenStatusError = "auth"; return Promise.resolve(null); }
 	return Promise.resolve(sbClient.rpc("chimchim_token_status")).then(function(res) {
-		return res.error || !res.data || typeof res.data.balance !== "number" ? null : res.data;
-	}).catch(function() { return null; });
+		if (res.error || !res.data || typeof res.data.balance !== "number") {
+			var e = res.error || {};
+			sbTokenStatusError = e.code === "42501" || res.status === 401 || res.status === 403 ? "auth" : "server";
+			return null;
+		}
+		sbTokenStatusError = null;
+		return res.data;
+	}).catch(function() { sbTokenStatusError = "server"; return null; });
 }
 // รางวัลลุ้นดาว (SQL Phase 27) — รางวัลไดอารี่ช่วงวันที่ from–to (YYYY-MM-DD)
 // คืน { "YYYY-MM-DD": { id, kind: coin|chest, source, day, stars, tapsLeft, opened, reward } } หรือ null ถ้าถามไม่ได้

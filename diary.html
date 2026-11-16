@@ -54,6 +54,8 @@
                <div class="jcal-week" id="calWeekdays" aria-hidden="true"></div>
                <div class="jcal-grid" id="calGrid" role="grid"></div>
                <p class="jcal-summary" id="calSummary"></p>
+               <!-- คำอธิบายสัญลักษณ์รางวัลบนปฏิทิน (แสดงเมื่อมีระบบรางวัล) -->
+               <p class="jcal-legend" id="calLegend" hidden></p>
             </section>
 
             <!-- บันทึกของวันที่เลือก -->
@@ -90,7 +92,9 @@
                   <label class="jphoto-pick" for="dfPhoto">
                      <i class="fas fa-camera" aria-hidden="true"></i>
                      <span id="dfPhotoLabel" data-i18n="diary.pickPhoto">เลือกรูปอาหาร</span>
-                     <small data-i18n="diary.optional">ไม่บังคับ</small>
+                     <small id="dfPhotoOptional" data-i18n="diary.optional">ไม่บังคับ</small>
+                     <!-- รูปคือเงื่อนไขรับรางวัลของวันนี้ (นับตามวันที่อัป ไม่ใช่วันของมื้อ) — บอกตรงนี้ ไม่ให้พลาดเพราะคิดว่า "ไม่บังคับ" -->
+                     <small class="jphoto-reward" id="dfPhotoReward" hidden></small>
                   </label>
                   <input type="file" id="dfPhoto" accept="image/*" class="jvisually-hidden"/>
                   <button type="button" class="jphoto-remove" id="dfPhotoRemove" hidden data-i18n-aria="diary.removePhoto" aria-label="เอารูปออก"><i class="fas fa-xmark" aria-hidden="true"></i></button>

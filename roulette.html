@@ -60,6 +60,12 @@
          <div class="glob b"></div>
          <div class="container" style="max-width:520px;">
             <div class="rhead">
+               <!-- ช่องเก็บเหรียญ: ยอด Token ในกระเป๋า + จำนวนเหรียญ/หีบที่ยังไม่ได้เปิด — แตะเปิดกระเป๋า (ปฏิทินรับของ/เปิดหีบ) -->
+               <button type="button" class="rwallet" data-token-chip data-open-tokens aria-haspopup="dialog" hidden>
+                  <img src="img/prize/coin.svg" alt="" class="rwallet-coin"/>
+                  <span class="rwallet-text"><b data-token-balance>–</b><small data-i18n="token.unit">Token</small></span>
+                  <span class="rwallet-badge" data-token-waiting hidden></span>
+               </button>
                <h1 class="stitle" style="font-size:1.5rem;margin-bottom:6px;"><span class="stitleplain" data-i18n="roulette.heading1">ไข่ปริศนา</span> <span data-i18n="roulette.heading2">สุ่มร้าน</span></h1>
                <p class="sdesc" style="font-size:.8rem;" data-i18n="roulette.desc">ตัดสินใจไม่ได้ว่าจะกินอะไรใช่ไหม? แตะไข่ 3 ครั้ง แล้วให้ ChimChim เปิดร้านจริงให้เลย</p>
             </div>

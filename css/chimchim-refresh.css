@@ -4992,7 +4992,7 @@ h1.rdtitle {
   --coin-ink: #ffd24a;
   --coin-tint: #3a3018;
   --chest-tint: #2c2640;
-  --prize-off: #3d3650;
+  --prize-off: #5a5270;
 }
 /* หน้าต่างแตะลุ้นดาว */
 .coindlg {
@@ -5070,12 +5070,13 @@ h1.rdtitle {
   background: none;
   cursor: pointer;
   transform: scale(var(--cn-grow));
-  transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   -webkit-tap-highlight-color: transparent;
 }
 .coindlg[data-kind="chest"] .cn-coin { width: 170px; height: 150px; }
 .cn-coin[hidden] { display: none; }
-.cn-coin:disabled { cursor: default; }
+.cn-coin:disabled,
+.cn-coin[aria-disabled="true"] { cursor: default; }
 .cn-coin:focus-visible { outline: 3px solid var(--rf-brand); outline-offset: 6px; }
 .cn-art { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; filter: drop-shadow(0 12px 14px rgba(80, 50, 0, 0.28)); }
 .cn-coin.is-bump { animation: cn-bump 0.24s ease-out; }
@@ -5114,6 +5115,8 @@ h1.rdtitle {
   animation: cn-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
 }
 .cn-result[hidden] { display: none; }
+.cn-result-art { width: 72px; height: 64px; object-fit: contain; margin-bottom: 6px; opacity: 0.9; }
+.cn-rules { margin: 2px 0 0; font-size: 0.74rem; color: var(--rf-ink-2); }
 .cn-result b { font-size: 3.2rem; font-weight: 800; line-height: 1; color: var(--coin-ink); font-variant-numeric: tabular-nums; }
 .cn-result span { margin-top: 4px; font-weight: 700; color: var(--rf-ink-2); }
 .cn-taps { display: flex; justify-content: center; gap: 8px; margin: 0; }
@@ -5294,3 +5297,49 @@ h1.rdtitle {
 }
 /* เคล็ดลับในปฏิทินเช็กอิน: ปุ่ม "รับของวันนี้" */
 .tk-claim { display: inline-flex; align-items: center; gap: 8px; }
+
+/* ---- หน้าสุ่มร้าน: ช่องเก็บเหรียญ (ยอด Token + รางวัลรอเปิด) มุมขวาบนของหัวหน้า ---- */
+.rhead { position: relative; padding-right: 116px; }
+.rwallet {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 6px 14px 6px 8px;
+  border: 1px solid #f2d98a;
+  border-radius: 999px;
+  background: #fff6d6;
+  color: #5c3a00;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 6px 14px -10px rgba(140, 90, 0, 0.6);
+  -webkit-tap-highlight-color: transparent;
+}
+.rwallet[hidden] { display: none; }
+[data-theme="dark"] .rwallet { background: #3a3018; border-color: #5a4a1e; color: #ffe08a; }
+.rwallet:active { transform: scale(0.97); }
+.rwallet:focus-visible { outline: 2px solid var(--rf-brand); outline-offset: 3px; }
+.rwallet-coin { width: 32px; height: 32px; object-fit: contain; flex: none; }
+.rwallet-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.05; }
+.rwallet-text b { font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.rwallet-text small { font-size: 0.68rem; font-weight: 600; opacity: 0.8; }
+.rwallet-badge {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #f0441f;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 20px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--rf-bg, #fff);
+}
+.rwallet-badge[hidden] { display: none; }

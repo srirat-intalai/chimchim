@@ -19,9 +19,11 @@ function renderDiaryWeekdays(box) {
 // els.chestDays: { "YYYY-MM-DD": true } วันหีบ (สัปดาห์ละ 2 วัน สุ่มที่ฐานข้อมูล)
 //   วันนี้/วันข้างหน้า = เหรียญทอง หรือหีบ (วันหีบ) รอรับ · วันที่ผ่านไปแล้วไม่ได้อัป = เทาจาง
 //   ได้รางวัลแล้ว: ยังไม่เปิด = ส่ายรอแตะ (แตะวัน = เปิดผ่าน els.onCoin) · เปิดแล้ว = +N
-function diaryCoinState(boxes, chestDays, key, today) {
+// since = วันแรกที่นับว่า "พลาดได้" (หลังสมัคร/หลังเปิดระบบรางวัล) — วันก่อนหน้านั้นไม่แสดงอะไร ไม่ให้รู้สึกผิดกับวันที่ยังไม่มีระบบ
+function diaryCoinState(boxes, chestDays, key, today, since) {
 	var c = boxes[key];
 	if (c) return { state: c.opened ? "opened" : "sealed", kind: c.kind === "chest" ? "chest" : "coin" };
+	if (key < today && since && key < since) return null;
 	return { state: key >= today ? "earn" : "missed", kind: chestDays && chestDays[key] ? "chest" : "coin" };
 }
 function diaryPrizeArt(kind) {
@@ -31,6 +33,7 @@ function renderDiaryCalendar(els, month, selectedKey, entries, onSelect) {
 	els.label.textContent = month.toLocaleDateString(diaryLocale(), { month: "long", year: "numeric" });
 	var grid = els.grid;
 	grid.innerHTML = "";
+	grid.setAttribute("aria-label", els.label.textContent);
 	var byDate = {};
 	entries.forEach(function(e) { (byDate[e.date] = byDate[e.date] || []).push(e); });
 	var first = new Date(month.getFullYear(), month.getMonth(), 1);
@@ -62,7 +65,7 @@ function renderDiaryCalendar(els, month, selectedKey, entries, onSelect) {
 		var list = byDate[key] || [];
 		monthCount += list.length;
 		var withPhoto = list.filter(function(e) { return e.img; })[0];
-		var prize = els.boxes ? diaryCoinState(els.boxes, els.chestDays, key, today) : null;
+		var prize = els.boxes ? diaryCoinState(els.boxes, els.chestDays, key, today, els.rewardsSince) : null;
 		var coinState = prize ? prize.state : null;
 		var coin = prize ? els.boxes[key] : null;
 		var btn = document.createElement("button");
@@ -84,30 +87,32 @@ function renderDiaryCalendar(els, month, selectedKey, entries, onSelect) {
 			(list.length ? " — " + t("diary.entryCount").replace("{n}", list.length) : "") +
 			(coinState === "sealed" ? " — " + t(prize.kind === "chest" ? "coin.cellSealedChest" : "coin.cellSealed")
 				: coinState === "opened" ? " — " + t("coin.cellOpened").replace("{n}", coin.reward)
+				: coinState === "missed" ? " — " + t(prize.kind === "chest" ? "coin.cellMissedChest" : "coin.cellMissed")
+				: coinState === "earn" && key === today ? " — " + t(prize.kind === "chest" ? "coin.cellTodayChest" : "coin.cellToday")
 				: prize && prize.kind === "chest" ? " — " + t("coin.cellChestDay") : ""));
 		if (key === selectedKey) btn.setAttribute("aria-current", "date");
 		if (withPhoto) btn.style.backgroundImage = "url('" + cssUrl(withPhoto.img) + "')";
 		var coinHtml = "";
 		if (coinState && !withPhoto) {
-			coinHtml = '<span class="jcal-coin is-' + coinState + " kind-" + prize.kind + '" aria-hidden="true">' + diaryPrizeArt(prize.kind) +
-				(coinState === "opened" ? "<b>+" + coin.reward + "</b>" : "") + "</span>";
+			// เปิดแล้ว = ป้าย "+N" แบบเดียวกับบนวันที่มีรูป (ไม่ใช่เหรียญจางซ้อนตัวเลข)
+			coinHtml = '<span class="jcal-coin is-' + coinState + " kind-" + prize.kind + '" aria-hidden="true">' +
+				(coinState === "opened" ? "<b>+" + coin.reward + "</b>" : diaryPrizeArt(prize.kind)) + "</span>";
 		} else if (withPhoto && (coinState === "sealed" || coinState === "opened")) {
 			coinHtml = '<span class="jcal-coinbadge is-' + coinState + " kind-" + prize.kind + '" aria-hidden="true">' +
 				(coinState === "opened" ? "+" + coin.reward : diaryPrizeArt(prize.kind)) + "</span>";
 		}
-		btn.innerHTML = '<span class="jcal-num">' + day + "</span>" + coinHtml + (list.length > 1 ? '<span class="jcal-more">' + list.length + "</span>" : "");
-		btn.addEventListener("click", function() {
-			onSelect(key);
-			if (coinState === "sealed" && typeof els.onCoin === "function") els.onCoin(key);
-		});
+		var showMore = list.length > 1 && !(withPhoto && coinHtml);
+		btn.innerHTML = '<span class="jcal-num">' + day + "</span>" + coinHtml + (showMore ? '<span class="jcal-more">' + list.length + "</span>" : "");
+		// แตะวัน = เลือกวันอย่างเดียว (เปิดรางวัลจากปุ่มในแถวรางวัลใต้หัวข้อวัน ไม่เด้งหน้าต่างขัดตอนเลื่อนดูมื้อเก่า)
+		btn.addEventListener("click", function() { onSelect(key); });
 		// ปุ่มลูกศรเลื่อนวัน (←/→ ทีละวัน, ↑/↓ ทีละสัปดาห์) ตามแบบ grid — Tab เข้าได้ช่องเดียว (วันที่เลือก)
 		btn.tabIndex = key === selectedKey ? 0 : -1;
 		btn.addEventListener("keydown", function(ev) {
 			var step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[ev.key];
-			if (!step) return;
+			if (!step && ev.key !== "Home" && ev.key !== "End") return;
 			ev.preventDefault();
 			var all = Array.prototype.slice.call(grid.querySelectorAll("button.jcal-cell"));
-			var next = all[all.indexOf(btn) + step];
+			var next = ev.key === "Home" ? all[0] : ev.key === "End" ? all[all.length - 1] : all[all.indexOf(btn) + step];
 			if (next) {
 				btn.tabIndex = -1;
 				next.tabIndex = 0;

@@ -3,6 +3,8 @@
 // ข้อมูลทั้งหมดมาจาก chimchim-diary-store.js (ชุดเดียวกับส่วน "ไดอารี่ของฉัน" ในโปรไฟล์)
 // ลิงก์เข้าหน้าได้: ?date=YYYY-MM-DD (เปิดวันนั้น) · ?entry=<id> (เปิดรายละเอียด) · ?new=1 (เปิดฟอร์มเพิ่มทันที)
 
+// วันที่ระบบรางวัลไดอารี่ (SQL Phase 27) เริ่มใช้ — วันก่อนหน้านี้ไม่แสดงเหรียญเทาว่า "พลาด"
+var CHIMCHIM_REWARDS_SINCE = "2026-11-16";
 var diaryState = {
 	entries: [],
 	month: null,        // Date วันที่ 1 ของเดือนที่แสดง
@@ -10,6 +12,7 @@ var diaryState = {
 	loaded: false,
 	boxes: null,        // รางวัลไดอารี่ (เหรียญ/หีบ) { "YYYY-MM-DD": {...} } — null = ไม่มีระบบรางวัล (คนอื่น/บัญชีทดลอง/ยังไม่รัน SQL Phase 27)
 	chestDays: {},      // วันหีบ { "YYYY-MM-DD": true }
+	rewardsSince: CHIMCHIM_REWARDS_SINCE, // วันแรกที่ "พลาดรางวัล" ได้ = วันเปิดระบบรางวัล หรือวันสมัคร (ที่ช้ากว่า)
 	coinMonths: {}      // เดือนที่ถามแล้ว
 };
 var params = new URLSearchParams(window.location.search);
@@ -36,7 +39,7 @@ function renderCalendar() {
 		summary: document.getElementById("calSummary"),
 		boxes: diaryState.boxes,
 		chestDays: diaryState.chestDays,
-		onCoin: openCoin
+		rewardsSince: diaryState.rewardsSince
 	}, diaryState.month, diaryState.selected, diaryState.entries, selectDate);
 	loadCoinsFor(diaryState.month);
 }
@@ -53,13 +56,50 @@ function loadCoinsFor(month) {
 	diaryState.coinMonths[mk] = true;
 	var from = diaryDateKey(new Date(month.getFullYear(), month.getMonth(), 1));
 	var to = diaryDateKey(new Date(month.getFullYear(), month.getMonth() + 1, 0));
-	return Promise.all([sbDiaryBoxes(from, to), sbDiaryChestDays(from, to)]).then(function(r) {
+	return Promise.all([sbDiaryBoxes(from, to), sbDiaryChestDays(from, to), loadRewardsSince()]).then(function(r) {
 		if (!r[0]) { diaryState.coinMonths[mk] = false; return; }
 		diaryState.boxes = Object.assign(diaryState.boxes || {}, r[0]);
 		(r[1] || []).forEach(function(d) { diaryState.chestDays[d] = true; });
 		renderCalendar();
 		renderDayCoin();
+		renderLegend();
 	});
+}
+// วันสมัครจริงของบัญชี (profiles.created_at) — ถามครั้งเดียว ถามไม่ได้ก็ใช้วันเปิดระบบรางวัล
+var rewardsSinceAsked = null;
+function loadRewardsSince() {
+	if (rewardsSinceAsked) return rewardsSinceAsked;
+	rewardsSinceAsked = Promise.resolve(sbClient.from("profiles").select("created_at").eq("id", getSession().id).maybeSingle()).then(function(res) {
+		var c = res && res.data && res.data.created_at ? new Date(res.data.created_at) : null;
+		if (!c || isNaN(c.getTime())) return;
+		var joined = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(c);
+		if (joined > diaryState.rewardsSince) diaryState.rewardsSince = joined;
+	}).catch(function() {});
+	return rewardsSinceAsked;
+}
+// คำอธิบายสัญลักษณ์ใต้ปฏิทิน (แสดงเมื่อมีระบบรางวัล)
+function renderLegend() {
+	var el = document.getElementById("calLegend");
+	if (!diaryState.boxes) { el.hidden = true; return; }
+	el.innerHTML =
+		'<span><i class="jlg-dot" aria-hidden="true"></i></span>' +
+		'<span><img src="img/prize/coin.svg" alt="" class="jlg-faded"/></span>' +
+		'<span><img src="img/prize/chest.svg" alt=""/></span>';
+	var parts = el.querySelectorAll("span");
+	[t("coin.legendSealed"), t("coin.legendAhead"), t("coin.legendChest")].forEach(function(txt, i) {
+		parts[i].appendChild(document.createTextNode(txt));
+	});
+	el.hidden = false;
+}
+// ช่องรูปในฟอร์ม: บอกว่าใส่รูปวันนี้ได้รางวัลอะไร (วันละครั้ง นับตามวันที่อัป) — ได้ไปแล้ววันนี้ = กลับเป็น "ไม่บังคับ"
+function renderPhotoReward() {
+	var reward = document.getElementById("dfPhotoReward");
+	var optional = document.getElementById("dfPhotoOptional");
+	var today = diaryToday();
+	var show = !!diaryState.boxes && !diaryState.boxes[today];
+	reward.hidden = !show;
+	optional.hidden = show;
+	if (show) reward.textContent = t(diaryState.chestDays[today] ? "coin.formChest" : "coin.formCoin");
 }
 function openCoin(key) {
 	var c = diaryState.boxes && diaryState.boxes[key];
@@ -349,6 +389,7 @@ function openForm(dateKey, entry) {
 	var key = entry ? entry.date : (diaryCanRecord(dateKey) ? dateKey : diaryToday());
 	document.getElementById("dfDate").value = key;
 	renderDayPick(key);
+	renderPhotoReward();
 	// เปิดฟอร์มจากวันที่หมดเวลาบันทึกแล้ว → บอกก่อนว่าจะบันทึกเป็นวันไหนแทน (ไม่สลับเงียบ ๆ)
 	var dayNote = document.getElementById("dfDayNote");
 	dayNote.hidden = !(!entry && dateKey && !diaryCanRecord(dateKey));

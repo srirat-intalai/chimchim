@@ -292,7 +292,7 @@ function openProfileSwitcher(opts) {
 	}));
 	types.appendChild(typeRow("store", t("switcher.typeShop"), t("switcher.typeShopDesc"), function() {
 		// สร้างร้านใหม่ในฟอร์มร้านเดิมของ Settings (โหมดสร้างใหม่ — ไม่แก้ร้านที่มีอยู่)
-		window.location.href = "settings.html?newShop=1#shopFormCard";
+		window.location.href = "settings.html?newShop=1";
 	}));
 	sheet.querySelector(".psw-add").addEventListener("click", function() { showTypes(true); });
 	backBtn.addEventListener("click", function() { showTypes(false); });
@@ -1266,7 +1266,7 @@ var CHIMCHIM_EGG_TEASES = {
 
 /* =====================================================================
    กระเป๋า Token (SQL Phase 26) — เช็กอินรายวันแบบกิจกรรมล็อกอินในเกม + โบนัสอัปรูปไดอารี่
-   - เปิดแอปวันละครั้ง (เวลาไทย) → เช็กอินให้อัตโนมัติ แล้วเด้งปฏิทิน 7 วัน: บางวันได้ Token บางวันแค่รักษาไฟ 🔥
+   - กดรับของวันนี้ (เวลาไทย) → เช็กอิน แล้วเด้งปฏิทิน 7 วัน: ได้ของทุกวัน (1–3 Token หรือหีบสมบัติ)
    - ยอด/รางวัลทั้งหมดคำนวณที่ฐานข้อมูล หน้าเว็บแค่แสดงผล (ผู้ใช้เพิ่ม Token เองไม่ได้)
    - เฉพาะบัญชีจริง (บัญชีทดลองในเครื่องใช้ Prompt ไม่ได้อยู่แล้ว) / ไม่ทำในโปรไฟล์ที่ถูกฝังในหน้าอื่น
    ===================================================================== */
@@ -1422,6 +1422,15 @@ function openTokenDialog(info) {
 		chimchimTokenStatus = st;
 		chimchimPaintFire(st);
 		render(st);
+		// เพิ่งกดรับของ (ไฟเพิ่งติด ไม่ใช่เปิดดูซ้ำ): ไฟในหน้าต่างพลุ่งทันที · ไฟบนหน้าแรกพลุ่งตอนปิดหน้าต่าง (ตอนนั้นถึงมองเห็น)
+		if (info.status === "checked_in") {
+			var hot = (st.streak || 0) >= CHIMCHIM_FIRE_HOT;
+			var dlg = document.getElementById("tokenDialog");
+			chimchimFireBurst(dlg && dlg.querySelector(".tk-fire"), hot);
+			if (dlg) dlg.addEventListener("close", function() {
+				document.querySelectorAll("[data-fire] .homefire-ico").forEach(function(el) { chimchimFireBurst(el, hot); });
+			}, { once: true });
+		}
 	});
 	else if (chimchimTokenStatus) { render(chimchimTokenStatus); chimchimRefreshTokens(); }
 	else chimchimRefreshTokens(render).then(function(st) { if (!st) chimchimTokenLoadFailed(); });
@@ -1437,6 +1446,31 @@ document.addEventListener("click", function(e) {
 // ไฟของแอป: เข้าแอปแล้วกด "รับของวันนี้" เอง ไฟถึงจะติด (ไม่เช็กอินให้อัตโนมัติ)
 // ยังไม่รับของวันนี้ = ไฟเทา · รับแล้ว = ไฟแดง · ต่อเนื่อง 20 วันขึ้นไป = ไฟม่วง · ขาดวัน = ไฟดับ กลับมารับของก็ติดใหม่
 var CHIMCHIM_FIRE_HOT = 20;
+// ไฟติด: ไอคอนเด้ง + ประกายไฟลอยขึ้น (CSS .fireburst) · hot = ครบ 20 วัน ไฟม่วง → ประกายม่วง + วงแหวนฉลอง
+function chimchimFireBurst(el, hot) {
+	if (!el || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+	var box = document.createElement("span");
+	box.className = "fireburst";
+	box.setAttribute("aria-hidden", "true");
+	var colors = hot ? ["#b48cff", "#d9c6ff", "#ffffff", "#8a4fe8"] : ["#ff8a3d", "#ffb03a", "#f0441f", "#ffd36b"];
+	var n = hot ? 16 : 11;
+	for (var i = 0; i < n; i++) {
+		var a = -Math.PI / 2 + (Math.random() - 0.5) * (hot ? Math.PI * 2 : 2.2);
+		var d = 26 + Math.random() * (hot ? 34 : 24);
+		var s = document.createElement("i");
+		s.style.setProperty("--dx", Math.round(Math.cos(a) * d) + "px");
+		s.style.setProperty("--dy", Math.round(Math.sin(a) * d - 8) + "px");
+		s.style.setProperty("--spark", colors[i % colors.length]);
+		s.style.setProperty("--d", (Math.random() * 0.15).toFixed(2) + "s");
+		box.appendChild(s);
+	}
+	if (hot) box.appendChild(document.createElement("b"));
+	el.appendChild(box);
+	el.classList.remove("is-ignite");
+	void el.offsetWidth;
+	el.classList.add("is-ignite");
+	setTimeout(function() { box.remove(); el.classList.remove("is-ignite"); }, 1300);
+}
 function chimchimPaintFire(st) {
 	var streak = st ? st.streak || 0 : 0;
 	var lit = !!(st && st.checkedInToday);

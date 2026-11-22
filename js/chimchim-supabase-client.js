@@ -369,6 +369,28 @@ function sbFetchPublicXp(userId) {
 	}, function() { return null; });
 }
 
+// XP ของฉันแบบแยกหมวด + เลเวล + ฉายาที่เลือก (SQL Phase 29) — null ถ้าถามไม่ได้
+function sbMyXp() {
+	if (!sbClient || !getSession()) return Promise.resolve(null);
+	return Promise.resolve(sbClient.rpc("chimchim_my_xp")).then(function(res) {
+		return res.error || !res.data || typeof res.data.xp !== "number" ? null : res.data;
+	}, function() { return null; });
+}
+// เลือกฉายา (level = null → อัตโนมัติตามเลเวล) — { status: ok | locked | auth, titleLevel }
+function sbSetTitle(level) {
+	if (!sbClient || !getSession()) return Promise.resolve(null);
+	return Promise.resolve(sbClient.rpc("chimchim_set_title", { p_level: level })).then(function(res) {
+		return res.error || !res.data ? null : res.data;
+	}, function() { return null; });
+}
+// ไข่สุ่มร้านบางทีออกสกิน (SQL Phase 29) — { status: skin | none | limit | auth, skin }
+function sbEggSkinRoll() {
+	if (!sbClient || !getSession()) return Promise.resolve(null);
+	return Promise.resolve(sbClient.rpc("chimchim_egg_skin_roll")).then(function(res) {
+		return res.error || !res.data ? null : res.data;
+	}, function() { return null; });
+}
+
 /* =====================================================================
    รีวิวร้าน — ผลักขึ้นทันทีตอนส่ง + ดึงของคนอื่นมาผสานตอนเปิดดูร้าน (ดู mergeRemoteReviewsIntoLocal ใน core.js)
    ===================================================================== */
@@ -791,6 +813,19 @@ function sbTokenStatus() {
 		return res.data;
 	}).catch(function() { sbTokenStatusError = "server"; return null; });
 }
+// ร้านสกินไข่ (SQL Phase 28) — ทุกอย่างผ่านฟังก์ชันในฐานข้อมูล คืน null ถ้าถามไม่ได้ (ยังไม่ล็อกอิน/ยังไม่รัน SQL/เน็ตหลุด)
+function sbSkinRpc(name, args) {
+	if (!sbClient || !getSession()) return Promise.resolve(null);
+	return Promise.resolve(sbClient.rpc(name, args || {})).then(function(res) {
+		return res.error || !res.data ? null : res.data;
+	}).catch(function() { return null; });
+}
+// { skins: [{ id, nameTh, nameEn, rarity, price, image, fx, owned, source }], equipped, balance }
+function sbSkinState() { return sbSkinRpc("chimchim_skin_state"); }
+// { status: bought | owned | poor | none | auth, skin, price, balance }
+function sbBuySkin(id) { return sbSkinRpc("chimchim_buy_skin", { p_skin: id }); }
+// id = null → ถอดสกิน · { status: ok | notOwned | auth, equipped }
+function sbEquipSkin(id) { return sbSkinRpc("chimchim_equip_skin", { p_skin: id }); }
 // รางวัลลุ้นดาว (SQL Phase 27) — รางวัลไดอารี่ช่วงวันที่ from–to (YYYY-MM-DD)
 // คืน { "YYYY-MM-DD": { id, kind: coin|chest, source, day, stars, tapsLeft, opened, reward } } หรือ null ถ้าถามไม่ได้
 function sbBoxRow(r) {

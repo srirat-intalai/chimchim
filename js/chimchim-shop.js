@@ -11,15 +11,27 @@
 	var personaCard = document.getElementById("personaCard");
 	if (!guestCard || !formCard) return;
 
+	// ?newShop=1 = มาจากการ์ด "สร้างร้านของคุณฟรี" ในหน้าโปรไฟล์ / เมนูสลับโปรไฟล์ — ฟอร์มว่างสำหรับสร้างร้านใหม่ ไม่แก้ร้านเดิม
+	// โหมดนี้เป็น "หน้าสร้างร้าน": ซ่อนการตั้งค่าอื่นทั้งหมด หัวหน้าเป็น "สร้างร้านของฉัน" (CSS body.is-createshop)
+	// ?editShop=1 = มาจากปุ่ม "แก้ไขข้อมูลร้าน" ในโปรไฟล์ร้าน — หน้าแบบเดียวกัน แต่โหลดร้านเดิมมาแก้
+	// หน้าตั้งค่าปกติไม่มีฟอร์มร้านแล้ว (ซ่อนด้วย CSS: body:not(.is-createshop) #shopFormCard)
+	var qs = new URLSearchParams(window.location.search);
+	var newShopMode = qs.get("newShop") === "1";
+	var editShopMode = !newShopMode && qs.get("editShop") === "1";
+	if (newShopMode || editShopMode) {
+		var pageKey = newShopMode ? "shop.createTitle" : "shop.editMyShop";
+		document.body.classList.add("is-createshop");
+		var pageTitle = document.querySelector(".obstepnum");
+		if (pageTitle) { pageTitle.setAttribute("data-i18n", pageKey); pageTitle.textContent = t(pageKey); }
+		document.title = t(pageKey) + " - ChimChim";
+	}
+
 	var session = getSession();
 	if (!session) {
 		guestCard.hidden = false;
 		return;
 	}
 	formCard.hidden = false;
-
-	// ?newShop=1 = มาจากเมนูสลับโปรไฟล์ "+ เพิ่มโปรไฟล์ → โปรไฟล์ร้านค้า" — ฟอร์มว่างสำหรับสร้างร้านใหม่ ไม่แก้ร้านเดิม
-	var newShopMode = new URLSearchParams(window.location.search).get("newShop") === "1";
 	var myShop = newShopMode ? null : getMyShop();
 
 	/* --- ตัวเลือกมหาวิทยาลัยใกล้เคียง --- */
@@ -523,7 +535,7 @@
 		newTitleEl.setAttribute("data-i18n", "shop.createNewShop");
 		newTitleEl.textContent = t("shop.createNewShop");
 		document.getElementById("shopSubmitBtn").innerHTML = '<i class="fas fa-store"></i><span>' + escapeHtml(t("shop.createShopBtn")) + "</span>";
-		setTimeout(function() { formCard.scrollIntoView({ behavior: "smooth", block: "start" }); }, 150);
+		// หน้าสร้างร้านมีแค่ฟอร์มนี้แล้ว ไม่ต้องเลื่อนหา (ให้เห็นหัวหน้า "สร้างร้านของฉัน" กับปุ่มย้อนกลับ)
 	}
 	refreshViewLink(myShop);
 	refreshPersonaUI(newShopMode ? getMyShop() : myShop);

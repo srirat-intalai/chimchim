@@ -62,6 +62,12 @@ function toastIfJustCreated() {
    ?as=self | ?as=shop:<id> = เปิดโปรไฟล์นั้นตรง ๆ (ลิงก์/เมนูสลับโปรไฟล์) ไม่ส่ง = ใช้โปรไฟล์ที่จำไว้ล่าสุด
    โปรไฟล์ร้าน: ตรวจสิทธิ์กับเซิร์ฟเวอร์ก่อนแสดงทุกครั้ง ระหว่างรอ/ตรวจไม่ผ่าน ไม่แสดงข้อมูลโปรไฟล์ใดเลย
    ===================================================================== */
+// การ์ด "สร้างร้านของคุณฟรี" — โปรไฟล์ส่วนตัวที่ยังไม่มีร้านเท่านั้น
+function paintCreateShopCta() {
+	var card = document.getElementById("createShopCard");
+	if (!card) return;
+	card.hidden = !profPage || profPage.type !== "self" || (typeof getMyShopsForDisplay === "function" && getMyShopsForDisplay().length > 0);
+}
 function bootProfile() {
 	var asParam = new URLSearchParams(window.location.search).get("as") || "";
 	var requested = asParam === "self" ? "self" : (/^shop:\d+$/.test(asParam) ? asParam.slice(5) : null);
@@ -70,6 +76,7 @@ function bootProfile() {
 		setActivePersona("self");
 		profPage = { type: "self", shop: null, key: "self" };
 		renderPersonalProfile();
+		paintCreateShopCta();
 		watchActiveProfile();
 		toastIfJustCreated();
 		return;
@@ -91,6 +98,7 @@ function bootProfile() {
 		}
 		if (profPage.type === "shop") renderShopProfile(profPage.shop);
 		else renderPersonalProfile();
+		paintCreateShopCta();
 		if (res.notice) showToast(t(res.notice === "shop_forbidden" ? "switcher.forbidden" : "switcher.unavailable"));
 		watchActiveProfile();
 		toastIfJustCreated();
@@ -265,6 +273,7 @@ function renderProfileDiary() {
 		addText.setAttribute("data-i18n", entries.length ? "profile.diaryAdd" : "profile.diaryStart"); // เปลี่ยนภาษาแล้วป้ายตามด้วย
 		addText.textContent = t(addText.getAttribute("data-i18n"));
 
+		paintProfStampBook(entries);
 		var st = diaryStats(entries);
 		var stats = document.getElementById("profStats");
 		stats.innerHTML = "";
@@ -293,15 +302,28 @@ function renderProfileDiary() {
 		});
 		var fav = document.getElementById("profFavList");
 		fav.innerHTML = "";
+		// การ์ดร้าน (รูป + ชื่อ + เหตุผลที่เป็นร้านโปรด) กดทั้งใบเข้าหน้าร้านได้ · ร้านที่พิมพ์ชื่อเอง (ไม่มีในแอป) = การ์ดเฉย ๆ
 		favs.forEach(function(s) {
 			var li = document.createElement("li");
-			var name = s.shopId ? document.createElement("a") : document.createElement("span");
-			if (s.shopId) name.href = "restaurant.html?id=" + encodeURIComponent(s.shopId) + "&from=profile";
-			name.textContent = s.name;
-			var note = document.createElement("small");
-			note.textContent = s.note;
-			li.appendChild(name);
-			li.appendChild(note);
+			var card = s.shopId ? document.createElement("a") : document.createElement("div");
+			card.className = "jfavcard" + (s.shopId ? "" : " is-plain");
+			if (s.shopId) {
+				card.href = "restaurant.html?id=" + encodeURIComponent(s.shopId) + "&from=profile";
+				card.setAttribute("aria-label", t("profile.favOpen").replace("{name}", s.name));
+			}
+			var r = s.shopId && typeof หาร้านจากId === "function" ? หาร้านจากId(Number(s.shopId)) : null;
+			card.innerHTML = '<span class="jfavcard-img"><i class="fas fa-utensils" aria-hidden="true"></i></span><b></b><small></small>';
+			if (r && r.รูป) {
+				var img = document.createElement("img");
+				img.alt = "";
+				img.loading = "lazy";
+				img.decoding = "async";
+				img.src = r.รูป;
+				card.querySelector(".jfavcard-img").appendChild(img);
+			}
+			card.querySelector("b").textContent = s.name;
+			card.querySelector("small").textContent = s.note;
+			li.appendChild(card);
 			fav.appendChild(li);
 		});
 		fav.hidden = !favs.length;
@@ -319,15 +341,9 @@ function renderProfileDiary() {
 (function setupFavBox() {
 	var box = document.getElementById("profFavBox");
 	if (!box) return;
-	var KEY = "chimchim_fav_open";
-	try { box.open = localStorage.getItem(KEY) === "1"; } catch (e) {}
-	box.addEventListener("toggle", function() {
-		try { localStorage.setItem(KEY, box.open ? "1" : "0"); } catch (e) {}
-	});
-	// ยังไม่มีร้านโปรด — กดหัวข้อไม่ต้องกาง
-	box.querySelector("summary").addEventListener("click", function(e) {
-		if (box.classList.contains("is-empty")) e.preventDefault();
-	});
+	// ร้านโปรดโชว์เป็นการ์ดตลอด (ไม่พับแล้ว) — หัวข้อไม่ใช่ปุ่มกาง/พับ
+	box.open = true;
+	box.querySelector("summary").addEventListener("click", function(e) { e.preventDefault(); });
 })();
 /* =====================================================================
    โปรไฟล์ร้าน — ข้อมูลจากแถวร้านที่ตรวจสิทธิ์แล้ว (เจ้าของจริงเท่านั้น), โพสต์ของร้าน, รีวิวจากลูกค้า
@@ -337,7 +353,7 @@ function renderShopProfile(shop) {
 	var key = String(shop.numId);
 	document.getElementById("profContent").hidden = false;
 	document.body.classList.add("prof-shopmode");
-	["profEmail", "profLevelCard", "dnaCardBtn", "selfBtnRow", "ptabLikes", "ptabReviews", "ptabSaves", "igFollowingBtn", "profDiaryCard", "profDiaryExtras"].forEach(function(id) {
+	["profEmail", "profLevelCard", "dnaCardBtn", "selfBtnRow", "ptabLikes", "ptabReviews", "ptabSaves", "igFollowingBtn", "profDiaryCard", "profDiaryExtras", "profCover", "profQuick", "profEggRow"].forEach(function(id) {
 		var el = document.getElementById(id);
 		if (el) el.hidden = true;
 	});
@@ -561,6 +577,11 @@ function renderPersonalProfile() {
 	document.querySelector("#profContent .ighead .igstats").hidden = true;
 	document.getElementById("profEmail").hidden = true;
 	document.getElementById("profLevelCard").hidden = true;
+	// หัวโปรไฟล์ใหม่: ปก · วงแหวน XP · แถวตัวเลข · ไข่ของฉัน (โปรไฟล์ส่วนตัวเท่านั้น)
+	document.getElementById("profCover").hidden = false;
+	document.getElementById("profQuick").hidden = false;
+	document.getElementById("pqLevel").onclick = function() { document.getElementById("profLevelCard").onclick(); };
+	paintProfEggRow();
 	if (typeof syncPostsWithSupabase === "function") syncPostsWithSupabase(refreshLevelCard);
 	syncPersonalExtras(me);
 	setupDiaryPrivacy();
@@ -1069,40 +1090,150 @@ function setupFollowSheet(me, onFollowChanged) {
    เลเวลนักชิมบนหน้าโปรไฟล์ — ป้าย "Lv.N ชื่อระดับ" ใต้ชื่อ + การ์ด XP/แถบความคืบหน้า
    กดการ์ดแล้วเห็นรายละเอียดว่าได้ XP จากกิจกรรมไหนบ้าง และต้องทำอะไรต่อเพื่อเลื่อนระดับ
    ===================================================================== */
-function refreshLevelCard() {
+/* ---- หัวโปรไฟล์ใหม่: ปกจากรูปไดอารี่ล่าสุด + สมุดตราประทับ + จำนวนตราประทับ ----
+   ตราประทับ = บันทึกที่ผูกร้าน (สแกนคิวอาร์เช็กอินร้าน) · นับ "ร้านต่อวัน" แบบเดียวกับ XP (ไม่จำกัด 3 ตอนแสดง) */
+function paintProfStampBook(entries) {
+	var withImg = entries.filter(function(e) { return e.img; })[0];
+	var cover = document.getElementById("profCoverImg");
+	if (cover) {
+		cover.hidden = !withImg;
+		if (withImg) cover.src = withImg.img;
+		document.getElementById("profCover").classList.toggle("has-photo", !!withImg);
+	}
+	var stamps = [], seen = {};
+	entries.forEach(function(e) {
+		if (!e.shopId) return;
+		var k = e.date + ":" + e.shopId;
+		if (seen[k]) return;
+		seen[k] = true;
+		var r = typeof หาร้านจากId === "function" ? หาร้านจากId(Number(e.shopId)) : null;
+		stamps.push({ id: e.shopId, date: e.date, name: (r && r.ร้าน) || e.shop || "", img: r && r.รูป });
+	});
+	document.getElementById("pqStampsN").textContent = stamps.length;
+	var list = document.getElementById("profStampList");
+	var empty = document.getElementById("profStampEmpty");
+	list.innerHTML = "";
+	empty.hidden = stamps.length > 0;
+	list.hidden = !stamps.length;
+	stamps.slice(0, 8).forEach(function(s, i) {
+		var li = document.createElement("li");
+		var a = document.createElement("a");
+		a.className = "pstamp";
+		a.href = "diary.html?date=" + encodeURIComponent(s.date);
+		a.style.setProperty("--tilt", ((i % 3) - 1) * 7 + "deg");
+		a.innerHTML = '<span class="pstamp-ring"><img alt="" loading="lazy" decoding="async"/><i class="fas fa-store" aria-hidden="true"></i></span><small></small>';
+		var img = a.querySelector("img");
+		if (s.img) img.src = s.img; else img.remove();
+		a.querySelector("small").textContent = diaryFormatDate(s.date, { day: "numeric", month: "short" });
+		a.setAttribute("aria-label", t("profile.stampLabel").replace("{name}", s.name).replace("{date}", diaryFormatDate(s.date, { day: "numeric", month: "long" })));
+		a.title = s.name;
+		li.appendChild(a);
+		list.appendChild(li);
+	});
+}
+// ไข่ของฉัน: สกินที่ใส่อยู่ (จำไว้ในเครื่องจากหน้าสุ่ม แล้วถามเซิร์ฟเวอร์อีกที) — บัญชีจริงเท่านั้น กดแล้วไปหน้าสุ่ม (มีร้านสกิน)
+function paintProfEggRow() {
+	var row = document.getElementById("profEggRow");
+	var session = getSession();
+	if (!row || !session || !/^[0-9a-f-]{36}$/i.test(session.id || "")) return;
+	var cached = null;
+	try { cached = JSON.parse(localStorage.getItem("chimchim_egg_skin:" + session.id)); } catch (e) {}
+	function paint(skin, name) {
+		document.getElementById("profEggImg").src = skin && skin.image ? skin.image : "img/Dino/3.png";
+		document.getElementById("profEggName").textContent = skin ? (name || t("profile.myEggWearing")) : t("profile.myEggPlain");
+	}
+	row.hidden = false;
+	paint(cached, null);
+	if (typeof sbSkinState !== "function") return;
+	sbSkinState().then(function(st) {
+		if (!st || !Array.isArray(st.skins)) return;
+		var eq = st.equipped ? st.skins.filter(function(s) { return s.id === st.equipped; })[0] : null;
+		var owned = st.skins.filter(function(s) { return s.owned; }).length;
+		paint(eq, eq ? (getLang() === "en" ? eq.nameEn : eq.nameTh) : null);
+		if (owned) document.getElementById("profEggName").textContent += " · " + t("profile.myEggOwned").replace("{n}", owned);
+	});
+}
+// XP จากฐานข้อมูล (SQL Phase 29: รวมเช็กอิน/สแกนร้าน/ไดอารี่ + ฉายาที่เลือก) — บัญชีจริงใช้ตัวนี้ ไม่งั้นนับจากในเครื่อง
+var profServerXp = null, profServerXpLoading = false, profServerXpAt = 0;
+function loadProfServerXp() {
+	if (typeof sbMyXp !== "function" || profServerXpLoading || Date.now() - profServerXpAt < 4000) return;
+	var session = getSession();
+	if (!session || !/^[0-9a-f-]{36}$/i.test(session.id || "")) return;
+	profServerXpLoading = true;
+	sbMyXp().then(function(x) {
+		profServerXpLoading = false;
+		profServerXpAt = Date.now();
+		if (x) { profServerXp = x; refreshLevelCard(true); }
+	});
+}
+function levelTitleName(titleLevel, lv) {
+	return titleLevel && titleLevel <= lv.level ? t(CHIMCHIM_LEVELS[titleLevel - 1].name) : lv.name;
+}
+function refreshLevelCard(fromServer) {
 	var session = getSession();
 	var card = document.getElementById("profLevelCard");
 	if (!session || !card || profPage.type === "shop") return; // โปรไฟล์ร้านไม่มีเลเวลนักชิม
-	var info = คำนวณXP(session.id);
+	if (!fromServer) loadProfServerXp();
+	var local = คำนวณXP(session.id);
+	var info = profServerXp ? { xp: profServerXp.xp, counts: profServerXp } : local;
 	var lv = เลเวลจากXP(info.xp);
-	document.getElementById("profRole").innerHTML = '<i class="fas fa-medal"></i> Lv.' + lv.level + " " + escapeHtml(lv.name);
+	var titleLevel = profServerXp ? profServerXp.titleLevel || null : null;
+	var title = levelTitleName(titleLevel, lv);
+	document.getElementById("profRole").innerHTML = '<i class="fas fa-medal"></i> Lv.' + lv.level + " " + escapeHtml(title);
 	document.getElementById("profLevelBadge").textContent = "Lv." + lv.level;
-	document.getElementById("profLevelName").textContent = lv.name;
+	document.getElementById("profLevelName").textContent = title;
 	document.getElementById("profLevelXp").textContent = lv.next ? (info.xp + " / " + lv.next + " XP") : (info.xp + " XP");
 	document.getElementById("profLevelBar").style.width = Math.round(lv.progress * 100) + "%";
+	document.getElementById("profAvRing").style.setProperty("--xp", Math.round(lv.progress * 100));
+	document.getElementById("profAvRing").title = lv.next ? (info.xp + " / " + lv.next + " XP") : (info.xp + " XP");
+	document.getElementById("pqLevelN").textContent = "Lv." + lv.level;
 	document.getElementById("profLevelNext").textContent = lv.next
 		? t("level.toNext").replace("{n}", lv.next - info.xp).replace("{name}", lv.nextName)
 		: t("level.maxed");
-	card.setAttribute("aria-label", "Lv." + lv.level + " " + lv.name + ", " + info.xp + " XP");
+	card.setAttribute("aria-label", "Lv." + lv.level + " " + title + ", " + info.xp + " XP");
 	// โปรไฟล์ไดอารี่ไม่แสดงการ์ด XP บนหน้า — กดป้าย Lv ข้างชื่อแล้วเปิดรายละเอียดเลเวลชุดเดียวกัน
 	var rolePill = document.getElementById("profRole");
-	rolePill.setAttribute("aria-label", t("level.title") + ": Lv." + lv.level + " " + lv.name + ", " + info.xp + " XP");
+	rolePill.setAttribute("aria-label", t("level.title") + ": Lv." + lv.level + " " + title + ", " + info.xp + " XP");
 	rolePill.onclick = function() { card.onclick(); };
 	card.onclick = function() {
-		var rows = CHIMCHIM_XP_RULES.map(function(r) {
+		// แหล่ง XP จากฐานข้อมูล (เช็กอิน/สแกนร้าน/ไดอารี่) แสดงเฉพาะเมื่อถามเซิร์ฟเวอร์ได้ — ไม่โชว์ 0 หลอก ๆ
+		var rows = CHIMCHIM_XP_RULES.filter(function(r) { return !r.server || profServerXp; }).map(function(r) {
 			var n = info.counts[r.key] || 0;
 			return '<div class="lvlrow"><i class="fas fa-' + r.icon + '"></i><span>' + escapeHtml(t(r.label)) +
 				'<small>' + escapeHtml(t("level.perEach").replace("{xp}", r.xp)) + "</small></span><b>" + n + " × " + r.xp + " = " + (n * r.xp) + " XP</b></div>";
 		}).join("");
+		// ฉายา: เลเวลที่ถึงแล้วกด "ใช้" ได้ (บัญชีจริงเท่านั้น — ฐานข้อมูลตรวจเลเวลอีกชั้น)
+		var canPick = !!profServerXp && typeof sbSetTitle === "function";
 		var ladder = CHIMCHIM_LEVELS.map(function(l, i) {
 			var reached = info.xp >= l.min;
-			return '<li class="' + (i + 1 === lv.level ? "cur" : (reached ? "done" : "")) + '"><span>Lv.' + (i + 1) + " " + escapeHtml(t(l.name)) + "</span><b>" + l.min + " XP</b></li>";
+			var btn = "";
+			if (canPick && reached) {
+				var using = titleLevel === i + 1;
+				btn = '<button type="button" class="lvltitlebtn' + (using ? " is-on" : "") + '" data-title="' + (i + 1) + '"' + (using ? ' aria-pressed="true"' : ' aria-pressed="false"') + ">" +
+					escapeHtml(t(using ? "level.titleUsing" : "level.titleUse")) + "</button>";
+			}
+			return '<li class="' + (i + 1 === lv.level ? "cur" : (reached ? "done" : "")) + '"><span>Lv.' + (i + 1) + " " + escapeHtml(t(l.name)) + "</span><b>" + l.min + " XP</b>" + btn + "</li>";
 		}).join("");
+		var auto = canPick ? '<p class="lvltitlehint">' + escapeHtml(t("level.titleHint")) +
+			' <button type="button" class="lvltitlebtn' + (!titleLevel ? " is-on" : "") + '" data-title="" aria-pressed="' + (!titleLevel) + '">' + escapeHtml(t("level.titleAuto")) + "</button></p>" : "";
 		openProfDetailPop('<i class="fas fa-medal me-2"></i>' + escapeHtml(t("level.title")),
 			'<p class="lvlsum">' + escapeHtml(t("level.youAre").replace("{lv}", lv.level).replace("{name}", lv.name).replace("{xp}", info.xp)) + "</p>" +
 			'<div class="lvlrows">' + rows + "</div>" +
-			'<div class="lvlladdertit">' + escapeHtml(t("level.allLevels")) + "</div>" +
+			'<div class="lvlladdertit">' + escapeHtml(t("level.allLevels")) + "</div>" + auto +
 			'<ol class="lvlladder">' + ladder + "</ol>");
+		document.querySelectorAll("#pdBody .lvltitlebtn").forEach(function(b) {
+			b.addEventListener("click", function() {
+				var v = b.getAttribute("data-title");
+				b.disabled = true;
+				sbSetTitle(v ? Number(v) : null).then(function(res) {
+					if (!res || res.status !== "ok") { b.disabled = false; showToast(t("level.titleFailed")); return; }
+					profServerXp.titleLevel = res.titleLevel || null;
+					refreshLevelCard(true);
+					card.onclick();
+					showToast(t("level.titleSaved"));
+				});
+			});
+		});
 	};
 }
 

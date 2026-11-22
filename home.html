@@ -31,26 +31,6 @@
             <div class="anm">CHIM<span>CHIM</span></div>
          </a>
          <div class="apptop-actions">
-            <div class="qsettingswrap">
-               <button type="button" id="quickSettingsBtn" class="apptop-btn" data-i18n-title="profile.settings" title="ตั้งค่า"><i class="fas fa-gear"></i></button>
-               <div class="qspanel" id="quickSettingsPanel" hidden>
-                  <div class="qsrow">
-                     <span class="qslbl" data-i18n="settings.appearance">Appearance</span>
-                     <div class="qstoggle">
-                        <button type="button" data-theme-choice="light" data-i18n-title="settings.light" title="โหมดสว่าง"><i class="fas fa-sun"></i></button>
-                        <button type="button" data-theme-choice="dark" data-i18n-title="settings.dark" title="โหมดมืด"><i class="fas fa-moon"></i></button>
-                     </div>
-                  </div>
-                  <div class="qsrow">
-                     <span class="qslbl" data-i18n="settings.language">Language</span>
-                     <div class="qstoggle">
-                        <button type="button" data-lang-choice="en" title="English" aria-label="English">🇬🇧</button>
-                        <button type="button" data-lang-choice="th" title="ไทย" aria-label="ไทย">🇹🇭</button>
-                     </div>
-                  </div>
-                  <a href="settings.html" class="qsmore" data-i18n="profile.settings">Settings</a>
-               </div>
-            </div>
             <button id="loginBtn" class="apptop-loginbtn" data-i18n="auth.login">เข้าสู่ระบบ</button>
             <a href="profile.html" id="userAvatarLink" class="apptop-avatar" data-i18n-aria="nav.profile" aria-label="โปรไฟล์" hidden><span id="userAvatarIco">🦖</span></a>
          </div>
@@ -89,7 +69,7 @@
 
          <div class="mb-4" data-aos="fade-up">
             <h2 class="rowtitle"><span id="recTitle" data-i18n="home.recommendedTitle">แนะนำสำหรับคุณ</span></h2>
-            <p class="rowsub" id="recSub" data-i18n="home.recommendedSub">เรียงตามความตรงใจจาก Food DNA ของคุณ ตั้งแต่ 70% ขึ้นไป</p>
+            <p class="rowsub" id="recSub" data-i18n="home.recommendedSub">เรียงตามความตรงใจจาก Food DNA ของคุณ และร้านที่อยู่ใกล้</p>
             <p class="rowsub" id="trendCatEmptyRec" hidden></p>
 
             <div class="areanotice" id="areaNotice" hidden><i class="fas fa-location-dot"></i><span></span></div>
@@ -98,6 +78,7 @@
                <div class="mhcirclewrap" id="mhCircleWrap" role="link" tabindex="0">
                   <div class="mhslides" id="mhSlides"></div>
                </div>
+               <button type="button" class="mhsave" id="mhSaveBtn" aria-pressed="false"><i class="far fa-bookmark" aria-hidden="true"></i></button>
                <div class="mhbadge mhbadge-match" id="mhMatchBadge" hidden>
                   <div class="mhicon"><i class="fas fa-bullseye"></i></div>
                   <div><b id="mhMatchVal"></b><span data-i18n="home.matchHeroSub">ตาม Food DNA ของคุณ</span></div>
@@ -116,8 +97,6 @@
                </div>
                <div class="mhdots" id="mhDots"></div>
             </div>
-
-            <div class="hrowwrap" id="recommendedRow"></div>
          </div>
 
          <div class="locationprompt mb-4" id="locationPrompt" hidden data-aos="fade-up">

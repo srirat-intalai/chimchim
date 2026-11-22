@@ -3655,8 +3655,66 @@ button.trendcatchip {
   width: 276px;
   height: 276px;
 }
+/* กรอบภาพเป็นสี่เหลี่ยมผืนผ้าแนวนอน 3:2 มุมมน (แทนวงกลม) เต็มความกว้างของคอลัมน์ (สูงสุด 640px)
+   กรอบอยู่ในลำดับปกติ (ความสูงตามความกว้างจริง) · แผ่นพื้นหลังและป้ายลอยวางตามขนาดกรอบด้วย cqw */
+.matchhero {
+  max-width: 640px;
+  container-type: inline-size;
+  padding-top: 0;
+  --mh-w: 100cqw;
+  --mh-h: calc(var(--mh-w) * 2 / 3);
+}
+/* แผ่นพื้นหลังโผล่ใต้กรอบเหมือนการ์ดซ้อน (แคบกว่ากรอบ ไม่ล้นจอ) */
+.mhring {
+  top: 30px;
+  width: calc(var(--mh-w) - 32px);
+  height: var(--mh-h);
+  border-radius: 26px;
+}
+.mhcirclewrap {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+  margin: 16px auto 28px;
+  width: var(--mh-w);
+  height: var(--mh-h);
+  border-radius: 26px;
+}
 .mhbadge-dist {
-  top: 196px;
+  top: calc(16px + var(--mh-h) - 50px);
+  right: 10px;
+}
+/* ปุ่มบันทึกรูปไข่ มุมขวาบนของภาพ (แยกจากกรอบภาพที่กดเข้าร้าน) */
+.mhsave {
+  position: absolute;
+  top: 26px;
+  right: 12px;
+  z-index: 3;
+  width: 44px;
+  height: 54px;
+  padding: 0;
+  border: 0;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: var(--rf-surface);
+  color: var(--rf-ink);
+  box-shadow: var(--rf-shadow-sm);
+  font-size: 1.1rem;
+  display: grid;
+  place-items: center;
+  padding-top: 4px;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.18s, color 0.18s;
+}
+.mhsave:active { transform: scale(0.92); }
+.mhsave:focus-visible { outline: 3px solid var(--rf-ink); outline-offset: 2px; }
+.mhsave.is-saved { background: var(--rf-brand, #e5484d); color: #fff; }
+.mhsave.is-pop { animation: mhsave-pop 0.36s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes mhsave-pop { 40% { transform: scale(1.18) rotate(-6deg); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .mhsave, .mhsave.is-pop { animation: none; transition: none; } }
+/* ภาพเต็มกว้างแล้ว ป้ายลอยเว้นจากขอบจอเล็กน้อย */
+.mhbadge-match {
+  left: 10px;
 }
 button.mhbadge {
   font: inherit;
@@ -4151,9 +4209,50 @@ button.mhbadge {
   display: none !important;
 }
 
-/* ไข่ปรับตามความสูงจอ — จอเตี้ยไข่ไม่จมใต้แถบเมนูล่างตั้งแต่ยังไม่สุ่ม */
+/* ไข่ดุ๊กดิ๊กเป็นพัก ๆ ตอนรอแตะ (คลาสใส่จาก chimchim-roulette.js เฉพาะ idle) — ย่อตัว เด้ง โยกซ้ายขวา แล้วนิ่ง */
 .eggbtn {
-  width: min(300px, 74vw, 34vh);
+  transform-origin: 50% 82%;
+}
+.eggstage[data-state="idle"] .eggbtn.is-wiggle {
+  animation: eggWiggle 0.95s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+@keyframes eggWiggle {
+  0% { transform: none; }
+  12% { transform: scale(1.06, 0.92); }
+  26% { transform: translateY(-14px) scale(0.96, 1.05) rotate(-7deg); }
+  40% { transform: translateY(0) rotate(8deg); }
+  54% { transform: rotate(-6deg); }
+  68% { transform: rotate(4deg); }
+  82% { transform: rotate(-2deg); }
+  100% { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eggstage[data-state="idle"] .eggbtn.is-wiggle { animation: none; }
+}
+/* เอฟเฟกต์ระเบิดสีประจำหมวดตอนแตะไข่ (canvas เต็มจอ โปร่งทะลุ ไม่บังการกด) + ไข่ขยายขึ้นนิดหนึ่งตอนแตะ */
+.eggfx {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 60;
+  pointer-events: none;
+  display: none;
+}
+.eggfx.is-on { display: block; }
+.eggbtn.is-pump { animation: eggPump 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes eggPump {
+  0% { transform: none; }
+  40% { transform: scale(1.08); }
+  100% { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eggbtn.is-pump { animation: none; }
+  .eggfx { display: none !important; }
+}
+/* ไข่ปรับตามความสูงจอ — จอเตี้ยไข่ไม่จมใต้แถบเมนูล่างตั้งแต่ยังไม่สุ่ม (ขยายจาก 300px/74vw/34vh) */
+.eggbtn {
+  width: min(380px, 90vw, 44vh);
 }
 /* ตัวเลือกเพิ่มเติมอยู่ใต้พื้นที่ฟักไข่แล้ว */
 .egghatch + .rfilters {
@@ -5220,6 +5319,67 @@ h1.rdtitle {
 .rfilters summary:focus-visible { outline: 2px solid var(--rfx-accent); outline-offset: 2px; border-radius: 24px; }
 .rfilters[open] { border-radius: 24px; }
 .rfilters .rfbody { padding: 4px 18px 16px; }
+/* แถบ "หมวดหมู่" แบบพื้นม่วงไล่สี + คลื่นม่วงเข้มด้านขวา (ตามภาพตัวอย่างของผู้ใช้) ตัวหนังสือ/ไอคอนขาว
+   มาสคอตไดโนโผล่หัวจากขอบบนซ้าย (ครอปเฉพาะหัว) · แผงเนื้อหาเมื่อเปิดยังเป็นพื้นอ่อนเดิม อ่านง่าย */
+.rfilters,
+.rmodedesc + .rmodenote + .rfilters,
+.rmodedesc + .rmodenote[hidden] + .rfilters,
+.egghatch + .rfilters {
+  margin-top: 46px;
+}
+.rfilters {
+  position: relative;
+  isolation: isolate; /* มาสคอต (z-index -1) อยู่หลังแถบม่วงแต่ยังอยู่ในกล่องนี้ */
+  border: 0;
+  background: var(--rfx-bg);
+  box-shadow: 0 10px 22px -12px rgba(104, 66, 181, 0.55);
+}
+.rfilters summary {
+  position: relative;
+  min-height: 60px;
+  padding: 8px 20px 8px 18px;
+  gap: 14px;
+  border-radius: 24px;
+  color: #fff;
+  font-size: 1rem;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 100' preserveAspectRatio='none'%3E%3Cpath d='M250 100 C285 70 270 40 315 28 C355 18 372 6 400 0 L400 100 Z' fill='%235b2fb5' fill-opacity='.38'/%3E%3C/svg%3E") right center / 62% 100% no-repeat, linear-gradient(100deg, #a173f2 0%, #8656e0 55%, #7445cf 100%);
+}
+[data-theme="dark"] .rfilters summary {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 100' preserveAspectRatio='none'%3E%3Cpath d='M250 100 C285 70 270 40 315 28 C355 18 372 6 400 0 L400 100 Z' fill='%235b2fb5' fill-opacity='.38'/%3E%3C/svg%3E") right center / 62% 100% no-repeat, linear-gradient(100deg, #8a5ce0 0%, #7246c8 55%, #5f37b0 100%);
+}
+.rfilters[open] summary {
+  border-radius: 24px 24px 0 0;
+}
+.rfilters summary > .fa-sliders,
+.rfilters summary:hover > .fa-sliders {
+  width: auto;
+  height: auto;
+  background: none;
+  color: #fff;
+  font-size: 1.25rem;
+}
+.rfilters .rfsummary { color: #fff; opacity: 0.85; }
+.rfilters .rfchev { color: #fff; font-size: 0.95rem; }
+.rfilters summary:focus-visible { outline: 3px solid var(--rfx-accent); outline-offset: 3px; }
+.rfilters .rfbody { padding-top: 14px; }
+/* มาสคอต: ยืนอยู่หลังแถบ โผล่แค่หัวเหนือขอบบน ตัวที่เหลือถูกแถบม่วงบังไว้ (ไม่เห็นรอยตัด) */
+.rfmascot {
+  position: absolute;
+  top: -40px;
+  left: 14px;
+  z-index: -1;
+  width: 84px;
+  height: 84px;
+  pointer-events: none;
+}
+.rfmascot img {
+  display: block;
+  width: 84px;
+  height: 84px;
+  margin-top: 2px;
+  user-select: none;
+  -webkit-user-select: none;
+}
 
 /* ---- ไฟของแอปบนหน้าแรก (ข้างคำทักทาย) — แตะเปิดกิจกรรมเช็กอิน 7 วัน ----
    off = ยังไม่รับของวันนี้ (เทา + จุดชวนกด) · on = รับแล้ว (แดง) · hot = ต่อเนื่อง 20 วันขึ้นไป (ม่วง) */
@@ -5343,3 +5503,413 @@ h1.rdtitle {
   box-shadow: 0 0 0 2px var(--rf-bg, #fff);
 }
 .rwallet-badge[hidden] { display: none; }
+
+/* ---- หน้าติดตาม: การ์ดร้าน/นักชิมสูงเท่ากันทุกใบ ----
+   ชื่อจองที่ 2 บรรทัดเสมอ (ยาวกว่านั้นตัด …) · ประเภท/มหาลัย 1 บรรทัด · ปุ่ม Follow ชิดล่างทุกใบ */
+#creatorGrid > .col-6 { display: flex; }
+#creatorGrid .chcard {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+#creatorGrid .chbody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+#creatorGrid .chnm {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  width: 100%;
+  line-height: 1.3;
+  min-height: 2.6em;
+  text-wrap: balance;
+}
+#creatorGrid .chlv {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#creatorGrid .followbtn { margin-top: auto; }
+
+/* ---- การ์ดชวนสร้างร้าน (หน้าโปรไฟล์) — ไอคอนร้าน + เครื่องหมายบวก กดทั้งการ์ดไปหน้าสร้างร้าน ---- */
+.createshopcard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 4px 0 16px;
+  padding: 14px 16px;
+  min-height: 72px;
+  border-radius: 20px;
+  border: 1.5px dashed color-mix(in srgb, var(--rf-brand) 45%, transparent);
+  background: color-mix(in srgb, var(--rf-brand) 7%, var(--rf-surface));
+  color: var(--rf-ink);
+  text-decoration: none;
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.18s;
+}
+.createshopcard[hidden] { display: none; }
+.createshopcard:hover { background: color-mix(in srgb, var(--rf-brand) 12%, var(--rf-surface)); color: var(--rf-ink); }
+.createshopcard:active { transform: scale(0.98); }
+.createshopcard:focus-visible { outline: 3px solid var(--rf-brand); outline-offset: 2px; }
+.createshopcard-ico {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: var(--rf-brand-grad);
+  color: #fff;
+  font-size: 1.2rem;
+}
+.createshopcard-ico .fa-plus {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--rf-surface);
+  color: var(--rf-brand);
+  font-size: 0.7rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+.createshopcard-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.createshopcard-text b { font-size: 0.95rem; font-weight: 700; line-height: 1.3; }
+.createshopcard-text small { font-size: 0.78rem; color: var(--rf-ink-2); line-height: 1.35; }
+.createshopcard-go { color: var(--rf-brand); flex: none; }
+
+/* ---- หน้าสร้างร้าน (settings.html?newShop=1): เหลือแค่ฟอร์มร้าน ซ่อนการตั้งค่าอื่นทั้งหมด ---- */
+body.is-createshop .container > .profcard:not(#shopFormCard):not(#shopGuestCard),
+body.is-createshop #logoutBtn {
+  display: none !important;
+}
+
+/* ---- ตัวสแกนคิวอาร์ร้าน (หน้าไดอารี่) — เต็มจอบนมือถือ กล้องเต็มกรอบ กรอบเล็งสี่มุม ---- */
+.qrscan {
+  width: min(480px, 100vw);
+  max-width: 100vw;
+  height: min(760px, 100dvh);
+  max-height: 100dvh;
+  margin: auto;
+  padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+  border: 0;
+  border-radius: 24px;
+  background: #121017;
+  color: #fff;
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+.qrscan[open] { display: flex; }
+.qrscan::backdrop { background: rgba(10, 8, 16, 0.7); }
+@media (max-width: 520px) { .qrscan { border-radius: 0; width: 100vw; height: 100dvh; } }
+.qrs-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.qrs-head h2 { margin: 0; font-size: 1.05rem; font-weight: 700; color: #fff; }
+.qrs-close {
+  display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12); color: #fff; font-size: 1.1rem; cursor: pointer;
+}
+.qrs-close:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.qrs-view {
+  position: relative; flex: 1; min-height: 240px; border-radius: 20px; overflow: hidden; background: #000;
+}
+.qrs-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.qrs-frame {
+  position: absolute; left: 50%; top: 50%; width: min(68%, 260px); aspect-ratio: 1; transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.45); border-radius: 18px;
+}
+.qrs-frame[hidden] { display: none; }
+.qrs-frame i { position: absolute; width: 34px; height: 34px; border: 4px solid #fff; }
+.qrs-frame i:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 18px; }
+.qrs-frame i:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; border-top-right-radius: 18px; }
+.qrs-frame i:nth-child(3) { bottom: 0; left: 0; border-right: 0; border-top: 0; border-bottom-left-radius: 18px; }
+.qrs-frame i:nth-child(4) { bottom: 0; right: 0; border-left: 0; border-top: 0; border-bottom-right-radius: 18px; }
+.qrs-line {
+  position: absolute; left: 10%; right: 10%; top: 50%; height: 2px; border-radius: 2px;
+  background: var(--rf-brand, #8656e0); box-shadow: 0 0 10px var(--rf-brand, #8656e0); opacity: 0;
+}
+.qrscan.is-live .qrs-line { opacity: 1; animation: qrsScan 2s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate; }
+.qrscan.is-still .qrs-line { animation: none; }
+@keyframes qrsScan { from { top: 12%; } to { top: 88%; } }
+@media (prefers-reduced-motion: reduce) { .qrscan.is-live .qrs-line { animation: none; } }
+.qrs-state {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 24px; text-align: center; color: rgba(255, 255, 255, 0.85);
+}
+.qrs-state[hidden] { display: none; }
+.qrs-state i { font-size: 2rem; opacity: 0.7; }
+.qrs-state p { margin: 0; max-width: 30ch; line-height: 1.5; font-size: 0.92rem; }
+.qrs-hint { margin: 0; min-height: 1.5em; text-align: center; font-size: 0.9rem; line-height: 1.45; color: rgba(255, 255, 255, 0.85); }
+.qrs-hint.is-bad { color: #ffb4a8; }
+.qrs-actions { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.qrs-actions .jbtn {
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12); color: #fff; border: 0; font: inherit; font-weight: 600; cursor: pointer;
+}
+.qrs-actions .jbtn:focus-within, .qrs-actions .jbtn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+/* ---- ฟอร์มไดอารี่: ร้านที่สแกนได้ + ชิปเมนูของร้าน ---- */
+.jscanned {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 10px 12px; border-radius: 16px;
+  background: color-mix(in srgb, var(--rf-brand, #8656e0) 10%, transparent);
+  color: var(--rf-ink);
+}
+.jscanned[hidden] { display: none; }
+.jscanned > i { color: var(--rf-brand, #8656e0); font-size: 1.1rem; }
+.jscanned > span { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.jscanned small { font-size: 0.75rem; color: var(--rf-ink-2); }
+.jscanned b { font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jscanned .jlinkbtn { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.jchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.jchips[hidden] { display: none; }
+.jchips .jchip[aria-pressed="true"] { background: var(--rf-brand, #8656e0); border-color: var(--rf-brand, #8656e0); color: #fff; }
+
+/* ---- หน้าร้านที่เปิดจากคิวอาร์: แถบชวนบันทึกลงไดอารี่ ---- */
+.rdqrlog {
+  display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 12px 14px; min-height: 56px; border-radius: 16px;
+  background: var(--rf-brand-grad); color: #fff; text-decoration: none; font-size: 0.88rem;
+}
+.rdqrlog[hidden] { display: none; }
+.rdqrlog:hover { color: #fff; }
+.rdqrlog span { flex: 1; }
+.rdqrlog b { flex: none; padding: 6px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.2); }
+
+/* หน้าตั้งค่าปกติ: ไม่มีฟอร์ม "โพสต์ร้านของฉัน" แล้ว — ฟอร์มร้านอยู่ในหน้าสร้างร้าน (?newShop=1) / แก้ไขร้าน (?editShop=1) เท่านั้น */
+body:not(.is-createshop) #shopFormCard,
+body:not(.is-createshop) #shopGuestCard {
+  display: none !important;
+}
+
+/* ---- แถบล่าง: ปุ่ม "สุ่มร้าน" เด่นกว่าปุ่มอื่น ----
+   ไข่ม่วงไล่สีทรงไข่ ยื่นพ้นขอบบนแถบนิดหน่อย (~10px) มีวงขอบสีเดียวกับแถบ (ดูเหมือนเจาะแถบออกมา) + ชื่อสีขาวตลอด
+   ปุ่มเทรนด์/ติดตามคงแบบเดิม · อยู่หน้าสุ่มร้าน = ไข่มีวงเรืองแสงเพิ่ม */
+.appnav .ancenter,
+.appnav .ancenter:hover,
+.appnav .ancenter:not([aria-current="page"]),
+.appnav .ancenter[aria-current="page"],
+[data-theme="dark"] .appnav .ancenter {
+  color: #fff;
+}
+.appnav .ancenter i,
+.appnav .ancenter:hover i,
+.appnav .ancenter.active i,
+.appnav .ancenter[aria-current="page"] i {
+  width: 52px;
+  height: 56px;
+  margin-top: -18px;
+  border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%;
+  background: var(--rf-brand-grad);
+  color: #fff;
+  font-size: 1.35rem;
+  box-shadow: 0 0 0 5px var(--rf-ink-deep), 0 12px 22px -6px rgba(104, 66, 181, 0.75);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
+}
+[data-theme="dark"] .appnav .ancenter i,
+[data-theme="dark"] .appnav .ancenter:hover i,
+[data-theme="dark"] .appnav .ancenter[aria-current="page"] i {
+  box-shadow: 0 0 0 5px #2a2535, 0 12px 22px -6px rgba(154, 122, 236, 0.6);
+}
+.appnav .ancenter span { font-weight: 700; }
+.appnav .ancenter:hover i { transform: translateY(-2px); }
+.appnav .ancenter:active i { transform: scale(0.94); }
+/* อยู่หน้าสุ่มร้าน: วงเรืองแสงรอบไข่บอกว่า "อยู่ที่นี่" (ไม่ใช่แคปซูลแบบปุ่มอื่น) */
+.appnav .ancenter[aria-current="page"] i {
+  box-shadow: 0 0 0 5px var(--rf-ink-deep), 0 0 0 8px rgba(201, 184, 255, 0.55), 0 12px 22px -6px rgba(104, 66, 181, 0.75);
+}
+[data-theme="dark"] .appnav .ancenter[aria-current="page"] i {
+  box-shadow: 0 0 0 5px #2a2535, 0 0 0 8px rgba(201, 184, 255, 0.45), 0 12px 22px -6px rgba(154, 122, 236, 0.6);
+}
+.appnav .ancenter:focus-visible { outline: none; }
+.appnav .ancenter:focus-visible i { outline: 3px solid #fff; outline-offset: 7px; }
+@media (prefers-reduced-motion: reduce) {
+  .appnav .ancenter i { transition: none; }
+}
+
+/* ---- ร้านสกินไข่ (หน้าสุ่มร้าน) ---- */
+.eggstage { position: relative; }
+.eggshopbtn {
+  position: absolute; top: 4px; right: 4px; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-width: 56px; min-height: 56px; padding: 6px 8px; border: 1px solid var(--rf-line); border-radius: 18px;
+  background: var(--rf-surface); color: var(--rf-brand); box-shadow: var(--rf-shadow-sm);
+  font: inherit; font-size: 0.72rem; font-weight: 700; cursor: pointer;
+}
+.eggshopbtn[hidden] { display: none; }
+.eggshopbtn i { font-size: 1.1rem; }
+.eggshopbtn span { color: var(--rf-ink); }
+.eggshopbtn:active { transform: scale(0.95); }
+.eggshopbtn:focus-visible { outline: 3px solid var(--rf-brand); outline-offset: 2px; }
+.eggstage[data-state="revealing"] .eggshopbtn,
+.eggstage[data-state="result"] .eggshopbtn,
+.eggstage[data-state="opening"] .eggshopbtn { display: none; }
+
+.skindlg {
+  width: min(460px, calc(100% - 24px)); max-height: min(720px, calc(100dvh - 24px)); margin: auto; padding: 18px;
+  border: 0; border-radius: 24px; background: var(--rf-surface); color: var(--rf-ink);
+  box-shadow: 0 30px 80px -20px rgba(20, 18, 24, 0.45); overflow: auto;
+}
+.skindlg::backdrop { background: rgba(23, 19, 31, 0.5); }
+.sk-head { display: flex; align-items: center; gap: 10px; }
+.sk-head h2 { flex: 1; margin: 0; font-size: 1.1rem; font-weight: 800; }
+.sk-balance { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px 4px 6px; border-radius: 999px; background: #fff4d6; color: #7a4b00; font-weight: 800; }
+[data-theme="dark"] .sk-balance { background: #3b2f12; color: #ffd36b; }
+.sk-balance img { width: 22px; height: 22px; }
+.sk-balance small { font-size: 0.75rem; font-weight: 700; }
+.sk-close { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--rf-line); border-radius: 50%; background: var(--rf-surface); color: var(--rf-ink); cursor: pointer; }
+.sk-sub { margin: 8px 0 14px; font-size: 0.85rem; line-height: 1.5; color: var(--rf-ink-2); }
+.sk-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 10px; }
+.sk-card {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 10px 12px;
+  border: 1.5px solid var(--rf-line); border-radius: 18px; background: var(--rf-surface); text-align: center;
+}
+.sk-card.is-on { border-color: var(--rf-brand); background: color-mix(in srgb, var(--rf-brand) 8%, var(--rf-surface)); }
+.sk-art { display: block; width: 100%; aspect-ratio: 1; }
+.sk-art img { width: 100%; height: 100%; object-fit: contain; }
+.sk-rarity { position: absolute; top: 8px; left: 8px; padding: 2px 8px; border-radius: 999px; font-size: 0.68rem; font-weight: 800; background: #ececf1; color: #4a4852; }
+.sk-card.r-rare .sk-rarity { background: #e3edff; color: #1f4fb8; }
+.sk-card.r-legendary .sk-rarity { background: #fff0c2; color: #8a5a00; }
+[data-theme="dark"] .sk-rarity { background: #34313c; color: #d9d6e0; }
+[data-theme="dark"] .sk-card.r-rare .sk-rarity { background: #1d2c4d; color: #a9c4ff; }
+[data-theme="dark"] .sk-card.r-legendary .sk-rarity { background: #3d3012; color: #ffd36b; }
+.sk-name { font-size: 0.88rem; line-height: 1.3; }
+.sk-from { font-size: 0.72rem; color: var(--rf-ink-2); }
+.sk-act {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: 100%; min-height: 40px; margin-top: auto;
+  border: 1px solid var(--rf-line); border-radius: 999px; background: var(--rf-surface); color: var(--rf-ink);
+  font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+}
+.sk-act img { width: 18px; height: 18px; }
+.sk-act[aria-disabled="true"] { cursor: default; color: var(--rf-brand); border-color: transparent; background: transparent; }
+.sk-act.is-buy { background: var(--rf-brand-grad); color: #fff; border-color: transparent; }
+.sk-act.is-buy.is-short { background: var(--rf-surface); color: var(--rf-ink-2); border-color: var(--rf-line); }
+.sk-act.is-confirm { background: #1f9d55; color: #fff; }
+.sk-act:focus-visible { outline: 3px solid var(--rf-brand); outline-offset: 2px; }
+.sk-none { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 12px 22px; border-radius: 18px; background: color-mix(in srgb, var(--rf-brand) 7%, transparent); text-align: center; }
+.sk-none img { width: 88px; height: 88px; object-fit: contain; opacity: 0.55; filter: grayscale(0.4); }
+.sk-none b { font-size: 1rem; color: var(--rf-ink); }
+.sk-none p { margin: 0; max-width: 30ch; font-size: 0.85rem; line-height: 1.5; color: var(--rf-ink-2); }
+.sk-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 8px; text-align: center; color: var(--rf-ink-2); }
+.sk-msg { min-height: 1.4em; margin: 12px 0 0; font-size: 0.85rem; text-align: center; color: var(--rf-ink-2); }
+.sk-msg.is-bad { color: #c2410c; }
+[data-theme="dark"] .sk-msg.is-bad { color: #ffb37a; }
+
+/* หีบให้สกิน — การ์ดเล็กใต้ยอด Token ในหน้าต่างเปิดรางวัล */
+.cn-skin { display: flex; align-items: center; gap: 10px; margin: 4px 0 8px; padding: 10px 12px; border-radius: 16px; background: color-mix(in srgb, var(--rf-brand) 10%, transparent); text-align: left; }
+.cn-skin[hidden] { display: none; }
+.cn-skin img { width: 52px; height: 52px; object-fit: contain; flex: none; }
+.cn-skin span { display: flex; flex-direction: column; gap: 2px; }
+.cn-skin b { font-size: 0.9rem; }
+.cn-skin small { font-size: 0.75rem; color: var(--rf-ink-2); }
+
+/* ---- ปุ่มเสียงไข่ (มุมซ้ายบนของพื้นที่ไข่) ---- */
+.eggsoundbtn {
+  position: absolute; top: 4px; left: 4px; z-index: 2;
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0;
+  border: 1px solid var(--rf-line); border-radius: 50%; background: var(--rf-surface); color: var(--rf-ink-2);
+  box-shadow: var(--rf-shadow-sm); cursor: pointer; font-size: 0.95rem;
+}
+.eggsoundbtn[hidden] { display: none; }
+.eggsoundbtn[aria-pressed="true"] { color: var(--rf-brand); }
+.eggsoundbtn:focus-visible { outline: 3px solid var(--rf-brand); outline-offset: 2px; }
+.eggstage[data-state="revealing"] .eggsoundbtn,
+.eggstage[data-state="result"] .eggsoundbtn,
+.eggstage[data-state="opening"] .eggsoundbtn { display: none; }
+
+/* ---- การ์ดผลออกมาจากไข่: ขอบเปลือกแตกด้านบนสีตามไข่ + ชื่อเมนูค่อย ๆ ลอยขึ้น ---- */
+.eggresult { --egg-tint: var(--rf-brand, #8656e0); }
+.eggresult[data-egg="soup"] { --egg-tint: #f2b632; }
+.eggresult[data-egg="japanese"] { --egg-tint: #e23838; }
+.eggresult[data-egg="thaiisan"] { --egg-tint: #ea522a; }
+.eggresult[data-egg="noodle"] { --egg-tint: #b9844f; }
+.eggresult[data-egg="fastfood"] { --egg-tint: #f2861f; }
+.eggresult[data-egg="plain"] { --egg-tint: #a173f2; }
+.eggresult::before {
+  content: ""; position: absolute; z-index: 2; left: 0; right: 0; top: 0; height: 16px; pointer-events: none;
+  background: var(--egg-tint);
+  clip-path: polygon(0 0, 100% 0, 100% 45%, 94% 100%, 87% 40%, 80% 95%, 72% 35%, 64% 100%, 56% 40%, 48% 95%, 40% 35%, 32% 100%, 24% 40%, 16% 95%, 8% 40%, 0 85%);
+}
+.eggresult.is-in::before { animation: eggRimIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes eggRimIn { from { transform: translateY(-100%); } to { transform: none; } }
+.eggresult.is-in .eggresult-name { animation: eggNameUp 0.45s 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.eggresult.is-in .eggresult-meta,
+.eggresult.is-in .eggresult-btns { animation: eggNameUp 0.4s 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes eggNameUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .eggresult.is-in::before, .eggresult.is-in .eggresult-name, .eggresult.is-in .eggresult-meta, .eggresult.is-in .eggresult-btns { animation: none; }
+}
+
+/* ---- ไฟติด (กดรับของวันนี้) — ไอคอนเด้ง + ประกายไฟลอยขึ้น · ครบ 20 วัน (ไฟม่วง) = วงแหวนฉลองเพิ่ม ---- */
+.fireburst { position: absolute; inset: 0; pointer-events: none; overflow: visible; z-index: 3; }
+.fireburst i {
+  position: absolute; left: 50%; top: 55%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%;
+  background: var(--spark, #ff8a3d); opacity: 0;
+  animation: fireSpark 0.9s var(--d, 0s) cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+@keyframes fireSpark {
+  0% { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.3); }
+}
+.fireburst b {
+  position: absolute; left: 50%; top: 50%; width: 100%; aspect-ratio: 1; border-radius: 50%;
+  border: 3px solid var(--ring, #b48cff); transform: translate(-50%, -50%) scale(0.6); opacity: 0;
+  animation: fireRing 0.9s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes fireRing { 0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.6); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(2.1); } }
+.is-ignite { animation: fireIgnite 0.6s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes fireIgnite { 0% { transform: scale(0.8); } 50% { transform: scale(1.18); } 100% { transform: none; } }
+.tk-fire { position: relative; }
+@media (prefers-reduced-motion: reduce) { .fireburst { display: none; } .is-ignite { animation: none; } }
+
+/* ---- ฉายา: ปุ่ม "ใช้" ในรายการเลเวล (โปรไฟล์ → รายละเอียดเลเวล) ---- */
+.lvlladder li { display: flex; align-items: center; gap: 8px; }
+.lvlladder li span { flex: 1; }
+.lvltitlebtn {
+  min-height: 32px; padding: 4px 12px; border: 1px solid var(--rf-line); border-radius: 999px;
+  background: var(--rf-surface); color: var(--rf-ink); font: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer;
+}
+.lvltitlebtn.is-on { background: var(--rf-brand-grad); color: #fff; border-color: transparent; }
+.lvltitlebtn:focus-visible { outline: 3px solid var(--rf-brand); outline-offset: 2px; }
+.lvltitlehint { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 8px; font-size: 0.8rem; color: var(--rf-ink-2); }
+
+/* สกินล็อกเลเวล */
+.sk-card.is-locked .sk-art img { filter: grayscale(0.85) brightness(0.9); opacity: 0.6; }
+.sk-act.is-locked { color: var(--rf-ink-2); background: var(--rf-surface); border: 1px dashed var(--rf-line); }
+.sk-lv { font-size: 0.7rem; font-weight: 700; color: var(--rf-brand); }
+
+/* ---- ไข่ออกสกิน: การ์ดผลแบบพิเศษ (แสงหมุนหลังภาพสกินตามระดับ) ---- */
+.eggskinwin {
+  --esw: #a173f2;
+  position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  margin: 4px 0 10px; padding: 18px 16px 16px; border-radius: var(--rf-radius); text-align: center;
+  background: var(--rf-surface); border: 2px solid color-mix(in srgb, var(--esw) 55%, transparent);
+  box-shadow: 0 18px 40px -16px color-mix(in srgb, var(--esw) 70%, transparent);
+}
+.eggskinwin[hidden] { display: none; }
+.eggskinwin[data-rarity="rare"] { --esw: #4f8bff; }
+.eggskinwin[data-rarity="legendary"] { --esw: #f5a623; }
+.eggskinwin.is-in { animation: eggHatchUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.esw-kicker { margin: 0; font-size: 0.85rem; font-weight: 700; color: var(--esw); }
+.esw-art { position: relative; width: 160px; aspect-ratio: 1; display: grid; place-items: center; }
+.esw-art::before {
+  content: ""; position: absolute; inset: 6%; border-radius: 50%;
+  background: repeating-conic-gradient(color-mix(in srgb, var(--esw) 35%, transparent) 0 12deg, transparent 12deg 24deg);
+  animation: eswSpin 8s linear infinite;
+}
+.esw-art img { position: relative; width: 100%; height: 100%; object-fit: contain; }
+@keyframes eswSpin { to { transform: rotate(360deg); } }
+.esw-rarity { padding: 2px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 800; color: #fff; background: var(--esw); }
+.esw-name { margin: 2px 0 0; font-size: 1.2rem; font-weight: 800; color: var(--rf-ink); }
+.esw-note { margin: 0; font-size: 0.82rem; color: var(--rf-ink-2); }
+.esw-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 8px; }
+.esw-btns .btn-red, .esw-again { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; }
+.esw-again { border: 1px solid var(--rf-line); border-radius: 999px; background: var(--rf-surface); color: var(--rf-ink); font: inherit; font-weight: 700; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .esw-art::before, .eggskinwin.is-in { animation: none; } }

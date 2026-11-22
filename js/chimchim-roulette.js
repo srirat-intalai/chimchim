@@ -34,7 +34,7 @@ function โหมดที่ใช้จริง() {
 }
 
 /* -----------------------------------------------------
-   ตัวเลือกเพิ่มเติม (ไม่บังคับ): ประเภทอาหาร / งบต่อคน / ระยะทาง
+   หมวดหมู่ (ไม่บังคับ): ประเภทอาหาร / งบต่อคน / ระยะทาง
    ค่าเริ่มต้นคือ "ไม่จำกัด" ทุกข้อ จำไว้ในเครื่องให้ครั้งหน้าไม่ต้องเลือกใหม่
 ----------------------------------------------------- */
 var RF_KEY = "chimchim_roulette_filters_v2";
@@ -153,6 +153,32 @@ function filterSummaryText() {
 	return parts.join(" · ");
 }
 
+// ไข่ตามหมวดหมู่ที่เลือก (หมวดล่าสุดที่กด) — ภาพไข่จากแบบที่เจ้าของแอปส่งมา ตัดพื้นหลังแล้ววางให้ตรงกรอบไข่เดิม
+// img/egg/<key>.webp: ซุป · ญี่ปุ่น · เผ็ด (ไทย/อีสาน) · ก๋วยเตี๋ยว · Fast Food
+// หมวดที่ยังไม่มีแบบ / ไม่เลือกหมวด = ไข่ม่วงเดิมของแอป · เปลี่ยนตอนไข่ยังไม่แตก ไข่ดุ๊กดิ๊กหนึ่งทีให้รู้ว่าเปลี่ยนแล้ว
+var EGG_THEME_KEYS = ["soup", "japanese", "thaiisan", "noodle", "fastfood"];
+function paintEggTheme() {
+	var stage = document.getElementById("eggStage");
+	if (!stage) return;
+	var last = rFilters.cats.length ? rFilters.cats[rFilters.cats.length - 1] : "";
+	var key = EGG_THEME_KEYS.indexOf(last) !== -1 ? last : "";
+	var src = key ? "img/egg/" + key + ".webp" : "img/Dino/3.png";
+	// สกินที่ใส่อยู่ (ร้านสกินไข่ chimchim-skins.js) ชนะไข่ตามหมวดทุกกรณี · เอฟเฟกต์ตอนแตก = fx ของสกิน (ไม่มี = ไม่มีเอฟเฟกต์)
+	var skin = window.chimchimEggSkin;
+	if (skin && skin.image) { src = skin.image; key = skin.fx || ""; }
+	if (stage.getAttribute("data-egg-src") === src) return;
+	stage.setAttribute("data-egg-src", src);
+	stage.setAttribute("data-egg", key);
+	stage.querySelectorAll(".eggshell").forEach(function(img) { img.src = src; });
+	var btn = stage.querySelector(".eggbtn");
+	var st = stage.getAttribute("data-state");
+	if (btn && (!st || st === "idle") && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+		btn.classList.remove("is-wiggle");
+		void btn.offsetWidth;
+		btn.classList.add("is-wiggle");
+		if (typeof chimchimEggSound === "function") chimchimEggSound("wiggle");
+	}
+}
 function renderRouletteFilters() {
 	var all = ร้านทั้งหมดที่สุ่มได้();
 	function chips(boxId, options, current, label, onPick) {
@@ -208,6 +234,7 @@ function renderRouletteFilters() {
 	if (summary) summary.textContent = filterSummaryText();
 	var clear = document.getElementById("rfClear");
 	if (clear) clear.hidden = !filtersActive();
+	paintEggTheme();
 }
 function setRouletteFilter(key, val) {
 	rFilters[key] = val;
@@ -413,6 +440,7 @@ function onEggTap() {
 			revealEggResult();
 			return;
 		}
+		startEggSkinRoll();
 		shakeEgg("firstTap");
 		return;
 	}
@@ -425,6 +453,16 @@ function onEggTap() {
 	}
 }
 
+// แตะไข่: ไข่ขยายขึ้นนิดหนึ่ง + เอฟเฟกต์สีประจำหมวดระเบิดออก (chimchim-egg-fx.js) — แตะ 1–2 เบา ๆ, ไข่แตก = เต็ม
+// หมวดที่ยังไม่มีแบบไข่ (ไข่ม่วง) มีแค่การขยาย ไม่มีเอฟเฟกต์สี
+// ไข่ม่วงปกติ (ไม่มีไข่พิเศษ) ใช้เอฟเฟกต์ "plain" · เสียง: แตะ 1–2 = "tap", ไข่แตก = "crack"
+function eggTapFx(power, step) {
+	eggBtn.classList.remove("is-pump");
+	void eggBtn.offsetWidth;
+	eggBtn.classList.add("is-pump");
+	if (typeof chimchimEggFx === "function") chimchimEggFx(eggStage.getAttribute("data-egg") || "plain", power, eggBtn);
+	if (typeof chimchimEggSound === "function") chimchimEggSound(step ? "tap" : "crack", step);
+}
 function shakeEgg(nextState) {
 	// ไม่ล็อกระหว่างสั่น: แตะรัว ๆ ไข่ก็ไปขั้นถัดไปทันที แอนิเมชันสั่นเริ่มใหม่ทุกแตะ
 	clearEggTimers();
@@ -433,16 +471,99 @@ function shakeEgg(nextState) {
 	eggStage.classList.remove("is-shaking");
 	void eggStage.offsetWidth;
 	eggStage.classList.add("is-shaking");
+	eggTapFx(0.35, nextState === "secondTap" ? 2 : 1);
 	eggLater(function() {
 		eggStage.classList.remove("is-shaking");
 	}, EGG_SHAKE_MS);
 }
 
+/* --- ไข่บางทีออกสกินแทนร้าน (SQL Phase 29: 3% · ลุ้นได้ 5 ครั้งแรกต่อวัน · ฐานข้อมูลสุ่มและให้ของเอง) ---
+   เริ่มถามตั้งแต่แตะแรก (ระหว่างแตะครั้งที่ 2–3 ผลก็มาแล้ว) · ตอนไข่แตกถ้ายังไม่มาจะรออีกไม่เกิน 1.2 วิ ไม่งั้นออกร้านตามปกติ
+   บัญชีทดลอง/ยังไม่ล็อกอิน/ถามไม่ได้ = ออกร้านเสมอ */
+var eggSkinRoll = null; // { done, res, waiters: [] }
+function startEggSkinRoll() {
+	eggSkinRoll = null;
+	var session = getSession();
+	if (typeof sbEggSkinRoll !== "function" || !session || !/^[0-9a-f-]{36}$/i.test(session.id || "")) return;
+	var roll = { done: false, res: null, waiters: [] };
+	eggSkinRoll = roll;
+	sbEggSkinRoll().then(function(res) {
+		roll.done = true;
+		roll.res = res;
+		roll.waiters.splice(0).forEach(function(fn) { fn(); });
+	});
+}
+function whenEggSkinRoll(cb) {
+	var roll = eggSkinRoll;
+	if (!roll || roll.done) { cb(roll && roll.res); return; }
+	var fired = false;
+	function go() { if (!fired) { fired = true; cb(roll.done ? roll.res : null); } }
+	roll.waiters.push(go);
+	setTimeout(go, 1200);
+}
 function openEgg() {
 	clearEggTimers();
 	eggStage.classList.remove("is-shaking");
 	eggBusy = true;
+	whenEggSkinRoll(function(res) {
+		eggSkinRoll = null;
+		if (res && res.status === "skin" && res.skin && res.skin.image) openEggSkin(res.skin);
+		else openEggShop();
+	});
+}
+// ไข่แตกออกเป็นสกิน: เอฟเฟกต์ใหญ่ตามระดับ + เสียงแฟนแฟร์ → การ์ดสกิน (ใส่เลย / สุ่มร้านต่อ)
+function openEggSkin(skin) {
 	setEggState("opening");
+	eggBtn.classList.remove("is-pump");
+	void eggBtn.offsetWidth;
+	eggBtn.classList.add("is-pump");
+	if (typeof chimchimEggFx === "function") chimchimEggFx("jackpot-" + (skin.rarity || "common"), 1, eggBtn);
+	if (typeof chimchimEggSound === "function") { chimchimEggSound("crack"); chimchimEggSound("jackpot", skin.rarity === "legendary" ? 3 : skin.rarity === "rare" ? 2 : 1); }
+	if (typeof logEvent === "function") logEvent("egg_skin_won", { skin: skin.id, rarity: skin.rarity });
+	if (typeof window.chimchimSkinsChanged === "function") window.chimchimSkinsChanged();
+	eggLater(function() {
+		setEggState("revealing");
+		showEggSkinWin(skin);
+		eggLater(function() {
+			eggBusy = false;
+			setEggState("result");
+			eggHint.textContent = t("skin.eggWonHint");
+			var wear = document.getElementById("eggSkinWear");
+			if (wear && document.activeElement === eggBtn) wear.focus({ preventScroll: true });
+		}, EGG_REVEAL_MS);
+	}, EGG_OPEN_MS + 300);
+}
+function showEggSkinWin(skin) {
+	var box = document.getElementById("eggSkinWin");
+	if (!box) return;
+	var name = (getLang() === "en" ? skin.nameEn : skin.nameTh) || skin.nameTh || skin.id;
+	box.setAttribute("data-rarity", skin.rarity || "common");
+	box.querySelector(".esw-art img").src = skin.image;
+	box.querySelector(".esw-rarity").textContent = t("skin.rarity." + (skin.rarity || "common"));
+	box.querySelector(".esw-name").textContent = name;
+	var wear = document.getElementById("eggSkinWear");
+	wear.disabled = false;
+	wear.onclick = function() {
+		wear.disabled = true;
+		sbEquipSkin(skin.id).then(function(res) {
+			if (!res || res.status !== "ok") { wear.disabled = false; showToast(t("skin.failed")); return; }
+			window.chimchimEggSkin = { id: skin.id, image: skin.image, fx: skin.fx || null };
+			try { localStorage.setItem("chimchim_egg_skin:" + getSession().id, JSON.stringify(window.chimchimEggSkin)); } catch (e) {}
+			showToast(t("skin.wornNow").replace("{name}", name));
+			box.hidden = true;
+			resetEgg();
+			paintEggTheme();
+		});
+	};
+	document.getElementById("eggSkinAgain").onclick = function() { box.hidden = true; resetEgg(); };
+	box.hidden = false;
+	box.classList.remove("is-in");
+	void box.offsetWidth;
+	box.classList.add("is-in");
+}
+function openEggShop() {
+	setEggState("opening");
+	eggTapFx(1);
 	eggLater(function() {
 		setEggState("revealing");
 		revealEggResult();
@@ -566,6 +687,8 @@ function revealEggResult(restoring, reroll) {
 	view.setAttribute("data-id", ร้าน.id);
 
 	eggResult.hidden = false;
+	// การ์ดออกมาจากไข่ใบนี้: ขอบเปลือกแตกด้านบนเป็นสีของไข่ (หมวด/สกิน) — ดู .eggresult[data-egg] ใน CSS
+	eggResult.setAttribute("data-egg", eggStage.getAttribute("data-egg") || "plain");
 	eggResult.classList.remove("is-in");
 	void eggResult.offsetWidth;
 	eggResult.classList.add("is-in");
@@ -588,6 +711,8 @@ function resetEgg() {
 	eggError.hidden = true;
 	eggResult.hidden = true;
 	eggResult.classList.remove("is-in");
+	var skinWin = document.getElementById("eggSkinWin");
+	if (skinWin) skinWin.hidden = true;
 	var similar = document.getElementById("wSimilarSection");
 	if (similar) similar.hidden = true;
 	setEggState("idle");
@@ -671,6 +796,53 @@ document.getElementById("rfClear").addEventListener("click", function() {
 setRouletteMode(foodDNAPersonal ? currentRouletteMode : "mix");
 renderRouletteFilters();
 setEggState("idle");
+
+// ปุ่มเปิด/ปิดเสียงไข่ (สวิตช์เดียวกับเสียงเหรียญ/หีบ)
+(function eggSoundToggle() {
+	var b = document.getElementById("eggSoundBtn");
+	if (!b) return;
+	function on() { try { return localStorage.getItem("chimchim_sound") !== "0"; } catch (e) { return true; } }
+	function paint() {
+		var v = on();
+		b.setAttribute("aria-pressed", v ? "true" : "false");
+		b.setAttribute("aria-label", t(v ? "coin.soundOff" : "coin.soundOn"));
+		b.querySelector("i").className = "fas " + (v ? "fa-volume-high" : "fa-volume-xmark");
+	}
+	b.hidden = false;
+	paint();
+	b.addEventListener("click", function() {
+		try { localStorage.setItem("chimchim_sound", on() ? "0" : "1"); } catch (e) {}
+		paint();
+		if (on() && typeof chimchimEggSound === "function") chimchimEggSound("tap", 1);
+	});
+})();
+
+// ไข่ขยับดุ๊กดิ๊กเป็นพัก ๆ ชวนให้แตะ — เฉพาะตอนยังไม่แตะ (idle), แท็บเปิดอยู่, และผู้ใช้ไม่ได้ปิดแอนิเมชัน
+// ครั้งแรก ~1.2 วิหลังเข้าหน้า แล้วสุ่มเว้น 3.5–7 วิ (ไม่สม่ำเสมอ ดูมีชีวิตกว่า)
+(function eggWiggleNudge() {
+	var btn = eggStage && eggStage.querySelector(".eggbtn");
+	if (!btn || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+	var timer;
+	function next(ms) {
+		clearTimeout(timer);
+		timer = setTimeout(wiggle, ms);
+	}
+	function wiggle() {
+		if (eggState === "idle" && !document.hidden) {
+			btn.classList.remove("is-wiggle");
+			void btn.offsetWidth;
+			btn.classList.add("is-wiggle");
+			if (typeof chimchimEggSound === "function") chimchimEggSound("wiggle");
+		}
+		next(3500 + Math.random() * 3500);
+	}
+	btn.addEventListener("animationend", function(e) {
+		if (e.animationName === "eggWiggle") btn.classList.remove("is-wiggle");
+	});
+	// แตะแล้วหยุดดุ๊กดิ๊กทันที ไม่ไปทับแอนิเมชันร้าว/แตก
+	btn.addEventListener("pointerdown", function() { btn.classList.remove("is-wiggle"); });
+	next(1200);
+})();
 
 // เปิดหน้ากลับมาภายใน 20 นาที → โชว์ผลเดิมทันที (ไข่เปิดอยู่แล้ว โหมดเดิมถูกเลือกไว้)
 (function restoreEggResult() {

@@ -1090,11 +1090,11 @@ grant execute on function public.chimchim_spend_prompt_token(uuid, uuid) to serv
 -- Phase 27 — รางวัลลุ้นดาว: เหรียญ/หีบไดอารี่ + เช็กอินสุ่มรายรอบพร้อมหีบสมบัติ
 -- ต้องรัน Phase 26 ก่อน / รันซ้ำได้ — การสุ่มทั้งหมดเกิดในฐานข้อมูล หน้าเว็บแค่แสดงผล (ปลอมผลไม่ได้)
 -- 1) เช็กอิน: ทุกรอบ 7 วันสุ่มใหม่ต่อผู้ใช้ — มี "หีบสมบัติการันตี 3★" 1 วัน (สุ่มว่าวันไหน มักเป็นวันท้าย ๆ)
---    โชคดี ~10% ได้หีบที่ 2 · วันอื่นได้วันละ 0–3 Token รวม 4–6 (มีวันรักษาไฟ 🔥 1–3 วัน)
+--    โชคดี ~10% ได้หีบที่ 2 · วันอื่นได้ของทุกวัน วันละ 1–3 Token (มากน้อยสลับกัน รวมไม่เกินจำนวนวัน+4)
 --    ขาดวัน = ไฟดับ → รอบใหม่ สุ่มใหม่
 -- 2) ไดอารี่: อัปรูป = ได้รางวัลของวันนั้น วันละ 1 ชิ้น (วันตามเวลาไทยที่อัป)
 --    ทุกสัปดาห์ (อาทิตย์–เสาร์) สุ่ม 2 วันเป็น "วันหีบ" — เห็นล่วงหน้าบนปฏิทิน: อัปวันนั้นได้หีบ (เริ่ม 2★) วันอื่นได้เหรียญ (เริ่ม 1★)
--- 3) เปิดรางวัล: แตะทีละครั้ง ลุ้นได้ 3 ครั้ง — อัปดาวได้ลุ้นต่ออีก 3 ครั้ง · สูงสุด 4★ · หมดสิทธิ์/ครบ 4★ = เปิด
+-- 3) เปิดรางวัล: แตะ 4 ครั้งจบ (แตะรัวได้) — แต่ละครั้งลุ้นอัปดาว · สูงสุด 4★ · ครบ 4 ครั้ง/ครบ 4★ = เปิด
 --    เหรียญ 1★=1 2★=2 3★=3 4★=5 · หีบ 2★=4 3★=6 4★=10
 --    โอกาสอัปต่อการแตะ: เหรียญ 15/10/6% · หีบ 15/12/8% (ดาว 1→2 / 2→3 / 3→4)
 -- ปรับตัวเลขได้ที่ chimchim_box_reward / chimchim_box_upgrade_chance / chimchim_random_checkin_cycle จุดเดียว
@@ -1111,7 +1111,7 @@ create table if not exists public.prize_boxes (
   kind text not null check (kind in ('coin', 'chest')),
   day date not null,
   stars int not null check (stars between 1 and 4),
-  taps_left int not null default 3 check (taps_left between 0 and 3),
+  taps_left int not null default 4 check (taps_left between 0 and 4),
   taps int not null default 0,
   opened boolean not null default false,
   reward int,
@@ -1133,6 +1133,19 @@ begin
     execute 'drop table public.diary_coins';
   end if;
 end $$;
+-- กติกาใหม่: แตะ 4 ครั้งจบ (ไม่รีเซ็ตเมื่ออัปดาว) — ขยายช่อง taps_left และปรับรางวัลที่ยังไม่เปิดให้เหลือ 4 − ที่แตะไปแล้ว
+-- ลบ check เดิมของ taps_left ทุกตัว ไม่ว่าจะชื่ออะไร (ถ้าค้าง ≤3 ไว้ กล่องใหม่ 4 ครั้งจะบันทึกไม่ได้ → บันทึกไดอารี่ที่มีรูปพัง)
+do $$
+declare k text;
+begin
+  for k in select conname from pg_constraint
+           where conrelid = 'public.prize_boxes'::regclass and contype = 'c' and pg_get_constraintdef(oid) ilike '%taps_left%' loop
+    execute format('alter table public.prize_boxes drop constraint %I', k);
+  end loop;
+end $$;
+alter table public.prize_boxes add constraint prize_boxes_taps_left_check check (taps_left between 0 and 4);
+alter table public.prize_boxes alter column taps_left set default 4;
+update public.prize_boxes set taps_left = greatest(1, 4 - taps) where not opened and taps_left <> greatest(1, 4 - taps);
 drop function if exists public.chimchim_coin_tap(date);
 drop function if exists public.chimchim_coin_reward(int);
 drop function if exists public.chimchim_coin_upgrade_chance(int);
@@ -1166,13 +1179,15 @@ declare
   chest1 int;
   chest2 int;
   total int;
-  zeros int;
+  days int;
+  big int;
 begin
   loop
+    -- ได้ของทุกวัน: วันละ 1 (55%) / 2 (35%) / 3 (10%)
     r := array[]::int[];
     for i in 1..7 loop
       x := random();
-      r := r || (case when x < 0.35 then 0 when x < 0.75 then 1 when x < 0.95 then 2 else 3 end);
+      r := r || (case when x < 0.55 then 1 when x < 0.90 then 2 else 3 end);
     end loop;
     -- หีบใบแรก: วันที่ 7 บ่อยสุด (40%) ไม่งั้นสุ่มวันที่ 3–6
     chest1 := case when random() < 0.4 then 7 else 3 + floor(random() * 4)::int end;
@@ -1185,13 +1200,38 @@ begin
       end loop;
       r[chest2] := -1;
     end if;
-    select coalesce(sum(v), 0), count(*) filter (where v = 0) into total, zeros from unnest(r) v where v >= 0;
-    exit when total between 4 and 6 and zeros between 1 and 3;
+    -- แบ่งมากน้อย: มีวัน 2+ อย่างน้อย 1 วัน แต่รวมไม่เกินจำนวนวัน + 4 (6 วัน = 7–10 Token)
+    select coalesce(sum(v), 0), count(*), count(*) filter (where v >= 2) into total, days, big from unnest(r) v where v >= 0;
+    exit when big >= 1 and total <= days + 4;
   end loop;
   return r;
 end;
 $$;
 revoke execute on function public.chimchim_random_checkin_cycle() from public, anon, authenticated;
+
+-- กติกาใหม่ ได้ของทุกวัน: รอบที่สุ่มไว้ก่อนหน้า วันที่ยังไม่ถึง/ยังไม่รับ ที่เป็น 0 → 1 Token (วันที่รับไปแล้วคงตามจริง)
+do $$
+declare
+  cc record;
+  r int[];
+  changed boolean;
+begin
+  for cc in select user_id, start_day, rewards from public.checkin_cycles
+            where start_day >= (now() at time zone 'Asia/Bangkok')::date - 7 and 0 = any (rewards) loop
+    r := cc.rewards;
+    changed := false;
+    for i in 1..7 loop
+      if r[i] = 0 and not exists (select 1 from public.daily_checkins
+                                  where user_id = cc.user_id and day = cc.start_day + (i - 1)) then
+        r[i] := 1;
+        changed := true;
+      end if;
+    end loop;
+    if changed then
+      update public.checkin_cycles set rewards = r where user_id = cc.user_id and start_day = cc.start_day;
+    end if;
+  end loop;
+end $$;
 
 -- รอบของวัน p_day ที่เป็นวันที่ n ของไฟ (1–7) — ยังไม่มีก็สุ่มสร้าง
 -- (ผู้ใช้ที่ไฟติดอยู่ตั้งแต่ Phase 26: วันที่ผ่านมาในรอบนี้ใช้รางวัลที่ได้จริง ส่วนวันที่เหลือสุ่มใหม่)
@@ -1345,6 +1385,7 @@ declare
   uid uuid := auth.uid();
   c public.prize_boxes%rowtype;
   up boolean := false;
+  skin jsonb := null;
 begin
   if uid is null then
     return jsonb_build_object('status', 'auth');
@@ -1354,13 +1395,12 @@ begin
     return jsonb_build_object('status', 'none');
   end if;
   if not c.opened then
+    -- แตะ 4 ครั้งจบ: ทุกครั้งลุ้นอัปดาว (ไม่ได้สิทธิ์เพิ่ม)
     c.taps := c.taps + 1;
+    c.taps_left := greatest(c.taps_left - 1, 0);
     if c.stars < 4 and random() < public.chimchim_box_upgrade_chance(c.kind, c.stars) then
       c.stars := c.stars + 1;
-      c.taps_left := 3;
       up := true;
-    else
-      c.taps_left := c.taps_left - 1;
     end if;
     if c.stars = 4 or c.taps_left = 0 then
       c.opened := true;
@@ -1371,6 +1411,10 @@ begin
       insert into public.token_grants (user_id, kind, day, amount)
         values (uid, case when c.source = 'login' then 'login_chest' else 'diary_box' end, c.day, c.reward)
         on conflict do nothing;
+      -- หีบสมบัติ: ลุ้นสกินไข่ (Phase 28) — ได้ของที่ยังไม่มี ระดับธรรมดา/หายากเท่านั้น
+      if c.kind = 'chest' then
+        skin := public.chimchim_box_skin_drop(uid);
+      end if;
     end if;
     update public.prize_boxes
       set stars = c.stars, taps_left = c.taps_left, taps = c.taps, opened = c.opened, reward = c.reward, opened_at = c.opened_at
@@ -1378,7 +1422,7 @@ begin
   end if;
   return jsonb_build_object('status', case when c.opened then 'opened' else 'tapping' end, 'id', c.id, 'kind', c.kind,
     'source', c.source, 'day', c.day, 'stars', c.stars, 'tapsLeft', c.taps_left, 'upgraded', up, 'reward', c.reward,
-    'balance', case when c.opened then public.chimchim_token_balance_of(uid) else null end);
+    'balance', case when c.opened then public.chimchim_token_balance_of(uid) else null end, 'skin', skin);
 end;
 $$;
 revoke execute on function public.chimchim_box_tap(bigint) from public, anon;
@@ -1408,3 +1452,407 @@ returns jsonb language sql stable security definer set search_path = public as $
 $$;
 revoke execute on function public.chimchim_token_status() from public, anon;
 grant execute on function public.chimchim_token_status() to authenticated;
+
+-- =====================================================================
+-- Phase 28 — ร้านสกินไข่ (หน้าสุ่มร้าน): ซื้อด้วย Token · บางทีได้จากหีบสมบัติ · ใส่ได้ทีละสกิน (ชนะไข่ตามหมวด)
+-- ต้องรัน Phase 26–27 ก่อน / รันซ้ำได้ — ซื้อ/ใส่/สุ่มได้จากหีบ ทำในฐานข้อมูลทั้งหมด (หน้าเว็บปลอมไม่ได้)
+-- ราคาตามระดับ: ธรรมดา 20 · หายาก 40 · ตำนาน 80 Token (แก้ที่ chimchim_skin_price จุดเดียว)
+-- หีบสมบัติ (ไดอารี่/เช็กอิน) เปิดแล้วมีโอกาส chimchim_skin_drop_chance() ได้สกินธรรมดา/หายากที่ยังไม่มี
+-- เพิ่มสกิน: ใส่แถวในตาราง egg_skins จาก Supabase Dashboard (Table editor) — id ตัวพิมพ์เล็ก/ตัวเลข/ขีด, image_url = ลิงก์ภาพไข่
+--   (ภาพพื้นโปร่งใส ขนาด/ตำแหน่งไข่เหมือน img/Dino/3.png เพื่อให้รอยร้าวตรง) · fx = เอฟเฟกต์ตอนแตก (ไม่ใส่ = ไม่มี)
+-- =====================================================================
+create table if not exists public.egg_skins (
+  id text primary key check (id ~ '^[a-z0-9][a-z0-9-]{1,39}$'),
+  name_th text not null check (char_length(name_th) between 1 and 40),
+  name_en text not null check (char_length(name_en) between 1 and 40),
+  rarity text not null check (rarity in ('common', 'rare', 'legendary')),
+  image_url text not null check (image_url ~ '^(https://|img/)'),
+  fx text check (fx is null or fx in ('soup', 'japanese', 'thaiisan', 'noodle', 'fastfood')),
+  active boolean not null default true,
+  sort int not null default 0,
+  created_at timestamptz not null default now()
+);
+alter table public.egg_skins enable row level security;
+drop policy if exists "egg_skins_select_active" on public.egg_skins;
+create policy "egg_skins_select_active" on public.egg_skins for select using (active);
+
+-- สกินที่ผู้ใช้มี (paid = Token ที่จ่าย, ได้จากหีบ = 0) — อ่านได้แค่ของตัวเอง เขียนผ่านฟังก์ชันเท่านั้น
+create table if not exists public.user_skins (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  skin_id text not null references public.egg_skins(id) on delete cascade,
+  source text not null check (source in ('buy', 'chest')),
+  paid int not null default 0 check (paid >= 0),
+  created_at timestamptz not null default now(),
+  primary key (user_id, skin_id)
+);
+alter table public.user_skins enable row level security;
+drop policy if exists "user_skins_select_own" on public.user_skins;
+create policy "user_skins_select_own" on public.user_skins for select using (auth.uid() = user_id);
+
+-- สกินที่ใส่อยู่ (ไม่มีแถว = ไข่ปกติ/ไข่ตามหมวด)
+create table if not exists public.egg_skin_equipped (
+  user_id uuid primary key references public.profiles(id) on delete cascade,
+  skin_id text not null references public.egg_skins(id) on delete cascade,
+  updated_at timestamptz not null default now()
+);
+alter table public.egg_skin_equipped enable row level security;
+drop policy if exists "egg_skin_equipped_select_own" on public.egg_skin_equipped;
+create policy "egg_skin_equipped_select_own" on public.egg_skin_equipped for select using (auth.uid() = user_id);
+
+create or replace function public.chimchim_skin_price(p_rarity text)
+returns int language sql immutable as $$
+  select case p_rarity when 'common' then 20 when 'rare' then 40 when 'legendary' then 80 end
+$$;
+create or replace function public.chimchim_skin_drop_chance()
+returns float8 language sql immutable as $$ select 0.10::float8 $$;
+
+-- ยอด Token = ที่ได้รับทั้งหมด − ที่ใช้กับ Prompt − ที่จ่ายซื้อสกิน (แทนสูตร Phase 26)
+create or replace function public.chimchim_token_balance_of(p_user uuid)
+returns int language sql stable security definer set search_path = public as $$
+  select greatest(0,
+    coalesce((select sum(amount)::int from public.token_grants where user_id = p_user), 0)
+    - (select count(*)::int from public.prompt_token_spends
+        where user_id = p_user and status = 'charged'
+          and created_at >= (select value from public.token_settings where key = 'wallet_start'))
+    - coalesce((select sum(paid)::int from public.user_skins where user_id = p_user), 0)
+  );
+$$;
+revoke execute on function public.chimchim_token_balance_of(uuid) from public, anon, authenticated;
+grant execute on function public.chimchim_token_balance_of(uuid) to service_role;
+
+-- ร้าน: สกินทั้งหมดที่ขายอยู่ + มีแล้วหรือยัง + ที่ใส่อยู่ + ยอด Token
+create or replace function public.chimchim_skin_state()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'skins', coalesce((select jsonb_agg(jsonb_build_object(
+        'id', s.id, 'nameTh', s.name_th, 'nameEn', s.name_en, 'rarity', s.rarity, 'price', public.chimchim_skin_price(s.rarity),
+        'image', s.image_url, 'fx', s.fx, 'owned', us.skin_id is not null, 'source', us.source) order by s.sort, s.created_at)
+      from public.egg_skins s left join public.user_skins us on us.skin_id = s.id and us.user_id = auth.uid()
+      where s.active), '[]'::jsonb),
+    'equipped', (select e.skin_id from public.egg_skin_equipped e join public.egg_skins s on s.id = e.skin_id and s.active
+                 where e.user_id = auth.uid()),
+    'balance', case when auth.uid() is null then null else public.chimchim_token_balance_of(auth.uid()) end
+  );
+$$;
+revoke execute on function public.chimchim_skin_state() from public, anon;
+grant execute on function public.chimchim_skin_state() to authenticated;
+
+-- ซื้อสกิน — คืน { status: bought | owned | poor | none | auth, skin, price, balance } (ซื้อแล้วใส่ให้เลย)
+create or replace function public.chimchim_buy_skin(p_skin text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  s public.egg_skins%rowtype;
+  price int;
+  bal int;
+begin
+  if uid is null then return jsonb_build_object('status', 'auth'); end if;
+  select * into s from public.egg_skins where id = p_skin and active;
+  if not found then return jsonb_build_object('status', 'none'); end if;
+  perform pg_advisory_xact_lock(hashtextextended(uid::text, 26));
+  if exists (select 1 from public.user_skins where user_id = uid and skin_id = s.id) then
+    return jsonb_build_object('status', 'owned', 'skin', s.id, 'balance', public.chimchim_token_balance_of(uid));
+  end if;
+  price := public.chimchim_skin_price(s.rarity);
+  bal := public.chimchim_token_balance_of(uid);
+  if bal < price then
+    return jsonb_build_object('status', 'poor', 'skin', s.id, 'price', price, 'balance', bal);
+  end if;
+  insert into public.user_skins (user_id, skin_id, source, paid) values (uid, s.id, 'buy', price);
+  insert into public.egg_skin_equipped (user_id, skin_id) values (uid, s.id)
+    on conflict (user_id) do update set skin_id = excluded.skin_id, updated_at = now();
+  return jsonb_build_object('status', 'bought', 'skin', s.id, 'price', price, 'balance', public.chimchim_token_balance_of(uid));
+end;
+$$;
+revoke execute on function public.chimchim_buy_skin(text) from public, anon;
+grant execute on function public.chimchim_buy_skin(text) to authenticated;
+
+-- ใส่/ถอดสกิน (p_skin = null → ถอด) — ใส่ได้เฉพาะที่มี · คืน { status: ok | notOwned | auth, equipped }
+create or replace function public.chimchim_equip_skin(p_skin text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null then return jsonb_build_object('status', 'auth'); end if;
+  if p_skin is null then
+    delete from public.egg_skin_equipped where user_id = uid;
+    return jsonb_build_object('status', 'ok', 'equipped', null);
+  end if;
+  if not exists (select 1 from public.user_skins us join public.egg_skins s on s.id = us.skin_id and s.active
+                 where us.user_id = uid and us.skin_id = p_skin) then
+    return jsonb_build_object('status', 'notOwned');
+  end if;
+  insert into public.egg_skin_equipped (user_id, skin_id) values (uid, p_skin)
+    on conflict (user_id) do update set skin_id = excluded.skin_id, updated_at = now();
+  return jsonb_build_object('status', 'ok', 'equipped', p_skin);
+end;
+$$;
+revoke execute on function public.chimchim_equip_skin(text) from public, anon;
+grant execute on function public.chimchim_equip_skin(text) to authenticated;
+
+-- เรียกจาก chimchim_box_tap ตอนหีบเปิด: ลุ้นสกินธรรมดา/หายากที่ยังไม่มี (ไม่ใส่ให้อัตโนมัติ) — คืนข้อมูลสกินหรือ null
+create or replace function public.chimchim_box_skin_drop(p_user uuid)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  s public.egg_skins%rowtype;
+begin
+  if random() >= public.chimchim_skin_drop_chance() then return null; end if;
+  select * into s from public.egg_skins sk
+    where sk.active and sk.rarity in ('common', 'rare')
+      and not exists (select 1 from public.user_skins us where us.user_id = p_user and us.skin_id = sk.id)
+    order by random() limit 1;
+  if not found then return null; end if;
+  insert into public.user_skins (user_id, skin_id, source, paid) values (p_user, s.id, 'chest', 0) on conflict do nothing;
+  return jsonb_build_object('id', s.id, 'nameTh', s.name_th, 'nameEn', s.name_en, 'rarity', s.rarity, 'image', s.image_url);
+end;
+$$;
+revoke execute on function public.chimchim_box_skin_drop(uuid) from public, anon, authenticated;
+
+-- =====================================================================
+-- Phase 29 — XP จากการใช้ทุกวัน + ฉายาเลือกเองได้ + สกินล็อกเลเวล + ไข่สุ่มร้านบางทีออกสกิน
+-- ต้องรัน Phase 24, 26–28 ก่อน / รันซ้ำได้
+-- XP ยังคิดจาก "กิจกรรมจริงในตาราง" ไม่เก็บเป็นตัวเลขที่แก้ได้ (หลักเดียวกับ Phase 24):
+--   รีวิว 30 · โพสต์ 20 · Food DNA 20 · คอมเมนต์ 5 · ถูกใจ/บันทึก/ติดตาม 2
+--   + เช็กอินรายวัน 10/วัน
+--   + ไดอารี่ = สแกนเช็กอินร้าน (อย่างเดียวกัน): 20/ร้าน/วัน สูงสุด 3 ร้านต่อวัน (ไม่นับซ้ำกับไดอารี่)
+--     บันทึกเก่าที่ไม่ได้ผูกร้าน (ก่อนมีระบบสแกน) ได้ 10/วัน
+-- เลเวล 1–7 ที่ 0/50/150/300/500/800/1200 XP (ตรงกับ CHIMCHIM_LEVELS ใน chimchim-core.js — แก้ต้องแก้คู่กัน)
+-- ความเป็นส่วนตัว: เลเวลสาธารณะรวม XP จากเช็กอิน/ไดอารี่/สแกนร้านเป็นตัวเลขเดียว (dailyXp) ไม่บอกว่ากี่วันที่เขียนไดอารี่
+-- หมายเหตุ: ตอนนี้คิวอาร์เป็นลิงก์ธรรมดา ฐานข้อมูลยังแยกไม่ได้ว่าบันทึกที่ผูกร้านมาจากการสแกนจริงหรือไม่
+--   (จำกัด 3 ร้าน/วันกันปั๊มไว้ก่อน) — ตอนสร้างคิวอาร์ให้ร้านควรใส่รหัสลับต่อร้านเพื่อยืนยันการสแกน
+-- =====================================================================
+
+-- นับกิจกรรมทั้งหมดของผู้ใช้หนึ่งคน (ใช้ภายใน — ไม่เปิดให้เรียกตรง เพราะมีจำนวนวันไดอารี่)
+create or replace function public.chimchim_xp_counts(p_user uuid)
+returns jsonb language sql stable security definer set search_path = public as $$
+  with diary as (
+    select (created_at at time zone 'Asia/Bangkok')::date as d, shop_id from public.diary_entries where user_id = p_user
+  )
+  select jsonb_build_object(
+    'reviews', (select count(*) from public.reviews where user_id = p_user),
+    'posts', (select count(*) from public.posts where user_id = p_user),
+    'dna', coalesce((select case when food_dna is not null then 1 else 0 end from public.profiles where id = p_user), 0),
+    'comments', (select count(*) from public.comments where author_id = p_user),
+    'social', (select count(*) from public.likes_shops where user_id = p_user)
+            + (select count(*) from public.likes_posts where user_id = p_user)
+            + (select count(*) from public.saved_shops where user_id = p_user)
+            + (select count(*) from public.follows where follower_id = p_user),
+    'checkins', (select count(*) from public.daily_checkins where user_id = p_user),
+    -- ไดอารี่ = สแกนเช็กอินร้าน (อย่างเดียวกัน): วันที่มีร้านคิด shopVisits · diaryDays นับเฉพาะวันที่มีแต่บันทึกเก่าที่ไม่ผูกร้าน
+    'diaryDays', (select count(distinct d) from diary where d not in (select d from diary where shop_id is not null)),
+    'shopVisits', coalesce((select sum(least(c, 3)) from (select d, count(distinct shop_id) c from diary where shop_id is not null group by d) x), 0)
+  );
+$$;
+revoke execute on function public.chimchim_xp_counts(uuid) from public, anon, authenticated;
+
+create or replace function public.chimchim_xp_of(p_user uuid)
+returns int language sql stable security definer set search_path = public as $$
+  select (c->>'reviews')::int * 30 + (c->>'posts')::int * 20 + (c->>'dna')::int * 20 + (c->>'comments')::int * 5
+       + (c->>'social')::int * 2 + (c->>'checkins')::int * 10 + (c->>'diaryDays')::int * 10 + (c->>'shopVisits')::int * 20
+  from (select public.chimchim_xp_counts(p_user) as c) x;
+$$;
+revoke execute on function public.chimchim_xp_of(uuid) from public, anon, authenticated;
+
+create or replace function public.chimchim_level_from_xp(p_xp int)
+returns int language sql immutable as $$
+  select case when p_xp >= 1200 then 7 when p_xp >= 800 then 6 when p_xp >= 500 then 5 when p_xp >= 300 then 4
+              when p_xp >= 150 then 3 when p_xp >= 50 then 2 else 1 end
+$$;
+create or replace function public.chimchim_level_of(p_user uuid)
+returns int language sql stable security definer set search_path = public as $$
+  select public.chimchim_level_from_xp(public.chimchim_xp_of(p_user));
+$$;
+revoke execute on function public.chimchim_level_of(uuid) from public, anon, authenticated;
+
+-- ฉายาที่เลือกโชว์ (= ชื่อเลเวลที่ปลดล็อกแล้ว) — ไม่มีแถว = ใช้ชื่อเลเวลปัจจุบัน · ตั้งผ่าน chimchim_set_title เท่านั้น
+create table if not exists public.user_titles (
+  user_id uuid primary key references public.profiles(id) on delete cascade,
+  level int not null check (level between 1 and 7),
+  updated_at timestamptz not null default now()
+);
+alter table public.user_titles enable row level security;
+drop policy if exists "user_titles_select_own" on public.user_titles;
+create policy "user_titles_select_own" on public.user_titles for select using (auth.uid() = user_id);
+
+-- เลเวลสาธารณะ (แทน Phase 24): จำนวนกิจกรรมสาธารณะเหมือนเดิม + dailyXp (รวมเช็กอิน/ไดอารี่/สแกนร้าน) + ฉายาที่เลือก
+create or replace function public.chimchim_public_xp(uid uuid)
+returns json language sql stable security definer set search_path = public as $$
+  with c as (select public.chimchim_xp_counts(uid) as c),
+  lv as (select public.chimchim_level_of(uid) as l)
+  select json_build_object(
+    'reviews', (c->>'reviews')::int, 'posts', (c->>'posts')::int, 'dna', (c->>'dna')::int,
+    'comments', (c->>'comments')::int, 'social', (c->>'social')::int,
+    'dailyXp', (c->>'checkins')::int * 10 + (c->>'diaryDays')::int * 10 + (c->>'shopVisits')::int * 20,
+    'titleLevel', (select least(t.level, lv.l) from public.user_titles t where t.user_id = uid)
+  ) from c, lv;
+$$;
+revoke all on function public.chimchim_public_xp(uuid) from public;
+grant execute on function public.chimchim_public_xp(uuid) to anon, authenticated;
+
+-- XP ของฉันแบบแยกหมวด (เห็นเฉพาะเจ้าของ) — ใช้ในการ์ดเลเวลหน้าโปรไฟล์
+create or replace function public.chimchim_my_xp()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select case when auth.uid() is null then null else
+    public.chimchim_xp_counts(auth.uid()) || jsonb_build_object(
+      'xp', public.chimchim_xp_of(auth.uid()), 'level', public.chimchim_level_of(auth.uid()),
+      'titleLevel', (select level from public.user_titles where user_id = auth.uid()))
+  end;
+$$;
+revoke execute on function public.chimchim_my_xp() from public, anon;
+grant execute on function public.chimchim_my_xp() to authenticated;
+
+-- เลือกฉายา (p_level = null → ใช้ชื่อเลเวลปัจจุบันอัตโนมัติ) · เลือกได้เฉพาะเลเวลที่ถึงแล้ว
+create or replace function public.chimchim_set_title(p_level int)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  lv int;
+begin
+  if uid is null then return jsonb_build_object('status', 'auth'); end if;
+  if p_level is null then
+    delete from public.user_titles where user_id = uid;
+    return jsonb_build_object('status', 'ok', 'titleLevel', null);
+  end if;
+  lv := public.chimchim_level_of(uid);
+  if p_level < 1 or p_level > lv then
+    return jsonb_build_object('status', 'locked', 'level', lv);
+  end if;
+  insert into public.user_titles (user_id, level) values (uid, p_level)
+    on conflict (user_id) do update set level = excluded.level, updated_at = now();
+  return jsonb_build_object('status', 'ok', 'titleLevel', p_level);
+end;
+$$;
+revoke execute on function public.chimchim_set_title(int) from public, anon;
+grant execute on function public.chimchim_set_title(int) to authenticated;
+
+-- ---- สกินล็อกเลเวล: ซื้อ/ได้จากหีบ/ได้จากไข่ ได้เมื่อเลเวลถึง min_level ----
+alter table public.egg_skins add column if not exists min_level int not null default 1;
+alter table public.egg_skins drop constraint if exists egg_skins_min_level_check;
+alter table public.egg_skins add constraint egg_skins_min_level_check check (min_level between 1 and 7);
+alter table public.user_skins drop constraint if exists user_skins_source_check;
+alter table public.user_skins add constraint user_skins_source_check check (source in ('buy', 'chest', 'egg'));
+
+create or replace function public.chimchim_skin_state()
+returns jsonb language sql stable security definer set search_path = public as $$
+  with lv as (select case when auth.uid() is null then 1 else public.chimchim_level_of(auth.uid()) end as l)
+  select jsonb_build_object(
+    'skins', coalesce((select jsonb_agg(jsonb_build_object(
+        'id', s.id, 'nameTh', s.name_th, 'nameEn', s.name_en, 'rarity', s.rarity, 'price', public.chimchim_skin_price(s.rarity),
+        'image', s.image_url, 'fx', s.fx, 'minLevel', s.min_level, 'owned', us.skin_id is not null, 'source', us.source) order by s.sort, s.created_at)
+      from public.egg_skins s left join public.user_skins us on us.skin_id = s.id and us.user_id = auth.uid()
+      where s.active), '[]'::jsonb),
+    'equipped', (select e.skin_id from public.egg_skin_equipped e join public.egg_skins s on s.id = e.skin_id and s.active
+                 where e.user_id = auth.uid()),
+    'balance', case when auth.uid() is null then null else public.chimchim_token_balance_of(auth.uid()) end,
+    'level', (select l from lv)
+  );
+$$;
+revoke execute on function public.chimchim_skin_state() from public, anon;
+grant execute on function public.chimchim_skin_state() to authenticated;
+
+-- ซื้อสกิน (แทน Phase 28) — เพิ่มสถานะ level (เลเวลยังไม่ถึง) คืน needLevel
+create or replace function public.chimchim_buy_skin(p_skin text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  s public.egg_skins%rowtype;
+  price int;
+  bal int;
+  lv int;
+begin
+  if uid is null then return jsonb_build_object('status', 'auth'); end if;
+  select * into s from public.egg_skins where id = p_skin and active;
+  if not found then return jsonb_build_object('status', 'none'); end if;
+  perform pg_advisory_xact_lock(hashtextextended(uid::text, 26));
+  if exists (select 1 from public.user_skins where user_id = uid and skin_id = s.id) then
+    return jsonb_build_object('status', 'owned', 'skin', s.id, 'balance', public.chimchim_token_balance_of(uid));
+  end if;
+  lv := public.chimchim_level_of(uid);
+  if lv < s.min_level then
+    return jsonb_build_object('status', 'level', 'skin', s.id, 'needLevel', s.min_level, 'level', lv);
+  end if;
+  price := public.chimchim_skin_price(s.rarity);
+  bal := public.chimchim_token_balance_of(uid);
+  if bal < price then
+    return jsonb_build_object('status', 'poor', 'skin', s.id, 'price', price, 'balance', bal);
+  end if;
+  insert into public.user_skins (user_id, skin_id, source, paid) values (uid, s.id, 'buy', price);
+  insert into public.egg_skin_equipped (user_id, skin_id) values (uid, s.id)
+    on conflict (user_id) do update set skin_id = excluded.skin_id, updated_at = now();
+  return jsonb_build_object('status', 'bought', 'skin', s.id, 'price', price, 'balance', public.chimchim_token_balance_of(uid));
+end;
+$$;
+revoke execute on function public.chimchim_buy_skin(text) from public, anon;
+grant execute on function public.chimchim_buy_skin(text) to authenticated;
+
+-- หีบให้สกิน (แทน Phase 28) — เฉพาะสกินที่เลเวลถึงแล้ว
+create or replace function public.chimchim_box_skin_drop(p_user uuid)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  s public.egg_skins%rowtype;
+  lv int;
+begin
+  if random() >= public.chimchim_skin_drop_chance() then return null; end if;
+  lv := public.chimchim_level_of(p_user);
+  select * into s from public.egg_skins sk
+    where sk.active and sk.rarity in ('common', 'rare') and sk.min_level <= lv
+      and not exists (select 1 from public.user_skins us where us.user_id = p_user and us.skin_id = sk.id)
+    order by random() limit 1;
+  if not found then return null; end if;
+  insert into public.user_skins (user_id, skin_id, source, paid) values (p_user, s.id, 'chest', 0) on conflict do nothing;
+  return jsonb_build_object('id', s.id, 'nameTh', s.name_th, 'nameEn', s.name_en, 'rarity', s.rarity, 'image', s.image_url);
+end;
+$$;
+revoke execute on function public.chimchim_box_skin_drop(uuid) from public, anon, authenticated;
+
+-- ---- ไข่สุ่มร้านบางทีออกสกินแทนร้าน ----
+-- โอกาส 3% ต่อการเปิดไข่ · ถ้าออก: ธรรมดา 70% / หายาก 25% / ตำนาน 5% (ระดับนั้นไม่มีสกินที่ยังไม่มีและเลเวลถึง = ไม่ออก → ร้านตามปกติ)
+-- ลุ้นได้ 5 ครั้งแรกต่อวัน (เวลาไทย) กันกดเปิดไข่รัว ๆ เพื่อปั๊มสกิน — เกินแล้วออกร้านเสมอ
+create or replace function public.chimchim_egg_skin_chance()
+returns float8 language sql immutable as $$ select 0.03::float8 $$;
+create or replace function public.chimchim_egg_skin_rarity(r float8)
+returns text language sql immutable as $$
+  select case when r < 0.70 then 'common' when r < 0.95 then 'rare' else 'legendary' end
+$$;
+create table if not exists public.egg_skin_rolls (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  day date not null,
+  rolls int not null default 0,
+  primary key (user_id, day)
+);
+alter table public.egg_skin_rolls enable row level security;
+drop policy if exists "egg_skin_rolls_select_own" on public.egg_skin_rolls;
+create policy "egg_skin_rolls_select_own" on public.egg_skin_rolls for select using (auth.uid() = user_id);
+
+-- คืน { status: skin | none | limit | auth, skin: { id, nameTh, nameEn, rarity, image, fx } }
+create or replace function public.chimchim_egg_skin_roll()
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  today date := (now() at time zone 'Asia/Bangkok')::date;
+  n int;
+  want text;
+  lv int;
+  s public.egg_skins%rowtype;
+begin
+  if uid is null then return jsonb_build_object('status', 'auth'); end if;
+  perform pg_advisory_xact_lock(hashtextextended(uid::text, 29));
+  insert into public.egg_skin_rolls (user_id, day, rolls) values (uid, today, 1)
+    on conflict (user_id, day) do update set rolls = public.egg_skin_rolls.rolls + 1
+    returning rolls into n;
+  if n > 5 then return jsonb_build_object('status', 'limit'); end if;
+  if random() >= public.chimchim_egg_skin_chance() then return jsonb_build_object('status', 'none'); end if;
+  want := public.chimchim_egg_skin_rarity(random());
+  lv := public.chimchim_level_of(uid);
+  select * into s from public.egg_skins sk
+    where sk.active and sk.rarity = want and sk.min_level <= lv
+      and not exists (select 1 from public.user_skins us where us.user_id = uid and us.skin_id = sk.id)
+    order by random() limit 1;
+  if not found then return jsonb_build_object('status', 'none'); end if;
+  insert into public.user_skins (user_id, skin_id, source, paid) values (uid, s.id, 'egg', 0) on conflict do nothing;
+  return jsonb_build_object('status', 'skin', 'skin', jsonb_build_object('id', s.id, 'nameTh', s.name_th, 'nameEn', s.name_en,
+    'rarity', s.rarity, 'image', s.image_url, 'fx', s.fx));
+end;
+$$;
+revoke execute on function public.chimchim_egg_skin_roll() from public, anon;
+grant execute on function public.chimchim_egg_skin_roll() to authenticated;

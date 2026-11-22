@@ -1,7 +1,7 @@
 // chimchim-coin.js
 // รางวัลลุ้นดาว (SQL Phase 27): เหรียญ/หีบจากไดอารี่ และหีบสมบัติจากเช็กอิน — แตะลุ้นอัปดาวแบบเปิดหีบในเกม
 // กติกา (ตัดสินที่ฐานข้อมูลทั้งหมด หน้านี้แค่เล่นแอนิเมชันตามผลที่ได้):
-//   ลุ้นได้ 3 ครั้ง · อัปดาวเมื่อไหร่ได้ลุ้นต่ออีก 3 ครั้ง · สูงสุด 4 ดาว · หมดสิทธิ์/ครบ 4 ดาว = เปิด
+//   แตะ 4 ครั้งจบ (แตะรัวได้ — คิวส่งไปฐานข้อมูลทีละครั้ง) · ทุกครั้งลุ้นอัปดาว · สูงสุด 4 ดาว · ครบ 4 ครั้ง/ครบ 4 ดาว = เปิด
 //   เหรียญ (เริ่ม 1★): 1★=1 2★=2 3★=3 4★=5 · หีบ (ไดอารี่เริ่ม 2★ / เช็กอินการันตี 3★): 2★=4 3★=6 4★=10
 // แอนิเมชัน: ไม่อัป = ค่อย ๆ ใหญ่ขึ้น · อัป = เหรียญหมุน / หีบกระโดดสั่น + ดาวเด้ง · เปิด = ระเบิดเป็นยอด Token
 // เสียง: สังเคราะห์สดด้วย Web Audio (ไม่มีไฟล์เสียง) — ปิดได้ จำไว้ในเครื่อง
@@ -61,7 +61,8 @@ function coinPlay(sound, kind) {
 }
 
 /* ---------------- หน้าต่างลุ้นดาว ---------------- */
-var coinDlgState = null; // { box, onChange, busy, levelTaps, revealing }
+var CHIMCHIM_BOX_TAPS = 4;
+var coinDlgState = null; // { box, onChange, queued, inflight, levelTaps, revealing }
 function coinReducedMotion() {
 	return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
@@ -90,8 +91,10 @@ function coinBuildDialog() {
 			"</button>" +
 			'<p class="cn-result" hidden><img class="cn-result-art" alt=""/><b class="cn-amount"></b><span>Token</span></p>' +
 		"</div>" +
-		'<p class="cn-taps" aria-hidden="true"><i></i><i></i><i></i></p>' +
+		'<p class="cn-taps" aria-hidden="true">' + "<i></i>".repeat(CHIMCHIM_BOX_TAPS) + "</p>" +
 		'<p class="cn-hint" id="cnHint" aria-live="polite"></p>' +
+		// หีบสมบัติให้สกินไข่มาด้วย (SQL Phase 28) — โชว์ใต้ยอด Token
+		'<div class="cn-skin" hidden><img alt=""/><span><b></b><small></small></span></div>' +
 		'<button type="button" class="btn-red cn-done" hidden></button>';
 	document.body.appendChild(dlg);
 	dlg.querySelector(".cn-close").addEventListener("click", function() { dlg.close(); });
@@ -125,14 +128,15 @@ function coinPaint(dlg, hintKey, hintN) {
 	var done = c.opened && !st.revealing; // ระหว่างเล่นแอนิเมชันเปิด ยังโชว์ของอยู่
 	dlg.querySelector(".cn-stars").setAttribute("aria-label", t("coin.starsOf").replace("{n}", c.stars));
 	dlg.querySelectorAll(".cn-stars li").forEach(function(li, i) { li.classList.toggle("is-on", i < c.stars); });
-	dlg.querySelectorAll(".cn-taps i").forEach(function(dot, i) { dot.classList.toggle("is-on", !c.opened && i < c.tapsLeft); });
+	var left = coinTapsLeftShown();
+	dlg.querySelectorAll(".cn-taps i").forEach(function(dot, i) { dot.classList.toggle("is-on", !c.opened && i < left); });
 	dlg.querySelector(".cn-taps").hidden = done;
 	dlg.querySelector(".cn-stage").setAttribute("data-stars", c.stars);
 	var coinBtn = dlg.querySelector(".cn-coin");
 	coinBtn.hidden = done;
 	dlg.querySelector(".cn-aura").hidden = done;
-	coinBtn.setAttribute("aria-disabled", c.opened || st.busy ? "true" : "false");
-	coinBtn.setAttribute("aria-label", t(c.kind === "chest" ? "coin.tapChestLabel" : "coin.tapLabel").replace("{n}", c.tapsLeft));
+	coinBtn.setAttribute("aria-disabled", c.opened || st.revealing || left <= 0 ? "true" : "false");
+	coinBtn.setAttribute("aria-label", t(c.kind === "chest" ? "coin.tapChestLabel" : "coin.tapLabel").replace("{n}", left));
 	// ไม่อัปดาว: ยิ่งแตะในระดับเดียวกัน ยิ่งใหญ่ขึ้นทีละนิด (ลุ้นขึ้นเรื่อย ๆ)
 	coinBtn.style.setProperty("--cn-grow", String(1 + 0.08 * Math.min(st.levelTaps, 6)));
 	var result = dlg.querySelector(".cn-result");
@@ -140,30 +144,61 @@ function coinPaint(dlg, hintKey, hintN) {
 	if (done) dlg.querySelector(".cn-amount").textContent = "+" + c.reward;
 	dlg.querySelector(".cn-result-art").src = CHIMCHIM_BOX_ART[c.kind] || CHIMCHIM_BOX_ART.coin;
 	dlg.querySelector(".cn-done").hidden = !done;
+	var skinBox = dlg.querySelector(".cn-skin");
+	var skin = done ? st.skin : null;
+	skinBox.hidden = !skin;
+	if (skin) {
+		skinBox.querySelector("img").src = skin.image;
+		skinBox.querySelector("b").textContent = t("skin.chestWon") + " " + ((typeof getLang === "function" && getLang() === "en" ? skin.nameEn : skin.nameTh) || "");
+		skinBox.querySelector("small").textContent = t("skin.chestWonHint");
+	}
 	dlg.querySelector(".cn-hint").textContent = t(hintKey).replace("{n}", hintN).replace("{r}", c.reward || 0);
 }
+// สิทธิ์ที่เหลือบนจอ = ที่ฐานข้อมูลบอก − ที่แตะไปแล้วแต่ยังรอผล (แตะรัวแล้วจุดหายทันที)
+function coinTapsLeftShown() {
+	var st = coinDlgState;
+	return st ? Math.max(0, (st.box.tapsLeft || 0) - st.queued) : 0;
+}
+// แตะ: ตอบสนองทันที (เด้ง + ติ๊ง) แล้วต่อคิว — แตะรัวได้จนครบสิทธิ์
 function coinTap() {
 	var st = coinDlgState;
-	if (!st || st.busy || st.box.opened) return;
+	if (!st || st.box.opened || st.revealing || coinTapsLeftShown() <= 0) return;
 	var dlg = document.getElementById("coinDialog");
 	var coinBtn = dlg.querySelector(".cn-coin");
-	var kind = st.box.kind;
-	st.busy = true;
-	coinBtn.setAttribute("aria-disabled", "true");
-	// ตอบสนองทันทีที่แตะ (เด้งเล็ก ๆ + ติ๊ง) ระหว่างรอฐานข้อมูลสุ่มผล
-	coinPlay("tap", kind);
+	st.queued++;
+	coinPlay("tap", st.box.kind);
 	coinBtn.classList.remove("is-bump");
 	void coinBtn.offsetWidth;
 	coinBtn.classList.add("is-bump");
+	st.levelTaps++;
+	coinPaint(dlg, "coin.tapsLeft", coinTapsLeftShown());
+	coinPump();
+}
+// ส่งแตะในคิวไปฐานข้อมูลทีละครั้ง (ผลสุ่มอยู่ที่ฐานข้อมูล) แล้วเล่นอัปดาว/เปิดตามผล
+function coinPump() {
+	var st = coinDlgState;
+	if (!st || st.inflight || st.queued <= 0 || st.box.opened) return;
+	var dlg = document.getElementById("coinDialog");
+	var coinBtn = dlg.querySelector(".cn-coin");
+	var kind = st.box.kind;
+	st.inflight = true;
 	sbBoxTap(st.box.id).then(function(res) {
-		st.busy = false;
+		if (coinDlgState !== st) return; // เปิดรางวัลอื่นไปแล้ว
+		st.inflight = false;
+		st.queued = Math.max(0, st.queued - 1);
 		if (!res || res.status === "none" || res.status === "auth") {
+			st.queued = 0;
 			coinPlay("fail", kind);
-			coinBtn.setAttribute("aria-disabled", "false");
+			coinPaint(dlg, "coin.tapsLeft", coinTapsLeftShown());
 			dlg.querySelector(".cn-hint").textContent = t(res && res.status === "none" ? "coin.none" : "coin.tapFailed");
 			return;
 		}
 		st.box = Object.assign({}, st.box, { stars: res.stars, tapsLeft: res.tapsLeft, opened: res.status === "opened", reward: res.reward });
+		if (res.skin && res.skin.image) {
+			st.skin = res.skin;
+			if (typeof window.chimchimSkinsChanged === "function") window.chimchimSkinsChanged();
+		}
+		if (st.box.opened) st.queued = 0; // ครบ 4★ ก่อนแตะครบ = เปิดเลย แตะที่ค้างในคิวไม่ต้องส่ง
 		var upClass = kind === "chest" ? "is-hop" : "is-spin";
 		if (res.upgraded) {
 			st.levelTaps = 0;
@@ -173,17 +208,14 @@ function coinTap() {
 			coinBtn.classList.add(upClass);
 			var star = dlg.querySelectorAll(".cn-stars li")[res.stars - 1];
 			if (star) { star.classList.remove("is-pop"); void star.offsetWidth; star.classList.add("is-pop"); }
-		} else {
-			st.levelTaps++;
 		}
 		var hintKey = res.upgraded ? "coin.upgraded" : "coin.tapsLeft";
-		var hintN = res.upgraded ? res.stars : res.tapsLeft;
+		var hintN = res.upgraded ? res.stars : coinTapsLeftShown();
 		if (st.box.opened) {
 			// เปิด: รอให้หมุน/กระโดดจบก่อน แล้วค่อยระเบิดเป็นยอด Token
 			var wait = res.upgraded && !coinReducedMotion() ? 820 : 260;
 			st.revealing = true;
 			coinPaint(dlg, hintKey, hintN);
-			coinBtn.setAttribute("aria-disabled", "true");
 			setTimeout(function() {
 				coinBtn.classList.add("is-open");
 				coinPlay("open", kind);
@@ -197,6 +229,7 @@ function coinTap() {
 			}, wait);
 		} else {
 			coinPaint(dlg, hintKey, hintN);
+			coinPump();
 		}
 		if (typeof st.onChange === "function") st.onChange(st.box);
 	});
@@ -207,7 +240,7 @@ function openPrizeBox(box, onChange) {
 	if (!box || !box.id || typeof sbBoxTap !== "function") return;
 	var dlg = coinBuildDialog();
 	var kind = box.kind === "chest" ? "chest" : "coin";
-	coinDlgState = { box: Object.assign({}, box, { kind: kind }), onChange: onChange, busy: false, levelTaps: 3 - (box.tapsLeft || 0), revealing: false, opener: document.activeElement };
+	coinDlgState = { box: Object.assign({}, box, { kind: kind }), onChange: onChange, skin: null, queued: 0, inflight: false, levelTaps: CHIMCHIM_BOX_TAPS - (box.tapsLeft || 0), revealing: false, opener: document.activeElement };
 	dlg.setAttribute("data-kind", kind);
 	dlg.querySelector("#coinTitle").textContent = t(kind === "coin" ? "coin.title" : box.source === "login" ? "coin.titleLoginChest" : "coin.titleChest");
 	dlg.querySelector(".cn-close").setAttribute("aria-label", t("common.close"));

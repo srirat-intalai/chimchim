@@ -30,26 +30,6 @@
             <div class="anm">CHIM<span>CHIM</span></div>
          </a>
          <div class="apptop-actions">
-            <div class="qsettingswrap">
-               <button type="button" id="quickSettingsBtn" class="apptop-btn" data-i18n-title="profile.settings" title="ตั้งค่า"><i class="fas fa-gear"></i></button>
-               <div class="qspanel" id="quickSettingsPanel" hidden>
-                  <div class="qsrow">
-                     <span class="qslbl" data-i18n="settings.appearance">Appearance</span>
-                     <div class="qstoggle">
-                        <button type="button" data-theme-choice="light" data-i18n-title="settings.light" title="โหมดสว่าง"><i class="fas fa-sun"></i></button>
-                        <button type="button" data-theme-choice="dark" data-i18n-title="settings.dark" title="โหมดมืด"><i class="fas fa-moon"></i></button>
-                     </div>
-                  </div>
-                  <div class="qsrow">
-                     <span class="qslbl" data-i18n="settings.language">Language</span>
-                     <div class="qstoggle">
-                        <button type="button" data-lang-choice="en" title="English" aria-label="English">🇬🇧</button>
-                        <button type="button" data-lang-choice="th" title="ไทย" aria-label="ไทย">🇹🇭</button>
-                     </div>
-                  </div>
-                  <a href="settings.html" class="qsmore" data-i18n="profile.settings">Settings</a>
-               </div>
-            </div>
             <button id="loginBtn" class="apptop-loginbtn" data-i18n="auth.login">เข้าสู่ระบบ</button>
             <a href="profile.html" id="userAvatarLink" class="apptop-avatar" data-i18n-aria="nav.profile" aria-label="โปรไฟล์" hidden><span id="userAvatarIco">🦖</span></a>
          </div>
@@ -81,11 +61,12 @@
                <button type="button" class="eggreclink" id="rmodeDnaBtn"><i class="fas fa-dna"></i><span data-i18n="roulette.doDna">ทำ Food DNA (30 วิ)</span></button>
             </div>
 
-            <!-- ตัวเลือกเพิ่มเติม — ไม่บังคับ ไม่เลือกอะไรก็สุ่มได้เลย (พับไว้เป็นค่าเริ่มต้น) -->
+            <!-- หมวดหมู่ (ตัวเลือกเพิ่มเติม) — ไม่บังคับ ไม่เลือกอะไรก็สุ่มได้เลย (พับไว้เป็นค่าเริ่มต้น) -->
             <details class="rfilters" id="rFilters">
                <summary>
+                  <span class="rfmascot" aria-hidden="true"><img src="img/Dino/1.png" alt="" width="84" height="84" draggable="false"/></span>
                   <i class="fas fa-sliders" aria-hidden="true"></i>
-                  <span data-i18n="roulette.filtersTitle">ตัวเลือกเพิ่มเติม</span>
+                  <span data-i18n="roulette.filtersTitle">หมวดหมู่</span>
                   <span class="rfsummary" id="rFilterSummary"></span>
                   <i class="fas fa-chevron-down rfchev" aria-hidden="true"></i>
                </summary>
@@ -124,6 +105,18 @@
             <!-- พื้นที่ฟักไข่: การ์ดเมนูอยู่บน ไข่อยู่ล่าง (DOM เรียงตามภาพ) — การ์ดลอยขึ้นจากไข่ตอนเปิด -->
             <div class="egghatch" id="eggHatch">
                <!-- การ์ดร้านที่เปิดได้ — โชว์เฉพาะข้อมูลที่มีจริงของร้านนั้น -->
+               <!-- ไข่ออกสกินแทนร้าน (SQL Phase 29) -->
+               <div class="eggskinwin" id="eggSkinWin" hidden aria-live="polite">
+                  <p class="esw-kicker" data-i18n="skin.eggWonKicker">ไข่ใบนี้ไม่ได้ออกร้าน… ออกสกินไข่!</p>
+                  <div class="esw-art"><img alt=""/></div>
+                  <span class="esw-rarity"></span>
+                  <h3 class="esw-name"></h3>
+                  <p class="esw-note" data-i18n="skin.eggWonNote">ได้ฟรี เก็บไว้ในร้านสกินไข่แล้ว</p>
+                  <div class="esw-btns">
+                     <button type="button" class="btn-red" id="eggSkinWear"><i class="fas fa-shirt" aria-hidden="true"></i><span data-i18n="skin.eggWear">ใส่เลย</span></button>
+                     <button type="button" class="esw-again" id="eggSkinAgain"><i class="fas fa-rotate" aria-hidden="true"></i><span data-i18n="skin.eggAgain">สุ่มร้านต่อ</span></button>
+                  </div>
+               </div>
                <div class="eggresult" id="eggResult" hidden aria-live="polite">
                   <div class="eggresult-media">
                      <img id="eggResultImg" src="" alt=""/>
@@ -146,7 +139,12 @@
                   </div>
                </div>
 
-               <div class="eggstage" id="eggStage" data-state="idle">
+               <div class="eggstage" id="eggStage" data-state="idle" data-egg-src="img/Dino/3.png">
+                  <!-- ร้านสกินไข่ (SQL Phase 28) — เห็นเฉพาะบัญชีจริง (chimchim-skins.js) -->
+                  <button type="button" class="eggshopbtn" id="eggShopBtn" aria-haspopup="dialog" hidden>
+                     <i class="fas fa-shirt" aria-hidden="true"></i><span data-i18n="skin.shopBtn">สกินไข่</span>
+                  </button>
+                  <button type="button" class="eggsoundbtn" id="eggSoundBtn" aria-pressed="true" hidden><i class="fas fa-volume-high" aria-hidden="true"></i></button>
                   <button type="button" class="eggbtn" id="eggBtn" aria-describedby="eggHint">
                      <span class="eggglow" aria-hidden="true"></span>
                      <span class="eggbody" aria-hidden="true">
@@ -276,6 +274,8 @@
       <script src="js/chimchim-supabase-config.js" defer></script>
       <script src="js/chimchim-supabase-client.js" defer></script>
       <script src="js/chimchim-nav.js" defer></script>
+      <script src="js/chimchim-egg-fx.js" defer></script>
+      <script src="js/chimchim-skins.js" defer></script>
       <script src="js/chimchim-roulette.js" defer></script>
       <script src="js/chimchim-community.js" defer></script>
       <script src="js/chimchim-coin.js" defer></script>

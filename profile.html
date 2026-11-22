@@ -30,26 +30,8 @@
             <div class="anm">CHIM<span>CHIM</span></div>
          </a>
          <div class="apptop-actions">
-            <div class="qsettingswrap">
-               <button type="button" id="quickSettingsBtn" class="apptop-btn" data-i18n-title="profile.settings" title="ตั้งค่า"><i class="fas fa-gear"></i></button>
-               <div class="qspanel" id="quickSettingsPanel" hidden>
-                  <div class="qsrow">
-                     <span class="qslbl" data-i18n="settings.appearance">Appearance</span>
-                     <div class="qstoggle">
-                        <button type="button" data-theme-choice="light" data-i18n-title="settings.light" title="โหมดสว่าง"><i class="fas fa-sun"></i></button>
-                        <button type="button" data-theme-choice="dark" data-i18n-title="settings.dark" title="โหมดมืด"><i class="fas fa-moon"></i></button>
-                     </div>
-                  </div>
-                  <div class="qsrow">
-                     <span class="qslbl" data-i18n="settings.language">Language</span>
-                     <div class="qstoggle">
-                        <button type="button" data-lang-choice="en" title="English" aria-label="English">🇬🇧</button>
-                        <button type="button" data-lang-choice="th" title="ไทย" aria-label="ไทย">🇹🇭</button>
-                     </div>
-                  </div>
-                  <a href="settings.html" class="qsmore" data-i18n="profile.settings">Settings</a>
-               </div>
-            </div>
+            <!-- ตั้งค่าอยู่ที่หน้าโปรไฟล์ที่เดียว (เอาเฟืองออกจากแถบบนของหน้าอื่นแล้ว) — แตะไปหน้าตั้งค่าเต็ม -->
+            <a href="settings.html" class="apptop-btn" id="profSettingsLink" data-i18n-title="profile.settings" data-i18n-aria="profile.settings" title="ตั้งค่า" aria-label="ตั้งค่า"><i class="fas fa-gear" aria-hidden="true"></i></a>
             <button id="loginBtn" class="apptop-loginbtn" data-i18n="auth.login">เข้าสู่ระบบ</button>
             <a href="profile.html" id="userAvatarLink" class="apptop-avatar" data-i18n-aria="nav.profile" aria-label="โปรไฟล์" aria-current="page" hidden><span id="userAvatarIco">🦖</span></a>
          </div>
@@ -75,8 +57,13 @@
       <!-- โชว์เมื่อเข้าสู่ระบบแล้ว — โปรไฟล์ส่วนตัว หรือโปรไฟล์ร้าน (ตามโปรไฟล์ที่ใช้งานอยู่ ซึ่งตรวจสิทธิ์แล้ว) -->
       <div class="profwrap" id="profContent" hidden>
          <h1 class="jvisually-hidden" data-i18n="nav.profile">โปรไฟล์</h1>
+         <!-- ปกโปรไฟล์ (โปรไฟล์ส่วนตัว): รูปไดอารี่ล่าสุด ไม่มีรูป = พื้นม่วงอ่อน + น้องไดโน -->
+         <div class="profcover" id="profCover" aria-hidden="true" hidden><img alt="" id="profCoverImg" hidden/><img alt="" class="profcover-dino" src="img/Dino/12.png"/></div>
          <div class="ighead">
-            <button type="button" class="profavatar igavatar" id="profAvatar" data-i18n-aria="switcher.open" aria-label="สลับโปรไฟล์"></button>
+            <!-- วงแหวนรอบรูป = หลอด XP สู่เลเวลถัดไป (--xp 0–100) -->
+            <span class="profavring" id="profAvRing" style="--xp:0">
+               <button type="button" class="profavatar igavatar" id="profAvatar" data-i18n-aria="switcher.open" aria-label="สลับโปรไฟล์"></button>
+            </span>
             <div class="igstats">
                <div class="igstat"><b id="igStatPosts">0</b><span data-i18n="profile.statPosts">โพสต์</span></div>
                <button type="button" class="igstat igstatbtn" id="igFollowersBtn" aria-haspopup="dialog"><b id="igStatFollowers">0</b><span data-i18n="profile.statFollowers">ผู้ติดตาม</span></button>
@@ -102,9 +89,16 @@
                <small class="lvlnext" id="profLevelNext"></small>
             </button>
          </div>
+         <!-- ตัวเลขสั้น ๆ: เลเวล · ตราประทับร้าน · ไฟต่อเนื่อง · Token (ไฟ/Token เห็นเฉพาะบัญชีจริง) -->
+         <div class="profquick" id="profQuick" hidden>
+            <button type="button" class="pq" id="pqLevel" aria-haspopup="dialog"><b id="pqLevelN">–</b><span data-i18n="profile.pqLevel">เลเวล</span></button>
+            <a class="pq" id="pqStamps" href="diary.html"><b id="pqStampsN">0</b><span data-i18n="profile.pqStamps">ตราประทับ</span></a>
+            <button type="button" class="pq" data-fire data-open-tokens aria-haspopup="dialog" hidden><b><i class="fas fa-fire" aria-hidden="true"></i> <span data-fire-n>0</span></b><span data-i18n="profile.pqFire">วันไฟติด</span></button>
+            <button type="button" class="pq" data-token-chip data-open-tokens aria-haspopup="dialog" hidden><b data-token-balance>–</b><span data-i18n="token.unit">Token</span></button>
+         </div>
          <!-- โปรไฟล์ร้าน: เครื่องมือจัดการร้าน (เห็นเฉพาะเจ้าของร้านที่ตรวจสิทธิ์แล้ว) -->
          <div class="igbtnrow" id="shopBtnRow" hidden>
-            <a href="settings.html#shopFormCard" class="igbtn" id="shopEditLink" data-i18n="profile.editShop">แก้ไขข้อมูลร้าน</a>
+            <a href="settings.html?editShop=1" class="igbtn" id="shopEditLink" data-i18n="profile.editShop">แก้ไขข้อมูลร้าน</a>
             <a href="#" class="igbtn" id="shopPageLink"><i class="fas fa-store me-1"></i><span data-i18n="profile.viewShopPage">ดูหน้าร้าน</span></a>
          </div>
          <div class="profcard" id="shopInfoCard" hidden>
@@ -112,16 +106,9 @@
             <dl class="shopinfolist" id="shopInfoList"></dl>
          </div>
          <div class="igbtnrow" id="selfBtnRow">
-            <a href="settings.html" class="igbtn" data-i18n="profile.editProfile">แก้ไขโปรไฟล์</a>
+            <a href="settings.html" class="igbtn igbtn-edit"><i class="fas fa-pen" aria-hidden="true"></i><span data-i18n="profile.editProfile">แก้ไขโปรไฟล์</span></a>
             <button type="button" class="igbtn" id="diaryPrivacyBtn" aria-haspopup="dialog"><i class="fas fa-lock" id="diaryPrivacyIcon" aria-hidden="true"></i><span id="diaryPrivacyLabel" data-i18n="profile.privacyPrivate">ไดอารี่: ส่วนตัว</span></button>
          </div>
-
-         <!-- Food DNA — กดเป็นปุ่มเพื่อดูรายละเอียดเป็น popup แทนที่จะกางไว้เต็มหน้าตลอด -->
-         <button type="button" class="profcard profcardbtn" id="dnaCardBtn">
-            <div class="profcardtit"><i class="fas fa-dna me-1"></i><span data-i18n="profile.foodDna">Food DNA ของคุณ</span></div>
-            <p class="profcardbtnhint" id="dnaCardHint"></p>
-         </button>
-
          <!-- ไดอารี่ของฉัน + สถิติการกิน + ร้านโปรด — ข้อมูลชุดเดียวกับหน้า diary.html (chimchim-diary-store.js)
               แสดงเฉพาะโปรไฟล์ส่วนตัว (โปรไฟล์ร้านไม่มีไดอารี่) -->
          <!-- ไดอารี่ของฉัน: บันทึกล่าสุด 4 รายการ + ปุ่มบันทึก — ปฏิทินรายเดือนเต็มอยู่ที่ diary.html ("ดูไดอารี่ทั้งหมด") -->
@@ -129,6 +116,14 @@
             <div class="jcard-head">
                <h2 id="profDiaryTitle" data-i18n="profile.diaryTitle">ไดอารี่ของฉัน</h2>
                <a href="diary.html" class="jlink" id="profDiaryAll"><i class="far fa-calendar" aria-hidden="true"></i><span data-i18n="profile.diarySeeAll">ดูทั้งหมด</span></a>
+            </div>
+            <!-- สมุดตราประทับ: ร้านที่สแกนเช็กอินล่าสุด (บันทึกที่ผูกร้าน) — ยังไม่มี = ชวนสแกนร้านแรก -->
+            <div class="pstamps" id="profStampBook">
+               <ol class="pstamps-list" id="profStampList"></ol>
+               <a class="pstamps-empty" id="profStampEmpty" href="diary.html?new=1&amp;return=profile" hidden>
+                  <span class="pstamps-seal" aria-hidden="true"><i class="fas fa-qrcode"></i></span>
+                  <span><b data-i18n="profile.stampEmptyTitle">ยังไม่มีตราประทับ</b><small data-i18n="profile.stampEmptyDesc">สแกนคิวอาร์ที่ร้าน รับตราประทับดวงแรก +20 XP</small></span>
+               </a>
             </div>
             <p class="jbanner is-warn" id="profDiaryNote" role="status" hidden></p>
             <!-- แถบไดอารี่เลื่อนซ้าย-ขวา: วันนี้อยู่ขวาสุด เลื่อนไปทางซ้ายเพื่อดูวันเก่า ๆ (ปุ่มลูกศรสำหรับเมาส์) -->
@@ -158,6 +153,30 @@
                </details>
                <p class="jmuted" id="profFavEmpty" hidden data-i18n="profile.favEmpty">ร้านที่คุณกลับไปกินซ้ำ (บันทึกในไดอารี่ 2 ครั้งขึ้นไป) หรือกดบันทึกร้านไว้ จะขึ้นที่นี่</p>
             </section>
+         </div>
+
+         <!-- เมนูลัดของฉัน: รวมการ์ดย่อยเป็นรายการแถวเดียว (ไข่ของฉัน · Food DNA · สร้างร้าน) ไม่ให้การ์ดใหญ่ซ้อนกันยาว -->
+         <div class="profrows" id="profRows">
+            <a class="profrow" id="profEggRow" href="roulette.html" hidden>
+               <span class="profrow-ico profrow-egg"><img id="profEggImg" src="img/Dino/3.png" alt=""/></span>
+               <span class="profrow-text"><b data-i18n="profile.myEgg">ไข่ของฉัน</b><small id="profEggName"></small></span>
+               <i class="fas fa-chevron-right profrow-go" aria-hidden="true"></i>
+            </a>
+         <!-- ชวนสร้างร้าน: เห็นเฉพาะบัญชีที่ยังไม่มีร้าน กดแล้วไปหน้าสร้างร้านที่มีแค่ฟอร์มร้าน (settings.html?newShop=1) -->
+            <a href="settings.html?newShop=1" class="createshopcard" id="createShopCard" hidden>
+               <span class="createshopcard-ico" aria-hidden="true"><i class="fas fa-store"></i><i class="fas fa-plus"></i></span>
+               <span class="createshopcard-text">
+                  <b data-i18n="shop.ctaTitle">มีร้านอาหารไหม? สร้างร้านของคุณฟรี</b>
+                  <small data-i18n="shop.ctaDesc">ให้นักชิมแถวมหาลัยเจอร้านคุณ ใช้เวลาไม่กี่นาที</small>
+               </span>
+               <i class="fas fa-chevron-right createshopcard-go" aria-hidden="true"></i>
+            </a>
+
+            <!-- Food DNA — กดเป็นปุ่มเพื่อดูรายละเอียดเป็น popup แทนที่จะกางไว้เต็มหน้าตลอด -->
+            <button type="button" class="profcard profcardbtn" id="dnaCardBtn">
+               <div class="profcardtit"><i class="fas fa-dna me-1"></i><span data-i18n="profile.foodDna">Food DNA ของคุณ</span></div>
+               <p class="profcardbtnhint" id="dnaCardHint"></p>
+            </button>
          </div>
 
          <!-- กิจกรรมของฉัน — แถบแท็บไอคอนแบบ IG: โพสต์ / ร้านที่ถูกใจ / รีวิว / บันทึกไว้ (สลับเนื้อหาด้านล่างโดยไม่โหลดหน้าใหม่) -->

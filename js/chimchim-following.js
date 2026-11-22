@@ -291,12 +291,19 @@ if (typeof syncLikesAndFollowsWithSupabase === "function") {
 	syncLikesAndFollowsWithSupabase(renderCreators);
 }
 
-/* --- ตัวกรอง: ทั้งหมด / ร้านอาหาร / นักชิม / ที่ติดตามแล้ว (ปุ่มมี data-filter) --- */
+/* --- ตัวกรอง: ร้านอาหาร / นักชิม / ที่ติดตามแล้ว (ปุ่มมี data-filter) — ไม่มีปุ่ม "ทั้งหมด" แล้ว
+   ยังไม่เลือก = ดูทั้งหมด (ร้าน + นักชิม) · กดปุ่มที่เลือกอยู่ซ้ำ = ยกเลิก กลับไปดูทั้งหมด --- */
 var peopleFilterBtns = document.querySelectorAll('.filtbtn[data-filter]');
 peopleFilterBtns.forEach(function(btn) {
+	btn.setAttribute('aria-pressed', 'false');
 	btn.addEventListener('click', function() {
-		currentPeopleFilter = this.getAttribute('data-filter');
-		peopleFilterBtns.forEach(function(b) { b.classList.toggle('active', b === btn); });
+		var picked = this.getAttribute('data-filter');
+		currentPeopleFilter = currentPeopleFilter === picked ? 'all' : picked;
+		peopleFilterBtns.forEach(function(b) {
+			var on = b.getAttribute('data-filter') === currentPeopleFilter;
+			b.classList.toggle('active', on);
+			b.setAttribute('aria-pressed', on ? 'true' : 'false');
+		});
 		renderCreators();
 	});
 });

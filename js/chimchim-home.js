@@ -75,14 +75,7 @@ function renderTrendCatStrip() {
     if (!strip) return;
     strip.innerHTML = '';
 
-    var allChip = document.createElement('button');
-    allChip.type = 'button';
-    allChip.className = 'trendcatchip' + (currentTrendCat === 'all' ? ' active' : '');
-    allChip.setAttribute('data-cat', 'all');
-    allChip.setAttribute('aria-pressed', currentTrendCat === 'all' ? 'true' : 'false');
-    allChip.innerHTML = '<span class="trendcaticon" aria-hidden="true">🍽️</span><span data-i18n="home.catAll">' + t('home.catAll') + '</span>';
-    // หมายเหตุ: data-i18n อยู่บน <span> ลูกโดยตรง (ไม่ใช่ .trendcatchip เอง) กัน applyI18n() ไปเขียนทับไอคอนหมวดด้วย
-    strip.appendChild(allChip);
+    // ไม่มีปุ่ม "ทั้งหมด" แล้ว: ยังไม่เลือกหมวด = ดูทุกหมวด · กดหมวดที่เลือกอยู่ซ้ำ = ยกเลิก กลับไปดูทุกหมวด
 
     กลุ่มหมวดหมู่.forEach(function(กลุ่ม) {
         var chip = document.createElement('button');
@@ -96,14 +89,14 @@ function renderTrendCatStrip() {
 
     strip.querySelectorAll('.trendcatchip').forEach(function(chip) {
         chip.addEventListener('click', function() {
-            currentTrendCat = this.getAttribute('data-cat');
+            var picked = this.getAttribute('data-cat');
+            currentTrendCat = currentTrendCat === picked ? 'all' : picked;
             sessionStorage.setItem('chimchim_trend_cat', currentTrendCat);
             strip.querySelectorAll('.trendcatchip').forEach(function(c) {
-                c.classList.remove('active');
-                c.setAttribute('aria-pressed', 'false');
+                var on = c.getAttribute('data-cat') === currentTrendCat;
+                c.classList.toggle('active', on);
+                c.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
-            this.classList.add('active');
-            this.setAttribute('aria-pressed', 'true');
             updateRandomCtaLink();
             renderMatchHero();
             renderRecommendedRow();
@@ -128,6 +121,30 @@ function ร้านอยู่ในหมวดที่เลือก(catO
    เรียก renderMatchHero() ซ้ำได้ทุกครั้งที่สลับภาษา เพื่อสร้างภาพชุดใหม่ให้ข้อความตรงโหมด
 ----------------------------------------------------- */
 var mhState = { ranked: [], currentIndex: 0 };
+// ปุ่มไข่ "บันทึก" มุมขวาบนของภาพ — ใช้ระบบบันทึกร้านเดิม (toggleSaveShop → saved_shops) สถานะตามร้านในภาพที่กำลังโชว์
+function paintHeroSave() {
+    var btn = document.getElementById('mhSaveBtn');
+    var item = mhState.ranked[mhState.currentIndex];
+    if (!btn || !item) return;
+    var saved = typeof isShopSaved === 'function' && isShopSaved(item.r.id);
+    btn.classList.toggle('is-saved', saved);
+    btn.setAttribute('aria-pressed', saved ? 'true' : 'false');
+    btn.setAttribute('aria-label', t(saved ? 'shop.savedForLater' : 'shop.saveForLater') + ' · ' + item.r.ร้าน);
+    btn.querySelector('i').className = (saved ? 'fas' : 'far') + ' fa-bookmark';
+}
+(function wireHeroSave() {
+    var btn = document.getElementById('mhSaveBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function() {
+        var item = mhState.ranked[mhState.currentIndex];
+        if (!item || typeof toggleSaveShop !== 'function') return;
+        var now = toggleSaveShop(item.r.id);
+        if (now === null) return; // ต้องล็อกอินก่อน
+        paintHeroSave();
+        if (now) { btn.classList.remove('is-pop'); void btn.offsetWidth; btn.classList.add('is-pop'); }
+    });
+    if (typeof syncSavedShopsWithSupabase === 'function') syncSavedShopsWithSupabase(paintHeroSave);
+})();
 var MH_MAX_SLIDES = 5;
 function updateHeroBadges() {
     var item = mhState.ranked[mhState.currentIndex];
@@ -136,8 +153,9 @@ function updateHeroBadges() {
     document.getElementById('mhMatchBadge').hidden = !foodDNAPersonal;
     document.getElementById('mhDnaCta').hidden = foodDNAPersonal;
     document.getElementById('mhMatchVal').textContent = matchHeadline(item.m);
-    document.getElementById('mhDish').textContent = item.r.เมนู;
-    document.getElementById('mhShop').textContent = item.r.ร้าน + ' · ฿' + item.r.ราคาต่ำ + '–' + item.r.ราคาสูง;
+    // บรรทัดใหญ่ = ชื่อร้าน · บรรทัดเล็ก = เมนู + ราคา
+    document.getElementById('mhDish').textContent = item.r.ร้าน;
+    document.getElementById('mhShop').textContent = item.r.เมนู + ' · ฿' + item.r.ราคาต่ำ + '–' + item.r.ราคาสูง;
     document.getElementById('mhCircleWrap').setAttribute('aria-label',
         item.r.เมนู + ' · ' + item.r.ร้าน + ' — ' +
         t('home.heroSlideLabel').replace('{n}', mhState.currentIndex + 1).replace('{total}', mhState.ranked.length));
@@ -148,6 +166,7 @@ function updateHeroBadges() {
     var dist = ข้อมูลระยะทาง(item.r);
     document.getElementById('mhDistVal').textContent = distanceText(dist.meters);
     var distLbl = document.getElementById('mhDistLbl');
+    paintHeroSave();
     distLbl.textContent = ป้ายที่มาระยะทาง(dist);
     distLbl.removeAttribute('data-i18n');
 }
@@ -157,10 +176,17 @@ function renderMatchHero() {
     if (!wrap || !slidesEl) return;
 
     var mhPool = ร้านในพื้นที่().filter(function(r) { return ร้านอยู่ในหมวดที่เลือก(r.หมวด, currentTrendCat); });
+    // ลำดับเทรนด์: ตรง Food DNA เป็นหลัก + ใกล้ได้แต้มเสริมนิดหน่อย (0 ม. = +8 ลดลงจนหมดที่ 2 กม.)
+    // ป้ายบนภาพยังโชว์ % ตรงใจจริง (m) ส่วนแต้มใกล้ใช้แค่เรียงลำดับ
     var mhDeduped = กรองรูปไม่ซ้ำ(
         mhPool
-            .map(function(r) { return { r: r, m: คำนวณMatch(r, foodDNA) }; })
-            .sort(function(a, b) { return b.m - a.m; }),
+            .map(function(r) {
+                var m = คำนวณMatch(r, foodDNA);
+                var meters = ข้อมูลระยะทาง(r).meters;
+                var near = typeof meters === 'number' && meters >= 0 ? Math.max(0, 1 - meters / 2000) * 8 : 0;
+                return { r: r, m: m, meters: meters, score: m + near };
+            })
+            .sort(function(a, b) { return b.score - a.score || (a.meters || 0) - (b.meters || 0); }),
         function(item) { return item.r.รูป; }
     );
     mhState.ranked = หมุนเวียนตามวันนี้(mhDeduped, function(item) { return 'hero-' + item.r.id; }, MH_MAX_SLIDES);
@@ -257,27 +283,10 @@ function mhGoTo(idx) {
 renderMatchHero();
 
 /* -----------------------------------------------------
-   🎯 Recommended For You — เฉพาะร้าน Match 70% ขึ้นไป เรียงมากไปน้อย สูงสุด 6 ร้าน
+   หัวข้อ "แนะนำสำหรับคุณ" เหนือภาพเลื่อน — แถวการ์ดร้านใต้ภาพถูกตัดออกแล้ว (เหลือแค่ภาพเลื่อนด้านบน)
+   ชื่อฟังก์ชันเดิมไว้ เพราะตัวกรองหมวด/สลับภาษา/Food DNA เรียกอยู่ · ไม่มีร้านในภาพเลื่อนเลย = บอกเหตุผลใต้หัวข้อ
 ----------------------------------------------------- */
 function renderRecommendedRow() {
-    var row = document.getElementById('recommendedRow');
-    if (!row) return;
-    row.innerHTML = '';
-    var recPool = ร้านในพื้นที่().filter(function(r) { return ร้านอยู่ในหมวดที่เลือก(r.หมวด, currentTrendCat); });
-    var recDeduped = กรองรูปไม่ซ้ำ(
-        recPool
-            .map(function(r) { return { r: r, m: คำนวณMatch(r, foodDNA) }; })
-            .filter(function(x) { return x.m >= 70; })
-            .sort(function(a, b) { return b.m - a.m; }),
-        function(x) { return x.r.รูป; }
-    );
-    // ร้านที่อยู่ในวงกลมด้านบนแล้วไม่ต้องซ้ำในแถวนี้อีก (ถ้าตัดแล้วเหลือน้อยเกินไปค่อยยอมซ้ำ)
-    var heroIds = {};
-    mhState.ranked.forEach(function(item) { heroIds[item.r.id] = true; });
-    var notInHero = recDeduped.filter(function(x) { return !heroIds[x.r.id]; });
-    if (notInHero.length >= 3) recDeduped = notInHero;
-    var แนะนำ = หมุนเวียนตามวันนี้(recDeduped, function(x) { return 'rec-' + x.r.id; }, 6);
-
     var recTitle = document.getElementById('recTitle');
     var recSub = document.getElementById('recSub');
     if (recTitle && recSub) {
@@ -286,20 +295,10 @@ function renderRecommendedRow() {
         recTitle.textContent = t(recTitle.getAttribute('data-i18n'));
         recSub.textContent = t(recSub.getAttribute('data-i18n'));
     }
-    แนะนำ.forEach(function(x) {
-        row.appendChild(buildMiniCard(x.r));
-    });
     var emptyEl = document.getElementById('trendCatEmptyRec');
-    if (แนะนำ.length === 0) {
-        if (emptyEl) {
-            emptyEl.hidden = false;
-            emptyEl.textContent = currentTrendCat === 'all'
-                ? t('home.recNoResultsAll')
-                : t('home.recNoResultsCat');
-        }
-    } else if (emptyEl) {
-        emptyEl.hidden = true;
-    }
+    if (!emptyEl) return;
+    emptyEl.hidden = mhState.ranked.length > 0;
+    emptyEl.textContent = emptyEl.hidden ? '' : t(currentTrendCat === 'all' ? 'home.recNoResultsAll' : 'home.recNoResultsCat');
 }
 renderRecommendedRow();
 

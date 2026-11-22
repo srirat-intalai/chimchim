@@ -188,9 +188,12 @@ function ppuLoadLevel(userId) {
 	sbFetchPublicXp(userId).then(function(counts) {
 		if (!counts || ppUid !== userId) return;
 		var lv = เลเวลจากXP(xpจากจำนวน(counts));
+		// ฉายาที่เจ้าของเลือก (SQL Phase 29) — ไม่เลือก = ชื่อเลเวลปัจจุบัน
+		var tl = counts.titleLevel;
+		var title = tl && tl <= lv.level && CHIMCHIM_LEVELS[tl - 1] ? t(CHIMCHIM_LEVELS[tl - 1].name) : lv.name;
 		var role = document.getElementById("ppuRole");
 		role.innerHTML = '<i class="fas fa-medal" aria-hidden="true"></i><span></span>';
-		role.querySelector("span").textContent = t("publicprofile.levelPill").replace("{n}", lv.level).replace("{name}", lv.name);
+		role.querySelector("span").textContent = t("publicprofile.levelPill").replace("{n}", lv.level).replace("{name}", title);
 		role.title = t("publicprofile.levelHow").replace("{n}", lv.level);
 		var note = document.getElementById("ppuLevelNote");
 		if (note) {
@@ -743,13 +746,9 @@ function ppRenderShopShowcase(o) {
 	});
 	chipBox.hidden = !chipBox.children.length;
 
-	// ปกจากรูปโพสต์ (3 รูปแรก)
-	var coverImgs = [];
-	o.posts.forEach(function(p) {
-		var imgs = typeof getPostImages === "function" ? getPostImages(p) : (p.images || [p.img]);
-		(imgs || []).forEach(function(src) { if (src && coverImgs.length < 3) coverImgs.push({ img: src }); });
-	});
-	ppuRenderCover(coverImgs);
+	// ปกร้าน: ใช้เฉพาะรูปปกที่ร้านอัปโหลดเอง (o.cover) — ไม่ดึงรูปจากโพสต์มาทำปกแล้ว
+	// ยังไม่มีรูปปก = ปกสีพื้นพร้อมน้องไดโน (แบบเดียวกับโปรไฟล์ที่ยังไม่มีรูป)
+	ppuRenderCover(o.cover ? [{ img: o.cover }] : []);
 
 	// สถิติ: โพสต์ · รีวิว · คะแนน · ราคา
 	var stats = document.querySelector("#ppUser .ppu-stats");
@@ -864,7 +863,7 @@ if (ppIsBuShop) {
 	if (!buShop) {
 		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">' + t("common.profileNotFound") + '</p>';
 	} else {
-		ppRenderShopShowcase({ followId: ppUid, name: buShop.name, avatar: buShop.avatar, cat: buShop.cat, bio: buShop.bio, posts: buShop.posts, shopId: buShop.menuId, levelKey: "publicprofile.buShopLevel", posterColor: "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))" });
+		ppRenderShopShowcase({ followId: ppUid, name: buShop.name, avatar: buShop.avatar, cover: buShop.cover || null, cat: buShop.cat, bio: buShop.bio, posts: buShop.posts, shopId: buShop.menuId, levelKey: "publicprofile.buShopLevel", posterColor: "var(--avatar-grad, linear-gradient(135deg, #4a4852, #1f1e24))" });
 	}
 } else if (ppIsPage) {
 	var pageId = ppUid.slice("page-".length);
@@ -872,7 +871,7 @@ if (ppIsBuShop) {
 	if (!page) {
 		document.getElementById("ppContent").innerHTML = '<p style="text-align:center;padding:60px 20px;color:#999;">' + t("common.profileNotFound") + '</p>';
 	} else {
-		ppRenderShopShowcase({ followId: page.id, name: page.name, avatar: page.avatar, cat: page.cat, bio: page.bio, posts: getPostsByPage(page.id), shopId: page.numId || null, ownerId: page.ownerId, levelKey: "publicprofile.pageLevel", posterColor: "var(--cream2)" });
+		ppRenderShopShowcase({ followId: page.id, name: page.name, avatar: page.avatar, cover: page.cover || null, cat: page.cat, bio: page.bio, posts: getPostsByPage(page.id), shopId: page.numId || null, ownerId: page.ownerId, levelKey: "publicprofile.pageLevel", posterColor: "var(--cream2)" });
 	}
 } else {
 	var users = getUsers();

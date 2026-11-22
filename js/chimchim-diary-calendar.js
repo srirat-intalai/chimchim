@@ -19,6 +19,7 @@ function renderDiaryWeekdays(box) {
 // els.chestDays: { "YYYY-MM-DD": true } วันหีบ (สัปดาห์ละ 2 วัน สุ่มที่ฐานข้อมูล)
 //   วันนี้/วันข้างหน้า = เหรียญทอง หรือหีบ (วันหีบ) รอรับ · วันที่ผ่านไปแล้วไม่ได้อัป = เทาจาง
 //   ได้รางวัลแล้ว: ยังไม่เปิด = ส่ายรอแตะ (แตะวัน = เปิดผ่าน els.onCoin) · เปิดแล้ว = +N
+// ตราประทับร้าน: บันทึกที่ผูกร้าน (= สแกนคิวอาร์เช็กอินร้าน) ขึ้นเป็นตราประทับบนวันนั้นแทนเหรียญ · หลายร้าน = เลขบอกจำนวน
 // since = วันแรกที่นับว่า "พลาดได้" (หลังสมัคร/หลังเปิดระบบรางวัล) — วันก่อนหน้านั้นไม่แสดงอะไร ไม่ให้รู้สึกผิดกับวันที่ยังไม่มีระบบ
 function diaryCoinState(boxes, chestDays, key, today, since) {
 	var c = boxes[key];
@@ -65,6 +66,8 @@ function renderDiaryCalendar(els, month, selectedKey, entries, onSelect) {
 		var list = byDate[key] || [];
 		monthCount += list.length;
 		var withPhoto = list.filter(function(e) { return e.img; })[0];
+		var stampIds = [];
+		list.forEach(function(e) { if (e.shopId && stampIds.indexOf(e.shopId) === -1) stampIds.push(e.shopId); });
 		var prize = els.boxes ? diaryCoinState(els.boxes, els.chestDays, key, today, els.rewardsSince) : null;
 		var coinState = prize ? prize.state : null;
 		var coin = prize ? els.boxes[key] : null;
@@ -77,7 +80,8 @@ function renderDiaryCalendar(els, month, selectedKey, entries, onSelect) {
 			(key === selectedKey ? " is-selected" : "") +
 			(key > today ? " is-future" : "") +
 			(!list.length && key < diaryOpenFrom() ? " is-closed" : "") +
-			(coinState && !withPhoto ? " has-coin" : "") +
+			(stampIds.length ? " has-stamp" : "") +
+			(coinState && !withPhoto && !stampIds.length ? " has-coin" : "") +
 			(prize && prize.kind === "chest" && !withPhoto ? " is-chestday" : "");
 		btn.setAttribute("role", "gridcell");
 		btn.setAttribute("data-date", key);
@@ -85,6 +89,7 @@ function renderDiaryCalendar(els, month, selectedKey, entries, onSelect) {
 		btn.setAttribute("aria-label", diaryFormatDate(key, { weekday: "long", day: "numeric", month: "long" }) +
 			(key === today ? " (" + t("diary.today") + ")" : "") +
 			(list.length ? " — " + t("diary.entryCount").replace("{n}", list.length) : "") +
+			(stampIds.length ? " — " + t("diary.stampCell").replace("{n}", stampIds.length) : "") +
 			(coinState === "sealed" ? " — " + t(prize.kind === "chest" ? "coin.cellSealedChest" : "coin.cellSealed")
 				: coinState === "opened" ? " — " + t("coin.cellOpened").replace("{n}", coin.reward)
 				: coinState === "missed" ? " — " + t(prize.kind === "chest" ? "coin.cellMissedChest" : "coin.cellMissed")
@@ -93,7 +98,10 @@ function renderDiaryCalendar(els, month, selectedKey, entries, onSelect) {
 		if (key === selectedKey) btn.setAttribute("aria-current", "date");
 		if (withPhoto) btn.style.backgroundImage = "url('" + cssUrl(withPhoto.img) + "')";
 		var coinHtml = "";
-		if (coinState && !withPhoto) {
+		if (stampIds.length) {
+			// ตราประทับแทนเหรียญ (รางวัลของวันนั้นยังเปิดได้จากแถวรางวัลใต้หัวข้อวัน)
+			coinHtml = '<span class="jcal-stamp" aria-hidden="true"><i class="fas fa-store"></i>' + (stampIds.length > 1 ? "<b>" + stampIds.length + "</b>" : "") + "</span>";
+		} else if (coinState && !withPhoto) {
 			// เปิดแล้ว = ป้าย "+N" แบบเดียวกับบนวันที่มีรูป (ไม่ใช่เหรียญจางซ้อนตัวเลข)
 			coinHtml = '<span class="jcal-coin is-' + coinState + " kind-" + prize.kind + '" aria-hidden="true">' +
 				(coinState === "opened" ? "<b>+" + coin.reward + "</b>" : diaryPrizeArt(prize.kind)) + "</span>";
@@ -101,7 +109,7 @@ function renderDiaryCalendar(els, month, selectedKey, entries, onSelect) {
 			coinHtml = '<span class="jcal-coinbadge is-' + coinState + " kind-" + prize.kind + '" aria-hidden="true">' +
 				(coinState === "opened" ? "+" + coin.reward : diaryPrizeArt(prize.kind)) + "</span>";
 		}
-		var showMore = list.length > 1 && !(withPhoto && coinHtml);
+		var showMore = list.length > 1 && !(withPhoto && coinHtml) && !stampIds.length; // มีตราประทับ = จำนวนมื้อดูในแผงวันแทน
 		btn.innerHTML = '<span class="jcal-num">' + day + "</span>" + coinHtml + (showMore ? '<span class="jcal-more">' + list.length + "</span>" : "");
 		// แตะวัน = เลือกวันอย่างเดียว (เปิดรางวัลจากปุ่มในแถวรางวัลใต้หัวข้อวัน ไม่เด้งหน้าต่างขัดตอนเลื่อนดูมื้อเก่า)
 		btn.addEventListener("click", function() { onSelect(key); });

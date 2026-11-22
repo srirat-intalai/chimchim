@@ -30,7 +30,7 @@
             <h1 data-i18n="diary.title">ไดอารี่</h1>
             <p data-i18n="diary.subtitle">บันทึกมื้ออร่อยและความทรงจำของคุณ</p>
          </div>
-         <button type="button" class="jbtn jbtn-primary" id="diaryAddBtn"><i class="fas fa-plus" aria-hidden="true"></i><span data-i18n="diary.add">เพิ่มบันทึก</span></button>
+         <button type="button" class="jbtn jbtn-primary" id="diaryAddBtn"><i class="fas fa-qrcode" aria-hidden="true"></i><span data-i18n="diary.add">เพิ่มบันทึก</span></button>
       </header>
 
       <main class="jmain">
@@ -58,6 +58,12 @@
                <p class="jcal-legend" id="calLegend" hidden></p>
             </section>
 
+            <!-- ตราประทับร้านของวันที่เลือก (สแกนคิวอาร์เช็กอินร้าน) — กดวันที่มีตราแล้วร้านขึ้นตรงนี้ใต้ปฏิทิน -->
+            <section class="jstamps" id="dayStamps" aria-labelledby="dayStampsTitle" hidden>
+               <h2 id="dayStampsTitle"></h2>
+               <ul class="jstamps-list" id="dayStampsList"></ul>
+            </section>
+
             <!-- บันทึกของวันที่เลือก -->
             <section class="jday" aria-labelledby="dayLabel">
                <div class="jday-head">
@@ -73,7 +79,7 @@
                <div class="jlist" id="dayList" aria-busy="true"></div>
                <div class="jempty" id="dayEmpty" hidden>
                   <p id="dayEmptyText"></p>
-                  <button type="button" class="jbtn jbtn-quiet" id="dayEmptyAdd"><i class="fas fa-plus" aria-hidden="true"></i><span data-i18n="diary.add">เพิ่มบันทึก</span></button>
+                  <button type="button" class="jbtn jbtn-quiet" id="dayEmptyAdd"><i class="fas fa-qrcode" aria-hidden="true"></i><span data-i18n="diary.add">เพิ่มบันทึก</span></button>
                </div>
             </section>
          </div>
@@ -87,6 +93,12 @@
                <button type="button" class="jicon" data-close data-i18n-aria="common.close" aria-label="ปิด"><i class="fas fa-xmark" aria-hidden="true"></i></button>
             </div>
             <div class="jsheet-body">
+               <!-- ร้านที่ได้จากการสแกนคิวอาร์ (ซ่อนตอนกรอกเอง) -->
+               <div class="jscanned" id="dfScanned" hidden>
+                  <i class="fas fa-store" aria-hidden="true"></i>
+                  <span><small data-i18n="qr.scannedAt">สแกนร้านแล้ว</small><b id="dfScannedName"></b></span>
+                  <button type="button" class="jlinkbtn" id="dfRescan"><i class="fas fa-qrcode" aria-hidden="true"></i><span data-i18n="qr.rescan">สแกนใหม่</span></button>
+               </div>
                <div class="jphoto" id="dfPhotoBox">
                   <img id="dfPhotoPreview" alt="" hidden/>
                   <label class="jphoto-pick" for="dfPhoto">
@@ -104,6 +116,7 @@
                   <label for="dfDish"><span data-i18n="diary.dish">ชื่อเมนู</span> <em aria-hidden="true">*</em></label>
                   <input type="text" id="dfDish" maxlength="80" required autocomplete="off" data-i18n-ph="diary.dishPh" placeholder="เช่น ข้าวมันไก่ต้ม"/>
                   <p class="jerr" id="dfDishErr" hidden></p>
+                  <div class="jchips" id="dfMenuChips" role="group" data-i18n-aria="qr.pickMenu" aria-label="เลือกเมนูของร้าน" hidden></div>
                </div>
                <div class="jfield">
                   <label for="dfShop"><span data-i18n="diary.shop">ชื่อร้าน</span> <small data-i18n="diary.optional">ไม่บังคับ</small></label>
@@ -213,6 +226,7 @@
       <script src="js/chimchim-diary-store.js" defer></script>
       <script src="js/chimchim-diary-calendar.js" defer></script>
       <script src="js/chimchim-coin.js" defer></script>
+      <script src="js/chimchim-qrscan.js" defer></script>
       <script src="js/chimchim-diary.js" defer></script>
       <script>
          if ("serviceWorker" in navigator) {

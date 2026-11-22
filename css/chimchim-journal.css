@@ -2585,3 +2585,164 @@ a.ppu-review-who:hover .ppu-review-name { text-decoration: underline; text-under
   .diarypage .jcal { padding: 12px 6px 10px; }
   .jcal-week, .jcal-row, .jcal-grid { gap: 2px; }
 }
+
+/* ---- ตราประทับร้าน (สแกนคิวอาร์เช็กอินร้าน) บนปฏิทินไดอารี่ — ดวงตราหมึกม่วงเอียงนิด ๆ แทนเหรียญ ---- */
+.jcal-stamp {
+  position: absolute; left: 50%; top: 56%; transform: translate(-50%, -50%) rotate(-12deg);
+  display: grid; place-items: center; width: 62%; max-width: 30px; aspect-ratio: 1; border-radius: 50%;
+  border: 2px solid var(--j-brand); background: color-mix(in srgb, var(--j-card) 82%, transparent); color: var(--j-brand);
+  font-size: 0.72rem; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--j-card) 82%, transparent), inset 0 0 0 3px color-mix(in srgb, var(--j-brand) 45%, transparent);
+  pointer-events: none;
+}
+.jcal-cell.has-photo .jcal-stamp { top: auto; left: auto; right: 2px; bottom: 2px; width: 46%; transform: rotate(-12deg); background: var(--j-card); }
+.jcal-stamp b {
+  position: absolute; top: -6px; right: -7px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px;
+  background: var(--j-brand); color: #fff; font-size: 0.6rem; line-height: 15px; text-align: center; transform: rotate(12deg);
+}
+.jcal-cell { position: relative; }
+
+/* ร้านจากตราประทับ (ใต้ปฏิทิน) */
+.jstamps { margin: 0 0 14px; }
+.jstamps[hidden] { display: none; }
+.jstamps h2 { margin: 0 0 8px; font-size: 0.95rem; font-weight: 700; color: var(--j-ink); }
+.jstamps-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.jstamp-card {
+  position: relative; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 12px 8px 8px;
+  border: 1px solid var(--j-line); border-radius: 16px; background: var(--j-card); color: var(--j-ink); text-decoration: none;
+}
+.jstamp-card:hover { color: var(--j-ink); border-color: var(--j-brand); }
+.jstamp-card:focus-visible { outline: 3px solid var(--j-brand); outline-offset: 2px; }
+.jstamp-img { width: 52px; height: 52px; flex: none; border-radius: 12px; overflow: hidden; background: var(--j-line); }
+.jstamp-img img { width: 100%; height: 100%; object-fit: cover; }
+.jstamp-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.jstamp-text b { font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jstamp-text small { font-size: 0.78rem; color: var(--j-ink-2, #6b6577); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jstamp-seal {
+  position: absolute; left: 44px; top: 4px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--j-brand); background: var(--j-card); color: var(--j-brand); font-size: 0.6rem; transform: rotate(-12deg); z-index: 1;
+}
+.jstamp-go { color: var(--j-brand); font-size: 0.8rem; }
+
+/* =====================================================================
+   หัวโปรไฟล์ใหม่ (โปรไฟล์ส่วนตัว): ปก · รูปพร้อมวงแหวน XP · แถวตัวเลข 4 ช่อง · สมุดตราประทับ · เมนูลัดแถวเดียว
+   ===================================================================== */
+.profcover {
+  position: relative; height: 124px; margin: 12px 0 0; border-radius: 24px; overflow: hidden;
+  background: linear-gradient(135deg, #f1eaff 0%, #e2d4ff 55%, #d6c3ff 100%);
+}
+[data-theme="dark"] .profcover { background: linear-gradient(135deg, #2c2540 0%, #362b52 60%, #41325f 100%); }
+.profcover[hidden] { display: none; }
+#profCoverImg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.profcover.has-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20, 14, 34, 0) 40%, rgba(20, 14, 34, 0.35) 100%); }
+.profcover-dino { position: absolute; right: 14px; bottom: -6px; width: 104px; height: auto; }
+.profcover.has-photo .profcover-dino { display: none; }
+
+.prof-diarymode .ighead { display: block; height: auto; padding: 0 0 0 14px; margin-top: -46px; position: relative; z-index: 1; }
+.profavring {
+  display: inline-grid; place-items: center; padding: 4px; border-radius: 50%;
+  background: conic-gradient(var(--j-brand) calc(var(--xp) * 1%), color-mix(in srgb, var(--j-brand) 16%, var(--j-card)) 0);
+  box-shadow: 0 0 0 4px var(--rf-bg, #f6f5fa), 0 8px 18px -10px rgba(60, 30, 120, 0.45);
+}
+.prof-diarymode .profavring .igavatar { width: 80px; height: 80px; font-size: 1.8rem; border: 3px solid var(--j-card); }
+.prof-diarymode .ignamewrap { min-height: 0; margin-top: 8px; padding: 0 0 12px 2px; }
+.prof-diarymode .profname { font-size: 1.3rem; }
+.prof-diarymode #profTokenChip { display: none !important; } /* ยอด Token ย้ายไปอยู่ในแถวตัวเลขแล้ว */
+
+.profquick {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  margin: 0 0 12px; border: 1px solid var(--j-line); border-radius: 20px; background: var(--j-card); overflow: hidden;
+}
+.profquick[hidden] { display: none; }
+.pq {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 64px; padding: 8px 4px;
+  border: 0; border-left: 1px solid var(--j-line); background: none; color: var(--j-ink); font: inherit; text-decoration: none; cursor: pointer;
+}
+.pq:first-child { border-left: 0; }
+.pq[hidden] { display: none; }
+.pq b { font-size: 1.05rem; font-weight: 800; line-height: 1.2; }
+.pq b .fa-fire { color: #f0441f; font-size: 0.9em; }
+.pq[data-state="hot"] b .fa-fire { color: #8a4fe8; }
+.pq[data-state="off"] b .fa-fire { color: var(--j-ink-2); }
+.pq span { font-size: 0.72rem; color: var(--j-ink-2); }
+.pq:hover { background: color-mix(in srgb, var(--j-brand) 6%, transparent); color: var(--j-ink); }
+.pq:focus-visible { outline: 3px solid var(--j-brand); outline-offset: -3px; }
+
+#selfBtnRow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#selfBtnRow .igbtn { border-radius: 14px; font-weight: 700; }
+#selfBtnRow .igbtn-edit { background: var(--j-card); border: 1.5px solid var(--j-brand); color: var(--j-brand); }
+#selfBtnRow #diaryPrivacyBtn { background: var(--j-card); border: 1px solid var(--j-line); color: var(--j-ink); }
+
+/* สมุดตราประทับในการ์ดไดอารี่ */
+.pstamps { margin: 0 0 12px; }
+.pstamps-list { display: flex; gap: 12px; margin: 0; padding: 4px 2px 6px; list-style: none; overflow-x: auto; scrollbar-width: none; }
+.pstamps-list::-webkit-scrollbar { display: none; }
+.pstamps-list[hidden] { display: none; }
+.pstamp { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--j-ink-2); text-decoration: none; }
+.pstamp-ring {
+  position: relative; display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; overflow: hidden;
+  border: 2.5px solid var(--j-brand); box-shadow: inset 0 0 0 3px var(--j-card), inset 0 0 0 4.5px color-mix(in srgb, var(--j-brand) 55%, transparent);
+  background: color-mix(in srgb, var(--j-brand) 10%, var(--j-card)); color: var(--j-brand); transform: rotate(var(--tilt, 0deg));
+}
+.pstamp-ring img { position: absolute; inset: 4px; width: calc(100% - 8px); height: calc(100% - 8px); border-radius: 50%; object-fit: cover; filter: saturate(0.7); opacity: 0.85; }
+.pstamp-ring i { position: relative; font-size: 0.8rem; background: var(--j-card); width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; margin-top: 30px; }
+.pstamp small { font-size: 0.68rem; }
+.pstamp:focus-visible .pstamp-ring { outline: 3px solid var(--j-brand); outline-offset: 2px; }
+.pstamps-empty {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1.5px dashed color-mix(in srgb, var(--j-brand) 45%, transparent);
+  border-radius: 16px; color: var(--j-ink); text-decoration: none; background: color-mix(in srgb, var(--j-brand) 5%, transparent);
+}
+.pstamps-empty[hidden] { display: none; }
+.pstamps-empty:hover { color: var(--j-ink); }
+.pstamps-empty > span:last-child { display: flex; flex-direction: column; gap: 2px; }
+.pstamps-empty b { font-size: 0.9rem; }
+.pstamps-empty small { font-size: 0.78rem; color: var(--j-ink-2); }
+.pstamps-seal { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%; border: 2px dashed var(--j-brand); color: var(--j-brand); transform: rotate(-10deg); }
+
+/* เมนูลัด: การ์ดเดียว แต่ละอย่างเป็นแถว (ไข่ของฉัน · สร้างร้าน · Food DNA) */
+.profrows { margin: 0 0 14px; border: 1px solid var(--j-line); border-radius: 20px; background: var(--j-card); overflow: hidden; }
+.profrows:not(:has(> :not([hidden]))) { display: none; }
+.profrows > .profrow,
+.profrows > .createshopcard,
+.profrows > #dnaCardBtn {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; margin: 0; padding: 10px 14px;
+  border: 0; border-radius: 0; background: none; box-shadow: none;
+  color: var(--j-ink); text-align: left; text-decoration: none; font: inherit; cursor: pointer;
+}
+.profrows > :not([hidden]) ~ :not([hidden]) { border-top: 1px solid var(--j-line); }
+.profrows > [hidden] { display: none !important; }
+.profrows > .profrow:hover, .profrows > .createshopcard:hover, .profrows > #dnaCardBtn:hover { background: color-mix(in srgb, var(--j-brand) 5%, transparent); }
+.profrow-ico { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 14px; background: color-mix(in srgb, var(--j-brand) 10%, var(--j-card)); }
+.profrow-egg img { width: 40px; height: 40px; object-fit: contain; }
+.profrow-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.profrow-text b { font-size: 0.92rem; }
+.profrow-text small { font-size: 0.78rem; color: var(--j-ink-2); }
+.profrow-go { color: var(--j-brand); font-size: 0.8rem; flex: none; }
+.profrows > .createshopcard .createshopcard-ico { width: 44px; height: 44px; border-radius: 14px; font-size: 1rem; }
+.profrows > #dnaCardBtn { flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding-left: 70px; position: relative; }
+.profrows > #dnaCardBtn .profcardtit { margin: 0; font-size: 0.92rem; }
+.profrows > #dnaCardBtn .profcardtit i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; margin: 0 !important; background: color-mix(in srgb, var(--j-brand) 10%, var(--j-card)); color: var(--j-brand); }
+.profrows > #dnaCardBtn .profcardbtnhint { margin: 0; font-size: 0.78rem; text-align: left; }
+/* ใช้ลูกศรเดิมของการ์ด (::after ของหัวข้อ) แต่ย้ายไปขวาสุดเหมือนแถวอื่น */
+.profrows > #dnaCardBtn .profcardtit { position: static; }
+.profrows > #dnaCardBtn .profcardtit::after { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); margin: 0; color: var(--j-brand); }
+.pq b span { font-size: inherit; color: inherit; }
+.profrows > :not([hidden]) ~ #dnaCardBtn:not([hidden]),
+.profrows > :not([hidden]) ~ #createShopCard:not([hidden]) { border-top: 1px solid var(--j-line); }
+
+/* ---- ร้านอาหารโปรด: การ์ดร้านเลื่อนซ้ายขวา กดเข้าหน้าร้านได้ (ไม่พับแล้ว) ---- */
+.jfavbox > summary { cursor: default; }
+.jfavbox .jfav-chev { display: none; }
+.jfav { display: flex; gap: 10px; margin: 10px 0 0; padding: 0 0 4px; list-style: none; overflow-x: auto; scrollbar-width: none; counter-reset: none; }
+.jfav::-webkit-scrollbar { display: none; }
+.jfav li { flex: 0 0 132px; display: block; padding: 0; margin: 0; border: 0; }
+.jfav li::before { content: none !important; display: none !important; }
+.jfavcard {
+  display: flex; flex-direction: column; gap: 4px; height: 100%; padding: 0 0 10px; border: 1px solid var(--j-line); border-radius: 16px;
+  overflow: hidden; background: var(--j-card); color: var(--j-ink); text-decoration: none;
+}
+a.jfavcard:hover { color: var(--j-ink); border-color: var(--j-brand); }
+a.jfavcard:focus-visible { outline: 3px solid var(--j-brand); outline-offset: 2px; }
+.jfavcard-img { position: relative; display: grid; place-items: center; aspect-ratio: 4 / 3; background: color-mix(in srgb, var(--j-brand) 10%, var(--j-card)); color: var(--j-brand); }
+.jfavcard-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.jfavcard b { padding: 0 10px; font-size: 0.85rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.jfavcard small { padding: 0 10px; font-size: 0.72rem; color: var(--j-ink-2); }

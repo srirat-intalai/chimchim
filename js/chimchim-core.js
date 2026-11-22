@@ -1159,13 +1159,18 @@ function mergeRemoteReviewsIntoLocal(shopId, remoteReviews) {
 /* =====================================================================
    เลเวลนักชิม — XP คิดจากกิจกรรมจริงของผู้ใช้ในแอป (ไม่มีตัวเลขสมมติ)
    รีวิว 30 · โพสต์ 20 · ทำ Food DNA 20 (ครั้งเดียว) · ความคิดเห็น 5 · ถูกใจ/บันทึก/ติดตาม 2 ต่อครั้ง
+   + เช็กอินรายวัน 10/วัน · ไดอารี่ = สแกนเช็กอินร้าน 20/ร้าน/วัน (สูงสุด 3) · บันทึกเก่าที่ไม่ผูกร้าน 10/วัน
+   (3 อย่างหลังนับจากฐานข้อมูลเท่านั้น — SQL Phase 29 chimchim_xp_counts ใช้ตัวเลขชุดเดียวกัน แก้ต้องแก้คู่กัน)
    ===================================================================== */
 var CHIMCHIM_XP_RULES = [
 	{ key: "reviews", xp: 30, icon: "pen", label: "level.srcReviews" },
 	{ key: "posts", xp: 20, icon: "image", label: "level.srcPosts" },
 	{ key: "dna", xp: 20, icon: "dna", label: "level.srcDna" },
 	{ key: "comments", xp: 5, icon: "comment", label: "level.srcComments" },
-	{ key: "social", xp: 2, icon: "heart", label: "level.srcSocial" }
+	{ key: "social", xp: 2, icon: "heart", label: "level.srcSocial" },
+	{ key: "checkins", xp: 10, icon: "fire", label: "level.srcCheckins", server: true },
+	{ key: "shopVisits", xp: 20, icon: "stamp", label: "level.srcShopVisits", server: true },
+	{ key: "diaryDays", xp: 10, icon: "book-open", label: "level.srcDiaryDays", server: true }
 ];
 var CHIMCHIM_LEVELS = [
 	{ min: 0, name: "level.l1" },
@@ -1193,7 +1198,8 @@ function นับคอมเมนต์ของฉัน(userId) {
 function xpจากจำนวน(counts) {
 	var xp = 0;
 	CHIMCHIM_XP_RULES.forEach(function(r) { xp += (Number(counts[r.key]) || 0) * r.xp; });
-	return xp;
+	// เลเวลสาธารณะ: เช็กอิน/ไดอารี่/สแกนร้านมาเป็น XP รวมก้อนเดียว (ไม่บอกจำนวนวันไดอารี่ของคนอื่น)
+	return xp + (Number(counts.dailyXp) || 0);
 }
 // คืน { xp, counts: { reviews, posts, dna, comments, social } }
 function คำนวณXP(userId) {

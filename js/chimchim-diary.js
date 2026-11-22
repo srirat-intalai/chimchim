@@ -179,7 +179,42 @@ function entryCard(e) {
 	return card;
 }
 
+// ร้านที่ไปในวันที่เลือก (จากตราประทับ = บันทึกที่ผูกร้าน) — การ์ดร้านพร้อมลิงก์ไปหน้าร้าน ใต้ปฏิทิน
+function renderDayStamps() {
+	var box = document.getElementById("dayStamps");
+	if (!box) return;
+	var key = diaryState.selected;
+	var seen = {}, shops = [];
+	entriesOn(key).forEach(function(e) {
+		if (!e.shopId || seen[e.shopId]) return;
+		seen[e.shopId] = true;
+		var r = typeof หาร้านจากId === "function" ? หาร้านจากId(Number(e.shopId)) : null;
+		shops.push({ id: e.shopId, name: (r && r.ร้าน) || e.shop || "", img: r && r.รูป, cat: r && r.หมวด, dish: e.dish });
+	});
+	box.hidden = !shops.length;
+	if (!shops.length) return;
+	document.getElementById("dayStampsTitle").textContent = t("diary.stampTitle").replace("{date}", diaryFormatDate(key, { day: "numeric", month: "long" })).replace("{n}", shops.length);
+	var list = document.getElementById("dayStampsList");
+	list.innerHTML = "";
+	shops.forEach(function(s) {
+		var li = document.createElement("li");
+		var a = document.createElement("a");
+		a.className = "jstamp-card";
+		a.href = "restaurant.html?id=" + encodeURIComponent(s.id) + "&from=diary";
+		a.innerHTML = '<span class="jstamp-seal" aria-hidden="true"><i class="fas fa-store"></i></span>' +
+			'<span class="jstamp-img"><img alt="" loading="lazy" decoding="async"/></span>' +
+			'<span class="jstamp-text"><b></b><small></small></span><i class="fas fa-chevron-right jstamp-go" aria-hidden="true"></i>';
+		var img = a.querySelector("img");
+		if (s.img) img.src = s.img; else a.querySelector(".jstamp-img").hidden = true;
+		a.querySelector("b").textContent = s.name;
+		a.querySelector("small").textContent = [s.dish, s.cat ? catLabel(s.cat) : ""].filter(Boolean).join(" · ");
+		a.setAttribute("aria-label", t("diary.stampOpen").replace("{name}", s.name));
+		li.appendChild(a);
+		list.appendChild(li);
+	});
+}
 function renderDay() {
+	renderDayStamps();
 	var key = diaryState.selected;
 	var isToday = key === diaryToday();
 	document.getElementById("dayLabel").textContent = isToday
@@ -363,7 +398,60 @@ function renderDayPick(selectedKey) {
 		})(k);
 	}
 }
-function openForm(dateKey, entry) {
+// เพิ่มบันทึก = เปิดกล้องสแกนคิวอาร์ของร้าน (chimchim-qrscan.js) → ฟอร์มที่ใส่ร้าน/เมนูให้แล้ว เหลือถ่ายรูปแล้วกดบันทึก
+// ไม่มีการกรอกเองแล้ว (บันทึกใหม่ต้องมาจากคิวอาร์ร้าน) · กล้องใช้ไม่ได้ → ใช้รูปคิวอาร์ในตัวสแกน · แก้บันทึกเดิมยังใช้ฟอร์มได้
+function startAddFlow() {
+	if (viewerMode) return;
+	if (!getSession()) {
+		if (typeof openAuthPop === "function") openAuthPop("login");
+		return;
+	}
+	if (typeof chimchimOpenQrScanner !== "function") { showToast(t("qr.readerFailed")); return; }
+	chimchimOpenQrScanner({
+		onResult: function(text) {
+			var id = typeof chimchimParseShopQr === "function" ? chimchimParseShopQr(text) : null;
+			if (id === null) return t("qr.notShop");
+			var shop = typeof หาร้านจากId === "function" ? หาร้านจากId(id) : null;
+			if (!shop) return t("qr.unknownShop");
+			if (typeof logEvent === "function") logEvent("diary_qr_scanned", { shopId: id });
+			// เปิดฟอร์มหลังตัวสแกนปิดเสร็จ (สลับ dialog ทีละอัน)
+			setTimeout(function() { openForm(diaryState.selected, null, { shop: shop }); }, 0);
+			return true;
+		}
+	});
+}
+// เมนูของร้านเดียวกัน (ร้านหนึ่งมีได้หลายเมนูในรายการร้าน) — ให้แตะเลือกแทนการพิมพ์
+function shopMenus(shop) {
+	var seen = {};
+	return (typeof รายการร้าน !== "undefined" ? รายการร้าน : []).filter(function(r) {
+		return r.ร้าน === shop.ร้าน && r.เมนู && !seen[r.เมนู] && (seen[r.เมนู] = true);
+	}).map(function(r) { return r.เมนู; });
+}
+function renderScannedShop(shop) {
+	var box = document.getElementById("dfScanned");
+	var chips = document.getElementById("dfMenuChips");
+	box.hidden = !shop;
+	chips.hidden = !shop;
+	chips.innerHTML = "";
+	if (!shop) return;
+	document.getElementById("dfScannedName").textContent = shop.ร้าน;
+	var menus = shopMenus(shop);
+	chips.hidden = menus.length < 2;
+	menus.forEach(function(m) {
+		var b = document.createElement("button");
+		b.type = "button";
+		b.className = "jchip";
+		b.textContent = m;
+		b.setAttribute("aria-pressed", document.getElementById("dfDish").value === m ? "true" : "false");
+		b.addEventListener("click", function() {
+			document.getElementById("dfDish").value = m;
+			setFieldError("dfDish", "");
+			chips.querySelectorAll(".jchip").forEach(function(x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+		});
+		chips.appendChild(b);
+	});
+}
+function openForm(dateKey, entry, preset) {
 	if (viewerMode) return;
 	if (!getSession()) {
 		if (typeof openAuthPop === "function") openAuthPop("login");
@@ -379,6 +467,15 @@ function openForm(dateKey, entry) {
 	var title = document.getElementById("diaryFormTitle");
 	title.setAttribute("data-i18n", entry ? "diary.editTitle" : "diary.formTitle");
 	title.textContent = t(title.getAttribute("data-i18n"));
+	var scannedShop = !entry && preset && preset.shop ? preset.shop : null;
+	if (scannedShop) {
+		// สแกนคิวอาร์ร้านแล้ว: ชื่อร้าน (ผูก shop_id ให้เองตอนบันทึก) + เมนูเด่นของร้าน ไม่ต้องพิมพ์
+		document.getElementById("dfShop").value = scannedShop.ร้าน || "";
+		document.getElementById("dfDish").value = scannedShop.เมนู || "";
+	}
+	renderScannedShop(scannedShop);
+	// ร้านมาจากคิวอาร์ = ล็อกไว้ (เปลี่ยนร้านได้ด้วย "สแกนใหม่" เท่านั้น) · แก้บันทึกเก่ายังพิมพ์ได้ตามเดิม
+	document.getElementById("dfShop").readOnly = !!scannedShop;
 	if (entry) {
 		document.getElementById("dfDish").value = entry.dish || "";
 		document.getElementById("dfShop").value = entry.shop || "";
@@ -400,7 +497,9 @@ function openForm(dateKey, entry) {
 	note.hidden = diaryUsesServer();
 	note.textContent = note.hidden ? "" : t("diary.localOnly");
 	formDialog.showModal();
-	document.getElementById("dfDish").focus();
+	// สแกนร้านแล้ว → ขั้นถัดไปคือถ่ายรูปอาหาร (โฟกัสปุ่มรูป) · กรอกเอง → เริ่มที่ชื่อเมนู
+	if (scannedShop && !formPhoto) document.getElementById("dfPhoto").focus();
+	else document.getElementById("dfDish").focus();
 }
 (function fillShopSuggestions() {
 	var list = document.getElementById("dfShopList");
@@ -535,8 +634,12 @@ formDialog.addEventListener("close", function() {
 /* ---------------- เริ่มหน้า ---------------- */
 document.getElementById("calPrev").addEventListener("click", function() { shiftMonth(-1); });
 document.getElementById("calNext").addEventListener("click", function() { shiftMonth(1); });
-document.getElementById("diaryAddBtn").addEventListener("click", function() { openForm(diaryState.selected); });
-document.getElementById("dayEmptyAdd").addEventListener("click", function() { openForm(diaryState.selected); });
+document.getElementById("diaryAddBtn").addEventListener("click", startAddFlow);
+document.getElementById("dayEmptyAdd").addEventListener("click", startAddFlow);
+document.getElementById("dfRescan").addEventListener("click", function() {
+	formDialog.close();
+	startAddFlow();
+});
 document.getElementById("diaryLoginBtn").addEventListener("click", function() {
 	if (typeof openAuthPop === "function") openAuthPop("login");
 });
@@ -631,6 +734,9 @@ function bootViewer() {
 		renderCalendar();
 		renderDay();
 		if (target) openDetail(target.id);
-		if (params.get("new") === "1") openForm(diaryState.selected);
+		// ?shop=<id> = มาจากหน้าร้านที่เปิดด้วยคิวอาร์ (กล้องมือถือปกติ) → ฟอร์มของร้านนั้นเลย · ?new=1 = เริ่มที่ตัวสแกน
+		var presetShop = /^\d{1,12}$/.test(params.get("shop") || "") && typeof หาร้านจากId === "function" ? หาร้านจากId(Number(params.get("shop"))) : null;
+		if (presetShop) openForm(diaryState.selected, null, { shop: presetShop });
+		else if (params.get("new") === "1") startAddFlow();
 	});
 })();

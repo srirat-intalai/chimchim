@@ -325,3 +325,11 @@ function renderShopDetail() {
 		syncPostsWithSupabase(renderShopPosts);
 	}
 }
+
+/* --- เปิดจากคิวอาร์ของร้าน (?qr=1) → ปุ่มบันทึกมื้อนี้ลงไดอารี่ (ฟอร์มที่ใส่ร้านให้แล้ว) --- */
+(function qrDiaryCta() {
+	var cta = document.getElementById("rdQrLog");
+	if (!cta || !ร้านปัจจุบัน || params.get("qr") !== "1") return;
+	cta.href = "diary.html?shop=" + encodeURIComponent(ร้านปัจจุบัน.id);
+	cta.hidden = false;
+})();

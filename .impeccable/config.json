@@ -20,6 +20,16 @@
         ],
         "createdAt": "2026-10-29T15:50:17.114Z",
         "reason": "Claude: critique Assessment B verified .jsheet has padding:0 by design while every child (.jsheet-head/.jsheet-body/.jsheet-foot) carries 12-20px padding; detector is static and misses the child inset"
+      },
+      {
+        "rule": "organic-clip-path",
+        "value": "*",
+        "files": [
+          "diary.html",
+          "roulette.html"
+        ],
+        "createdAt": "2026-11-22T15:56:42.682Z",
+        "reason": "Intentional egg-shell crack: polygon points trace the SVG crack lines (shell halves) and the cracked-shell rim on the roulette result card; geometric zigzag, not a decorative blob. Rules live in shared css/chimchim-refresh.css, so diary.html also sees them."
       }
     ]
   }
